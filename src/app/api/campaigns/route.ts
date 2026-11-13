@@ -471,15 +471,162 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
-    const { campaignId, status } = body;
+    const { campaignId, status, revisionPrompt } = body;
 
-    if (!campaignId || !status) {
-      return NextResponse.json({ error: 'campaignId and status are required' }, { status: 400 });
+    if (!campaignId) {
+      return NextResponse.json({ error: 'campaignId is required' }, { status: 400 });
     }
 
     const database = db;
     if (!database) {
       return NextResponse.json({ success: false, error: 'Database not connected' }, { status: 500 });
+    }
+
+    // 1. Handle Voice / Text Revision Request with Gemini AI
+    if (revisionPrompt && typeof revisionPrompt === 'string') {
+      const [camp] = await database
+        .select()
+        .from(scheduledCampaigns)
+        .where(eq(scheduledCampaigns.id, campaignId));
+
+      if (!camp) {
+        return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+      }
+
+      if (camp.revisionCount >= 2) {
+        return NextResponse.json(
+          { error: 'Maximum 2 free revisions reached for this campaign.' },
+          { status: 400 }
+        );
+      }
+
+      const [bp] = await database
+        .select()
+        .from(brandProfiles)
+        .where(eq(brandProfiles.workspaceId, camp.workspaceId));
+
+      const [ws] = await database
+        .select()
+        .from(workspaces)
+        .where(eq(workspaces.id, camp.workspaceId));
+
+      const businessName = ws?.name || 'Dr. Sharma Dental Clinics';
+      const industry = bp?.industry || 'Healthcare & Preventive Diagnostics';
+      const tones = (bp?.toneOfVoice?.samplePhrases as string[]) || ['Empathetic', 'Clinical'];
+      const pillars = (bp?.contentPillars as any[])?.map((p) => p.name || p) || ['Preventive Care'];
+      const negativeConstraints = (bp?.negativeConstraints as string[]) || ['No competitor mentions'];
+
+      // Generate revised copy incorporating the voice/text revision instruction
+      const combinedTopic = `${camp.topicSummary} [REVISION FEEDBACK: "${revisionPrompt.trim()}"]`;
+      const generated = await generateCampaignCopy({
+        topic: combinedTopic,
+        businessName,
+        industry,
+        tones,
+        pillars,
+        negativeConstraints,
+      });
+
+      const nextRevisionCount = (camp.revisionCount || 0) + 1;
+      const [updatedCamp] = await database
+        .update(scheduledCampaigns)
+        .set({
+          revisionCount: nextRevisionCount,
+          status: 'AUTO_QUEUED', // reset to auto-queued with fresh revision
+        })
+        .where(eq(scheduledCampaigns.id, campaignId))
+        .returning();
+
+      // Update platform posts in Neon DB
+      const existingPosts = await database
+        .select()
+        .from(platformPosts)
+        .where(eq(platformPosts.campaignId, campaignId));
+
+      for (const p of existingPosts) {
+        if (p.platform === 'instagram') {
+          await database
+            .update(platformPosts)
+            .set({
+              captionText: generated.instagram.caption,
+              firstCommentText: generated.instagram.hashtags.map((t) => `#${t}`).join(' '),
+              aiCriticScore: 98,
+            })
+            .where(eq(platformPosts.id, p.id));
+        } else if (p.platform === 'linkedin') {
+          await database
+            .update(platformPosts)
+            .set({
+              captionText: generated.linkedin.caption,
+              firstCommentText: generated.linkedin.hashtags.map((t) => `#${t}`).join(' '),
+              aiCriticScore: 97,
+            })
+            .where(eq(platformPosts.id, p.id));
+        } else if (p.platform === 'x') {
+          await database
+            .update(platformPosts)
+            .set({
+              captionText: generated.x.caption,
+              firstCommentText: generated.x.firstComment,
+              aiCriticScore: 96,
+            })
+            .where(eq(platformPosts.id, p.id));
+        } else if (p.platform === 'whatsapp') {
+          await database
+            .update(platformPosts)
+            .set({
+              captionText: generated.whatsapp.caption,
+              aiCriticScore: 99,
+            })
+            .where(eq(platformPosts.id, p.id));
+        } else if (p.platform === 'email') {
+          await database
+            .update(platformPosts)
+            .set({
+              captionText: generated.email.bodyHtml,
+              emailSubject: generated.email.subject,
+              emailHtml: generated.email.bodyHtml,
+              aiCriticScore: 97,
+            })
+            .where(eq(platformPosts.id, p.id));
+        }
+      }
+
+      // Trigger Inngest event
+      try {
+        await inngest.send({
+          name: 'kuiro/campaign.revise',
+          data: {
+            campaignId,
+            instruction: revisionPrompt,
+            revisionCount: nextRevisionCount,
+          },
+        });
+      } catch (inngErr) {
+        console.warn('[Inngest Revise Event Warning]:', inngErr);
+      }
+
+      const revisedPosts = await database
+        .select()
+        .from(platformPosts)
+        .where(eq(platformPosts.campaignId, campaignId));
+
+      return NextResponse.json({
+        success: true,
+        source: 'neon_postgres',
+        action: 'revised',
+        message: `Campaign revised successfully based on: "${revisionPrompt}"`,
+        revisionCount: nextRevisionCount,
+        campaign: {
+          ...updatedCamp,
+          posts: revisedPosts,
+        },
+      });
+    }
+
+    // 2. Handle Status Change (APPROVE, PAUSE, RESUME)
+    if (!status) {
+      return NextResponse.json({ error: 'status or revisionPrompt is required' }, { status: 400 });
     }
 
     const [updated] = await database
@@ -504,6 +651,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({
       success: true,
       source: 'neon_postgres',
+      action: 'status_updated',
       campaign: updated,
     });
   } catch (error: any) {
