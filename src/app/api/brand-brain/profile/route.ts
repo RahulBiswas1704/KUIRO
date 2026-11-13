@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, workspaces, brandProfiles, users } from '@/db';
 import { eq } from 'drizzle-orm';
+import { getSessionFromRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     if (!db) {
       return NextResponse.json({
@@ -14,8 +15,18 @@ export async function GET() {
       });
     }
 
-    // 1. Find or create default workspace
-    let [ws] = await db.select().from(workspaces).limit(1);
+    const session = await getSessionFromRequest(req);
+    const workspaceIdParam = req.nextUrl.searchParams.get('workspaceId');
+    const targetWorkspaceId = workspaceIdParam || session?.workspace.id;
+
+    // 1. Find or create scoped workspace
+    let ws;
+    if (targetWorkspaceId) {
+      [ws] = await db.select().from(workspaces).where(eq(workspaces.id, targetWorkspaceId)).limit(1);
+    }
+    if (!ws) {
+      [ws] = await db.select().from(workspaces).limit(1);
+    }
     if (!ws) {
       let [u] = await db.select().from(users).limit(1);
       if (!u) {
@@ -174,8 +185,16 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 1. Get or create workspace
-    let [ws] = await db.select().from(workspaces).limit(1);
+    // 1. Get or create scoped workspace
+    const session = await getSessionFromRequest(req);
+    const targetWorkspaceId = body.workspaceId || session?.workspace.id;
+    let ws;
+    if (targetWorkspaceId) {
+      [ws] = await db.select().from(workspaces).where(eq(workspaces.id, targetWorkspaceId)).limit(1);
+    }
+    if (!ws) {
+      [ws] = await db.select().from(workspaces).limit(1);
+    }
     if (!ws) {
       let [u] = await db.select().from(users).limit(1);
       if (!u) {

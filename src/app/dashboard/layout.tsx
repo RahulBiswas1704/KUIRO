@@ -68,10 +68,9 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [workspace, setWorkspace] = useState('Dr. Sharma Dental Care');
 
-  const currentWorkspaceName = user?.businessName || workspace;
-  const userName = user?.name || 'Dr. Rahul Sharma';
+  const currentWorkspaceName = user?.businessName || 'Dr. Sharma Dental Clinics';
+  const userName = user?.name || 'Dr. Rajesh Sharma';
   const userInitials = userName
     .split(' ')
     .filter(Boolean)
@@ -130,7 +129,7 @@ export default function DashboardLayout({
           <div className="flex items-center justify-between px-3 py-2 rounded-[10px] bg-[#161C24] border border-[#27313F] text-sm text-gray-200">
             <div className="flex items-center gap-2 truncate">
               <div className="w-5 h-5 rounded-md bg-[#FF7A00] flex items-center justify-center text-[11px] font-bold text-white shrink-0">
-                {userInitials || 'DS'}
+                {userInitials || 'RS'}
               </div>
               <span className="truncate text-xs font-medium">{currentWorkspaceName}</span>
             </div>

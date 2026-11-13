@@ -3,6 +3,7 @@ import { db, workspaces, brandProfiles, scheduledCampaigns, platformPosts, users
 import { eq, desc } from 'drizzle-orm';
 import { inngest } from '@/lib/inngest/client';
 import { evaluateCampaignWithCritic } from '@/lib/ai/critic';
+import { getSessionFromRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -145,8 +146,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, count: 0, campaigns: [] });
     }
 
-    // 1. Ensure workspace exists
-    let [ws] = await database.select().from(workspaces).limit(1);
+    // 1. Ensure scoped workspace exists
+    const session = await getSessionFromRequest(req);
+    const workspaceIdParam = req.nextUrl.searchParams.get('workspaceId');
+    const targetWorkspaceId = workspaceIdParam || session?.workspace.id;
+
+    let ws;
+    if (targetWorkspaceId) {
+      [ws] = await database.select().from(workspaces).where(eq(workspaces.id, targetWorkspaceId)).limit(1);
+    }
+    if (!ws) {
+      [ws] = await database.select().from(workspaces).limit(1);
+    }
     if (!ws) {
       let [u] = await database.select().from(users).limit(1);
       if (!u) {
@@ -331,8 +342,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Database not connected' }, { status: 500 });
     }
 
-    // 1. Get workspace and brand profile
-    let [ws] = await database.select().from(workspaces).limit(1);
+    // 1. Get scoped workspace and brand profile
+    const session = await getSessionFromRequest(req);
+    const targetWorkspaceId = body.workspaceId || session?.workspace.id;
+
+    let ws;
+    if (targetWorkspaceId) {
+      [ws] = await database.select().from(workspaces).where(eq(workspaces.id, targetWorkspaceId)).limit(1);
+    }
+    if (!ws) {
+      [ws] = await database.select().from(workspaces).limit(1);
+    }
     if (!ws) {
       let [u] = await database.select().from(users).limit(1);
       if (!u) {

@@ -2,13 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, conversations, inboxMessages } from '@/db';
 import { eq } from 'drizzle-orm';
 import { sendAutonomousEmailNewsletter } from '@/lib/email/publisher';
+import { getSessionFromRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSessionFromRequest(req);
     const body = await req.json();
-    const { conversationId, content, isInternalNote = false, senderName = 'KUIRO Agent' } = body;
+    const { conversationId, content, isInternalNote = false } = body;
+    const senderName = body.senderName || session?.user.name || 'Dr. Rajesh Sharma';
 
     if (!conversationId || !content?.trim()) {
       return NextResponse.json({ error: 'conversationId and content are required' }, { status: 400 });

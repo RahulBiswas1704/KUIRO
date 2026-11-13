@@ -1,11 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db, conversations, inboxMessages, workspaces, users } from '@/db';
 import { desc, asc, eq } from 'drizzle-orm';
 import { ConversationChannel, ConversationStatus, ConversationPriority } from '@/types';
+import { getSessionFromRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const database = db;
     if (!database) {
@@ -16,14 +17,18 @@ export async function GET() {
       });
     }
 
-    // 1. Fetch conversations from Neon PostgreSQL
-    let convList = await database
-      .select()
-      .from(conversations)
-      .orderBy(desc(conversations.updatedAt));
+    // Resolve scoped workspace from session or param
+    const session = await getSessionFromRequest(req);
+    const workspaceIdParam = req.nextUrl.searchParams.get('workspaceId');
+    const targetWorkspaceId = workspaceIdParam || session?.workspace.id;
 
-    // Ensure workspace exists
-    let [ws] = await database.select().from(workspaces).limit(1);
+    let ws;
+    if (targetWorkspaceId) {
+      [ws] = await database.select().from(workspaces).where(eq(workspaces.id, targetWorkspaceId)).limit(1);
+    }
+    if (!ws) {
+      [ws] = await database.select().from(workspaces).limit(1);
+    }
     if (!ws) {
       let [u] = await database.select().from(users).limit(1);
       if (!u) {
@@ -40,6 +45,13 @@ export async function GET() {
         whatsappAdminPhone: '+919876543210',
       }).returning();
     }
+
+    // 1. Fetch conversations scoped to this workspace from Neon PostgreSQL
+    let convList = await database
+      .select()
+      .from(conversations)
+      .where(eq(conversations.workspaceId, ws.id))
+      .orderBy(desc(conversations.updatedAt));
 
     // 2. Multi-Channel Lead Auto-Seeder: Ensure at least 1 lead per major channel (WhatsApp, Instagram, Email)
     const hasInstagram = convList.some((c) => c.channel.toLowerCase() === 'instagram');
