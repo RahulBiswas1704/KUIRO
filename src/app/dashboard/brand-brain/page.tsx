@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Brain,
   Sparkles,
@@ -15,12 +15,14 @@ import {
   Sliders,
   Palette,
   ShieldCheck,
-  Check
+  Check,
+  Loader2
 } from 'lucide-react';
 
 export default function BrandBrainPage() {
   const [url, setUrl] = useState('https://drsharmadental.in');
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [extractedNotice, setExtractedNotice] = useState<string | null>(null);
 
   // Form State
@@ -29,6 +31,7 @@ export default function BrandBrainPage() {
   const [primaryColor, setPrimaryColor] = useState('#0B3B60');
   const [secondaryColor, setSecondaryColor] = useState('#FF7A00');
   const [fontFamily, setFontFamily] = useState('Sora');
+  const [logoUrl, setLogoUrl] = useState('/brand/kuiro-primary.svg');
   const [tones, setTones] = useState<string[]>([
     'Empathetic & Caring',
     'Clinically Authoritative',
@@ -55,6 +58,31 @@ export default function BrandBrainPage() {
 
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  // 1. Fetch live Brand Profile from Neon PostgreSQL on Mount
+  useEffect(() => {
+    fetch('/api/brand-brain/profile')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data) {
+          const d = data.data;
+          if (d.businessName) setBusinessName(d.businessName);
+          if (d.industry) setIndustry(d.industry);
+          if (d.websiteUrl) setUrl(d.websiteUrl);
+          if (d.visualIdentity?.primaryHex) setPrimaryColor(d.visualIdentity.primaryHex);
+          if (d.visualIdentity?.secondaryHex) setSecondaryColor(d.visualIdentity.secondaryHex);
+          if (d.visualIdentity?.fontFamily) setFontFamily(d.visualIdentity.fontFamily);
+          if (d.visualIdentity?.logoUrl) setLogoUrl(d.visualIdentity.logoUrl);
+          if (d.tones && d.tones.length > 0) setTones(d.tones);
+          if (d.pillars && d.pillars.length > 0) setPillars(d.pillars);
+          if (d.negativeConstraints && d.negativeConstraints.length > 0) {
+            setNegativeConstraints(d.negativeConstraints);
+          }
+        }
+      })
+      .catch((err) => console.warn('[Brand Brain Load Error]:', err));
+  }, []);
+
+  // 2. Extract Brand DNA via Google Gemini 3.5 Flash Lite
   const handleExtract = async () => {
     if (!url.trim()) return;
     setIsExtracting(true);
@@ -90,9 +118,59 @@ export default function BrandBrainPage() {
     }
   };
 
-  const handleSave = () => {
-    setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 3000);
+  // 3. Save Permanently to Neon PostgreSQL
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/brand-brain/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessName,
+          industry,
+          websiteUrl: url,
+          primaryColor,
+          secondaryColor,
+          fontFamily,
+          logoUrl,
+          tones,
+          pillars,
+          negativeConstraints,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSavedSuccess(true);
+        setTimeout(() => setSavedSuccess(false), 4000);
+      }
+    } catch (err) {
+      console.error('[Brand Brain Save Error]:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // 4. Upload Logo to Neon Object Storage (S3 CDN)
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/brand-brain/upload-logo', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success && data.publicUrl) {
+        setLogoUrl(data.publicUrl);
+        setExtractedNotice('Custom logo uploaded to Neon Object Storage CDN!');
+      }
+    } catch (err) {
+      console.error('[Logo Upload Error]:', err);
+    }
   };
 
   const addTone = () => {
@@ -157,10 +235,11 @@ export default function BrandBrainPage() {
 
         <button
           onClick={handleSave}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] bg-[#FF7A00] text-white text-xs font-semibold hover:bg-[#E66E00] transition shadow-sm"
+          disabled={isSaving}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] bg-[#FF7A00] text-white text-xs font-semibold hover:bg-[#E66E00] transition shadow-sm disabled:opacity-50"
         >
-          <Save size={15} />
-          <span>Save Brand Brain</span>
+          {isSaving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+          <span>{isSaving ? 'Saving to Neon DB...' : 'Save Brand Brain'}</span>
         </button>
       </div>
 
@@ -305,6 +384,31 @@ export default function BrandBrainPage() {
               <option value="Poppins">Poppins (Friendly Consumer)</option>
               <option value="Playfair Display">Playfair Display (Luxury & Clinic)</option>
             </select>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-gray-700 block mb-1">
+              Brand Logo (Permanent Neon S3 CDN)
+            </label>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center p-1 overflow-hidden">
+                <img
+                  src={logoUrl}
+                  alt="Brand Logo"
+                  className="max-w-full max-h-full object-contain"
+                />
+              </div>
+              <label className="cursor-pointer px-3 py-1.5 rounded-[8px] bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium flex items-center gap-1.5 transition border border-gray-200">
+                <Upload size={14} className="text-[#FF7A00]" />
+                <span>Upload Custom Logo</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                  onChange={handleLogoUpload}
+                  className="hidden"
+                />
+              </label>
+            </div>
           </div>
         </div>
 
