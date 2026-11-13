@@ -14,7 +14,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'conversationId and content are required' }, { status: 400 });
     }
 
-    if (!db) {
+    const database = db;
+    if (!database) {
       return NextResponse.json({
         success: true,
         source: 'mock',
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Fetch target conversation
-    const [conv] = await db
+    const [conv] = await database
       .select()
       .from(conversations)
       .where(eq(conversations.id, conversationId));
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Insert message into Neon PostgreSQL
-    const [newMsg] = await db
+    const [newMsg] = await database
       .insert(inboxMessages)
       .values({
         conversationId: conv.id,
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
       .returning();
 
     // 3. Update conversation last message & reset unread count
-    await db
+    await database
       .update(conversations)
       .set({
         lastMessageText: isInternalNote ? conv.lastMessageText : content.trim(),
