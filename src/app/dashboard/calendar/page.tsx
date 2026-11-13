@@ -37,6 +37,8 @@ export default function CalendarPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [testRunNotice, setTestRunNotice] = useState<string | null>(null);
   const [totalInDb, setTotalInDb] = useState<number>(35);
+  const [isScanningRadar, setIsScanningRadar] = useState(false);
+  const [generatingEventId, setGeneratingEventId] = useState<string | null>(null);
 
   const fetchEvents = () => {
     setIsLoading(true);
@@ -66,14 +68,55 @@ export default function CalendarPage() {
     fetchEvents();
   };
 
+  // 1-Click trigger campaign generation for an individual event
   const handleTestRun = async (event: CulturalEvent) => {
-    setTestRunNotice(`Triggered autonomous 48h campaign for "${event.eventName}". Inngest workflow initiated.`);
+    setGeneratingEventId(event.id);
+    setTestRunNotice(`Synthesizing 48h campaign for "${event.eventName}" with Gemini 3.5 Flash Lite...`);
     try {
-      await fetch('/api/brand-brain/profile'); // keep alive
-    } catch {
-      // non-blocking
+      const res = await fetch('/api/campaigns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: event.eventName,
+          triggerType: 'FESTIVAL',
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTestRunNotice(`✨ AI Campaign created for "${event.eventName}"! 5 platform payloads generated and queued in Neon DB.`);
+      } else {
+        setTestRunNotice(data.error || 'Failed to trigger campaign.');
+      }
+    } catch (err: any) {
+      setTestRunNotice(err.message || 'Error triggering campaign.');
+    } finally {
+      setGeneratingEventId(null);
+      setTimeout(() => setTestRunNotice(null), 6000);
     }
-    setTimeout(() => setTestRunNotice(null), 4000);
+  };
+
+  // Trigger 48h daily cultural radar cron scan across Neon DB
+  const handleScanRadar = async () => {
+    setIsScanningRadar(true);
+    setTestRunNotice('Running 48h Cultural Radar Scan across all active workspaces in Neon DB...');
+    try {
+      const res = await fetch('/api/calendar/cron-trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTestRunNotice(`Radar Scan Complete! ${data.message}`);
+        fetchEvents();
+      } else {
+        setTestRunNotice(data.error || 'Radar scan failed.');
+      }
+    } catch (err: any) {
+      setTestRunNotice(err.message || 'Error triggering radar scan.');
+    } finally {
+      setIsScanningRadar(false);
+      setTimeout(() => setTestRunNotice(null), 6000);
+    }
   };
 
   return (
@@ -106,14 +149,24 @@ export default function CalendarPage() {
           </p>
         </div>
 
-        <button
-          onClick={fetchEvents}
-          disabled={isLoading}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold transition"
-        >
-          <RefreshCw size={13} className={isLoading ? 'animate-spin' : ''} />
-          <span>Sync Calendar</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleScanRadar}
+            disabled={isScanningRadar}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-[10px] bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-semibold transition shadow-xs disabled:opacity-50"
+          >
+            {isScanningRadar ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+            <span>Trigger 48h Radar Scan</span>
+          </button>
+          <button
+            onClick={fetchEvents}
+            disabled={isLoading}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold transition"
+          >
+            <RefreshCw size={13} className={isLoading ? 'animate-spin' : ''} />
+            <span>Sync Calendar</span>
+          </button>
+        </div>
       </div>
 
       {/* Live Stats Ribbon */}
@@ -301,10 +354,20 @@ export default function CalendarPage() {
                 </span>
                 <button
                   onClick={() => handleTestRun(event)}
-                  className="text-xs font-semibold text-[#FF7A00] hover:text-[#E66E00] flex items-center gap-1 transition"
+                  disabled={generatingEventId === event.id}
+                  className="text-xs font-semibold text-[#FF7A00] hover:text-[#E66E00] flex items-center gap-1 transition disabled:opacity-50"
                 >
-                  <span>Test Run</span>
-                  <ArrowRight size={13} />
+                  {generatingEventId === event.id ? (
+                    <>
+                      <Loader2 size={12} className="animate-spin" />
+                      <span>Synthesizing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Trigger 48h Campaign</span>
+                      <ArrowRight size={13} />
+                    </>
+                  )}
                 </button>
               </div>
             </div>

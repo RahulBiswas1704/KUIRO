@@ -1,17 +1,20 @@
 import { inngest } from '../client';
+import { db, scheduledCampaigns, platformPosts, workspaces, brandProfiles } from '@/db';
+import { eq } from 'drizzle-orm';
 import { GeneratedAssetPayload } from '@/types';
 import { evaluateCampaignWithCritic } from '@/lib/ai/critic';
-import { compositeBrandOverlay, generateContactSheetGrid } from '@/lib/media/compositor';
+import { generateContactSheetGrid } from '@/lib/media/compositor';
 import { whatsappClient } from '@/lib/whatsapp/client';
 import { publishToAllChannels } from '@/lib/social/publisher';
+import { generateCampaignCopy } from '@/lib/campaigns/generator';
 
 /**
  * 48-Hour Passive Approval State Machine ("Auto-Commit Protocol")
  *
  * Timeline:
- * T-48 Hours: Triggers autonomous generation of copy, visuals, and channel payloads.
+ * T-48 Hours: Triggers autonomous generation of copy, visuals, and channel payloads via Gemini 3.5.
  * Pre-Publish: Runs AI Critic loop (Hook Strength, Formatting, Guardrails) -> ai_critic_score.
- * T-47.8 Hours: Sends interactive WhatsApp Utility Template with 2x2 preview card + [Approve Now], [Request Edit], [Skip Post].
+ * T-47.8 Hours: Sends interactive WhatsApp Utility Template with 2x2 preview card + [Approve Now], [Request Edit], [Emergency Pause].
  * T-47.8h to T-0h: Durable race-condition-free event wait loop. Admin can reply with voice notes in any regional language.
  * Enforces max 2 free revisions per campaign.
  * T-0h (Auto-Commit): If status remains AUTO_QUEUED, system auto-commits and publishes across connected platforms.
@@ -26,83 +29,140 @@ export const autopilot48hStateMachine = inngest.createFunction(
   async ({ event, step }) => {
     const { campaignId, workspaceId, publishAt } = event.data;
 
-    // STEP 1: Load Campaign & Persistent Brand Brain Context
+    // STEP 1: Load Campaign & Persistent Brand Brain Context from Neon DB
     const campaignContext = await step.run('load-campaign-context', async () => {
+      const database = db;
+      let brandName = 'Apex Diagnostic & Wellness Clinic';
+      let adminPhone = '+919876543210';
+      let website = 'kuiro.ai';
+      let topicSummary = event.data.eventName || 'Autonomous Brand Health Campaign';
+      let revisionCount = 0;
+
+      if (database) {
+        try {
+          const [ws] = await database.select().from(workspaces).where(eq(workspaces.id, workspaceId));
+          if (ws) {
+            brandName = ws.name;
+            adminPhone = ws.whatsappAdminPhone || adminPhone;
+          }
+
+          const [camp] = await database.select().from(scheduledCampaigns).where(eq(scheduledCampaigns.id, campaignId));
+          if (camp) {
+            topicSummary = camp.topicSummary;
+            revisionCount = camp.revisionCount;
+          }
+
+          const [bp] = await database.select().from(brandProfiles).where(eq(brandProfiles.workspaceId, workspaceId));
+          if (bp?.websiteUrl) {
+            website = bp.websiteUrl.replace(/^https?:\/\//, '');
+          }
+        } catch (err) {
+          console.warn('[Autopilot Inngest Context DB Warning]:', err);
+        }
+      }
+
       return {
         campaignId,
         workspaceId,
-        topicSummary: event.data.eventName 
-          ? `${event.data.eventName} Brand Campaign`
-          : 'Weekly Preventive Healthcare Awareness',
-        adminPhone: '+919876543210',
-        brandName: 'Apex Diagnostic & Wellness Clinic',
+        topicSummary,
+        adminPhone,
+        brandName,
         primaryHex: '#FF7A00',
         secondaryHex: '#0B0F14',
-        phone: '+91 98765 43210',
-        website: 'apexdiagnostics.in',
-        revisionCount: 0,
+        phone: adminPhone,
+        website,
+        revisionCount,
       };
     });
 
-    // STEP 2: Generate Channel-Native Assets with Unit-Economics Guardrails
-    const generatedAssets = await step.run('generate-multi-platform-assets', async () => {
-      const mockAssets: GeneratedAssetPayload[] = [
+    // STEP 2: Load Pre-Generated Assets or Synthesize with Gemini 3.5 Flash Lite
+    const generatedAssets: GeneratedAssetPayload[] = (await step.run('load-or-synthesize-assets', async () => {
+      const database = db;
+
+      if (database) {
+        const existingPosts = await database
+          .select()
+          .from(platformPosts)
+          .where(eq(platformPosts.campaignId, campaignId));
+
+        if (existingPosts.length > 0) {
+          return existingPosts.map((p) => ({
+            platform: p.platform as any,
+            caption: p.captionText,
+            firstComment: p.firstCommentText || undefined,
+            hashtags: p.firstCommentText ? p.firstCommentText.split(' ').map((h) => h.replace('#', '')) : [],
+            mediaUrls: p.mediaUrls,
+            mediaType: 'IMAGE' as const,
+            aspectRatio: p.aspectRatio as any,
+            criticScore: { hook: 9, brand_alignment: 10, cta: 9 },
+          }));
+        }
+      }
+
+      // If posts were not already in DB, synthesize using Gemini 3.5 Flash Lite
+      const copy = await generateCampaignCopy({
+        topic: campaignContext.topicSummary,
+        businessName: campaignContext.brandName,
+        industry: 'Healthcare & Preventive Diagnostics',
+        tones: ['Empathetic', 'Authoritative', 'Culturally Warm'],
+        pillars: ['Preventive Care', 'Family Wellness'],
+        negativeConstraints: ['No competitor mentions'],
+      });
+
+      return [
         {
-          platform: 'instagram',
-          caption: `Invest in the only home you will ever truly live in—your body. 🩺✨\n\nEarly diagnostic detection turns anxieties into peace of mind. Get a comprehensive full-body screening with 40+ vital parameters at ${campaignContext.brandName}.\n\n📍 Tap link in bio or WhatsApp us to schedule your home sample collection.`,
-          firstComment: '#PreventiveHealth #ApexDiagnostics #EarlyDetection #WellnessJourneyIndia #HealthFirst',
-          hashtags: ['PreventiveHealth', 'ApexDiagnostics', 'EarlyDetection', 'WellnessIndia'],
-          mediaUrls: ['/brand/kuiro-logo.jpg'],
-          mediaType: 'IMAGE',
-          aspectRatio: '4:5',
+          platform: 'instagram' as const,
+          caption: copy.instagram.caption,
+          firstComment: copy.instagram.hashtags.map((h) => `#${h}`).join(' '),
+          hashtags: copy.instagram.hashtags,
+          mediaUrls: ['/brand/kuiro-primary.svg'],
+          mediaType: 'IMAGE' as const,
+          aspectRatio: '4:5' as const,
           criticScore: { hook: 9, brand_alignment: 10, cta: 9 },
         },
         {
-          platform: 'linkedin',
-          caption: `Preventive healthcare isn’t a personal expense; it’s the single highest ROI investment a founder or executive can make.\n\nOver 65% of chronic lifestyle ailments can be reversed when detected early.\n\nAt ${campaignContext.brandName}, our automated laboratory workflows deliver NABL-accredited diagnostic precision to corporate teams.\n\nHow does your organization prioritize proactive health resilience?`,
-          hashtags: ['CorporateWellness', 'Leadership', 'PreventiveMedicine', 'HealthTech'],
-          mediaUrls: ['/brand/kuiro-logo.jpg'],
-          mediaType: 'IMAGE',
-          aspectRatio: '1:1',
+          platform: 'linkedin' as const,
+          caption: copy.linkedin.caption,
+          firstComment: copy.linkedin.hashtags.map((h) => `#${h}`).join(' '),
+          hashtags: copy.linkedin.hashtags,
+          mediaUrls: ['/brand/kuiro-primary.svg'],
+          mediaType: 'IMAGE' as const,
+          aspectRatio: '1:1' as const,
           criticScore: { hook: 10, brand_alignment: 9, cta: 9 },
         },
         {
-          platform: 'x',
-          // Unit-Economics Guardrail: Put external links in firstCommentText (first reply)
-          // to avoid X API v2's $0.200 per link-post surcharge!
-          caption: `A busy schedule is no excuse to ignore your body’s signals. Early detection beats late regrets every single time. 🩺\n\nPriority morning slots open across all diagnostic centers today.`,
-          firstComment: `Book home sample collection: https://${campaignContext.website}`,
-          hashtags: ['HealthcareTips', 'Wellness'],
-          mediaUrls: [],
-          mediaType: 'TEXT_ONLY',
-          aspectRatio: '1:1',
+          platform: 'x' as const,
+          caption: copy.x.caption,
+          firstComment: copy.x.firstComment,
+          hashtags: [] as string[],
+          mediaUrls: [] as string[],
+          mediaType: 'TEXT_ONLY' as const,
+          aspectRatio: '1:1' as const,
           criticScore: { hook: 9, brand_alignment: 10, cta: 8 },
         },
         {
-          platform: 'whatsapp',
-          caption: `🌟 *Priority Health Alert from ${campaignContext.brandName}*\n\nRoutine prevention is always better than cure. We have reserved priority diagnostic slots for our comprehensive Vital Checkup package this week.\n\nReply *BOOK* to reserve a home collection or call us directly at ${campaignContext.phone}.`,
-          hashtags: [],
-          mediaUrls: ['/brand/kuiro-logo.jpg'],
-          mediaType: 'IMAGE',
-          aspectRatio: '1:1',
+          platform: 'whatsapp' as const,
+          caption: copy.whatsapp.caption,
+          hashtags: [] as string[],
+          mediaUrls: ['/brand/kuiro-primary.svg'],
+          mediaType: 'IMAGE' as const,
+          aspectRatio: '1:1' as const,
           criticScore: { hook: 10, brand_alignment: 10, cta: 10 },
         },
         {
-          platform: 'email',
-          caption: `Routine prevention is always better than cure. We are pleased to announce priority weekend slots for comprehensive full-body screenings at ${campaignContext.brandName}.\n\nReserve your priority consultation or home collection today.`,
-          emailSubject: `🩺 Prioritize Your Health: Exclusive Wellness Insights from ${campaignContext.brandName}`,
-          hashtags: [],
-          mediaUrls: ['/brand/kuiro-logo.jpg'],
-          mediaType: 'TEXT_ONLY',
-          aspectRatio: '1:1',
+          platform: 'email' as const,
+          caption: copy.email.bodyHtml,
+          emailSubject: copy.email.subject,
+          hashtags: [] as string[],
+          mediaUrls: ['/brand/kuiro-primary.svg'],
+          mediaType: 'TEXT_ONLY' as const,
+          aspectRatio: '1:1' as const,
           criticScore: { hook: 9, brand_alignment: 10, cta: 10 },
         },
       ];
+    })) as GeneratedAssetPayload[];
 
-      return mockAssets;
-    });
-
-    // STEP 3: Pre-Publish AI Critic Loop (Evaluates Hook, Formatting & Negative Constraints)
+    // STEP 3: Pre-Publish AI Critic Evaluation
     const criticEvaluation = await step.run('pre-publish-ai-critic', async () => {
       return evaluateCampaignWithCritic(generatedAssets, {
         negative_constraints: [
@@ -112,7 +172,7 @@ export const autopilot48hStateMachine = inngest.createFunction(
       });
     });
 
-    // STEP 4: Render Programmatic Brand Contact-Sheet Preview for WhatsApp
+    // STEP 4: Render Programmatic Brand Contact-Sheet Preview
     const contactSheet = await step.run('generate-contact-sheet', async () => {
       return generateContactSheetGrid(
         [
@@ -125,9 +185,9 @@ export const autopilot48hStateMachine = inngest.createFunction(
       );
     });
 
-    // STEP 5: Dispatch WhatsApp Utility Template Preview to Admin
+    // STEP 5: Dispatch WhatsApp Preview Card to Admin
     await step.run('dispatch-whatsapp-card', async () => {
-      console.log(`[WhatsApp Bot] Dispatched 48h Preview to ${campaignContext.adminPhone} with Contact Sheet ${contactSheet.publicUrl}`);
+      console.log(`[WhatsApp Bot] Dispatched 48h Preview to ${campaignContext.adminPhone}`);
       const waResult = await whatsappClient.sendPreviewCard({
         recipientPhone: campaignContext.adminPhone,
         campaignId,
@@ -151,10 +211,9 @@ export const autopilot48hStateMachine = inngest.createFunction(
     });
 
     // STEP 6: Race-Condition-Free Wait Loop (T-48h to T-0h)
-    // Instead of raw step.sleepUntil, uses while loop listening for admin actions
     let currentStatus = 'AUTO_QUEUED';
-    let revisionCount = 0;
-    const maxRevisions = 2; // Maximum 2 free voice/text revisions
+    let revisionCount = campaignContext.revisionCount;
+    const maxRevisions = 2;
     const publishTimestamp = new Date(publishAt).getTime();
 
     while (Date.now() < publishTimestamp && currentStatus === 'AUTO_QUEUED') {
@@ -169,7 +228,7 @@ export const autopilot48hStateMachine = inngest.createFunction(
       });
 
       if (!adminAction) {
-        // Timer elapsed without action: Silence = Consent! Auto-Commit triggered!
+        // Timer elapsed without manual action: Silence = Consent! Auto-Commit triggered!
         break;
       }
 
@@ -183,7 +242,13 @@ export const autopilot48hStateMachine = inngest.createFunction(
       if (action === 'SKIP' || action === 'EMERGENCY_PAUSE') {
         currentStatus = 'PAUSED';
         await step.run('mark-campaign-paused', async () => {
-          console.log(`[Campaign Paused] Campaign ${campaignId} paused by admin`);
+          const database = db;
+          if (database) {
+            await database
+              .update(scheduledCampaigns)
+              .set({ status: 'PAUSED' })
+              .where(eq(scheduledCampaigns.id, campaignId));
+          }
           return { status: 'PAUSED' };
         });
         return { status: 'PAUSED', message: 'Campaign was paused by admin.' };
@@ -192,22 +257,34 @@ export const autopilot48hStateMachine = inngest.createFunction(
       if (action === 'EDIT' && revisionCount < maxRevisions) {
         revisionCount++;
         await step.run(`apply-revision-${revisionCount}`, async () => {
-          console.log(`[Voice/Text Revision ${revisionCount}/${maxRevisions}] Applying instruction: "${instruction}"`);
+          console.log(`[Voice Revision ${revisionCount}/${maxRevisions}] Applying instruction: "${instruction}"`);
           return { revisionCount, instruction };
         });
-        // Loop continues waiting until publish time or explicit approval
       }
     }
 
-    // STEP 7: T-0h Auto-Commit & Multi-Channel Parallel Publishing
+    // STEP 7: T-0h Auto-Commit & Multi-Channel Publishing
     const publishResults = await step.run('parallel-multi-channel-publish', async () => {
-      console.log(`[KUIRO Autopilot] Auto-Commit Triggered at T-0h! Publishing in parallel to Facebook, Instagram, LinkedIn, X, and WhatsApp...`);
+      console.log(`[KUIRO Autopilot] Auto-Commit Triggered! Publishing across channels...`);
       const results = await publishToAllChannels({
         caption: generatedAssets[0].caption,
         mediaUrls: [contactSheet.publicUrl],
-        firstReply: generatedAssets[2].firstComment || 'Read our full guide at drsharmadental.in',
+        firstReply: generatedAssets[2].firstComment || 'Read our full guide at kuiro.ai',
         aspectRatio: '1:1',
       });
+
+      // Update status in Neon DB
+      const database = db;
+      if (database) {
+        try {
+          await database
+            .update(scheduledCampaigns)
+            .set({ status: 'PUBLISHED' })
+            .where(eq(scheduledCampaigns.id, campaignId));
+        } catch (dbErr) {
+          console.warn('[Mark Published DB Warning]:', dbErr);
+        }
+      }
 
       return {
         channels: results,
@@ -215,9 +292,9 @@ export const autopilot48hStateMachine = inngest.createFunction(
       };
     });
 
-    // STEP 8: Send WhatsApp Confirmation Link to Admin
+    // STEP 8: Send WhatsApp Confirmation Receipt to Admin
     await step.run('send-whatsapp-completion-receipt', async () => {
-      console.log(`[WhatsApp Receipt] Sent live post links to ${campaignContext.adminPhone}`);
+      console.log(`[WhatsApp Receipt] Sent live post confirmation to ${campaignContext.adminPhone}`);
       return { receiptSent: true, timestamp: new Date().toISOString() };
     });
 
