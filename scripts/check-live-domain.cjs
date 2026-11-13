@@ -10,3 +10,4 @@ https.get('https://kuiro.vercel.app/contact', (res) => {
     console.log('Contains kuiro.ai:', data.includes('kuiro.ai'));
   });
 });
+
