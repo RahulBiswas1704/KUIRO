@@ -28,8 +28,11 @@ import {
   Loader2,
   Calendar,
   Send,
-  Sliders
+  Sliders,
+  KeyRound,
+  Lock
 } from 'lucide-react';
+import ConnectedChannelsModal, { PlatformKey } from '@/components/dashboard/ConnectedChannelsModal';
 
 interface PlatformPost {
   id: string;
@@ -113,8 +116,26 @@ export default function DashboardPage() {
     }
   };
 
+  // Connected Channels State & Modal Controls
+  const [channels, setChannels] = useState<any[]>([]);
+  const [isChannelsModalOpen, setIsChannelsModalOpen] = useState(false);
+  const [selectedChannelForModal, setSelectedChannelForModal] = useState<PlatformKey>('instagram');
+
+  const fetchChannels = async () => {
+    try {
+      const res = await fetch('/api/social-connections', { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.connections)) {
+        setChannels(data.connections);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch channels:', e);
+    }
+  };
+
   useEffect(() => {
     fetchCampaigns();
+    fetchChannels();
   }, []);
 
   // Active spotlight campaign
@@ -1016,25 +1037,49 @@ export default function DashboardPage() {
       </div>
 
       {/* Connected Channel Health Grid (id="channels") */}
-      <div id="channels" className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-sora text-sm font-bold text-[#0B0F14]">
-            Connected Channels & Token Vault
-          </h3>
-          <span className="text-xs text-gray-500">
-            Encrypted AES-256 Storage • Token Auto-Refresh
-          </span>
+      <div id="channels" className="space-y-3 pt-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 className="font-sora text-sm font-bold text-[#0B0F14] flex items-center gap-2">
+              <span>Connected Channels & Token Vault</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                AES-256 VAULT
+              </span>
+            </h3>
+            <p className="text-xs text-gray-500">
+              Encrypted Neon DB OAuth storage • Automated token refresh & zero-link surcharge guard
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              setSelectedChannelForModal('instagram');
+              setIsChannelsModalOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0B0F14] text-white hover:bg-gray-800 text-xs font-semibold transition shrink-0"
+          >
+            <KeyRound size={13} className="text-[#FF7A00]" />
+            <span>Manage OAuth Credentials</span>
+          </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="bg-white p-4 rounded-[12px] border border-[#E5E7EB] flex items-center justify-between">
+          {/* Instagram Graph Card */}
+          <div
+            onClick={() => {
+              setSelectedChannelForModal('instagram');
+              setIsChannelsModalOpen(true);
+            }}
+            className="bg-white p-4 rounded-[12px] border border-[#E5E7EB] hover:border-pink-300 hover:shadow-md cursor-pointer transition flex items-center justify-between group"
+          >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-[10px] bg-pink-50 text-pink-600 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-[10px] bg-pink-50 text-pink-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
                 <Instagram size={18} />
               </div>
-              <div>
+              <div className="truncate">
                 <p className="text-xs font-semibold text-[#0B0F14]">Instagram Graph</p>
-                <p className="text-[10px] text-gray-500">@drsharma.dental</p>
+                <p className="text-[10px] text-gray-500 truncate">
+                  {channels.find((c) => c.platform === 'instagram')?.handle || '@drsharma.dental'}
+                </p>
               </div>
             </div>
             <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
@@ -1042,14 +1087,23 @@ export default function DashboardPage() {
             </span>
           </div>
 
-          <div className="bg-white p-4 rounded-[12px] border border-[#E5E7EB] flex items-center justify-between">
+          {/* LinkedIn Card */}
+          <div
+            onClick={() => {
+              setSelectedChannelForModal('linkedin');
+              setIsChannelsModalOpen(true);
+            }}
+            className="bg-white p-4 rounded-[12px] border border-[#E5E7EB] hover:border-blue-300 hover:shadow-md cursor-pointer transition flex items-center justify-between group"
+          >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-[10px] bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-[10px] bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
                 <Linkedin size={18} />
               </div>
-              <div>
+              <div className="truncate">
                 <p className="text-xs font-semibold text-[#0B0F14]">LinkedIn Page</p>
-                <p className="text-[10px] text-gray-500">Dr. Sharma Clinics</p>
+                <p className="text-[10px] text-gray-500 truncate">
+                  {channels.find((c) => c.platform === 'linkedin')?.handle || 'Dr. Sharma Clinics'}
+                </p>
               </div>
             </div>
             <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
@@ -1057,14 +1111,23 @@ export default function DashboardPage() {
             </span>
           </div>
 
-          <div className="bg-white p-4 rounded-[12px] border border-[#E5E7EB] flex items-center justify-between">
+          {/* X (Twitter) Card */}
+          <div
+            onClick={() => {
+              setSelectedChannelForModal('x');
+              setIsChannelsModalOpen(true);
+            }}
+            className="bg-white p-4 rounded-[12px] border border-[#E5E7EB] hover:border-sky-300 hover:shadow-md cursor-pointer transition flex items-center justify-between group"
+          >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-[10px] bg-sky-50 text-sky-500 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-[10px] bg-sky-50 text-sky-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
                 <Twitter size={18} />
               </div>
-              <div>
+              <div className="truncate">
                 <p className="text-xs font-semibold text-[#0B0F14]">X (Twitter)</p>
-                <p className="text-[10px] text-gray-500">@sharmadental_in</p>
+                <p className="text-[10px] text-gray-500 truncate">
+                  {channels.find((c) => c.platform === 'x')?.handle || '@sharmadental_in'}
+                </p>
               </div>
             </div>
             <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
@@ -1072,14 +1135,23 @@ export default function DashboardPage() {
             </span>
           </div>
 
-          <div className="bg-white p-4 rounded-[12px] border border-[#E5E7EB] flex items-center justify-between">
+          {/* WhatsApp Admin Card */}
+          <div
+            onClick={() => {
+              setSelectedChannelForModal('whatsapp');
+              setIsChannelsModalOpen(true);
+            }}
+            className="bg-white p-4 rounded-[12px] border border-[#E5E7EB] hover:border-emerald-300 hover:shadow-md cursor-pointer transition flex items-center justify-between group"
+          >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-[10px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-[10px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
                 <MessageSquare size={18} />
               </div>
-              <div>
+              <div className="truncate">
                 <p className="text-xs font-semibold text-[#0B0F14]">WhatsApp Admin</p>
-                <p className="text-[10px] text-gray-500">+91 98301 24589</p>
+                <p className="text-[10px] text-gray-500 truncate">
+                  {channels.find((c) => c.platform === 'whatsapp')?.handle || '+91 98301 24589'}
+                </p>
               </div>
             </div>
             <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
@@ -1087,14 +1159,23 @@ export default function DashboardPage() {
             </span>
           </div>
 
-          <div className="bg-white p-4 rounded-[12px] border border-[#E5E7EB] flex items-center justify-between">
+          {/* Branded Email Card */}
+          <div
+            onClick={() => {
+              setSelectedChannelForModal('email');
+              setIsChannelsModalOpen(true);
+            }}
+            className="bg-white p-4 rounded-[12px] border border-[#E5E7EB] hover:border-amber-300 hover:shadow-md cursor-pointer transition flex items-center justify-between group"
+          >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-[10px] bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-[10px] bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
                 <Mail size={18} />
               </div>
-              <div>
+              <div className="truncate">
                 <p className="text-xs font-semibold text-[#0B0F14]">Branded Email (ESP)</p>
-                <p className="text-[10px] text-gray-500">1,840 Active Subs</p>
+                <p className="text-[10px] text-gray-500 truncate">
+                  {channels.find((c) => c.platform === 'email')?.handle || 'hello@kuiro.in'}
+                </p>
               </div>
             </div>
             <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
@@ -1103,6 +1184,17 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Connected Channels OAuth Modal */}
+      <ConnectedChannelsModal
+        isOpen={isChannelsModalOpen}
+        onClose={() => setIsChannelsModalOpen(false)}
+        initialPlatform={selectedChannelForModal}
+        onConnectionUpdated={() => {
+          fetchChannels();
+          showToast('OAuth connection vault updated successfully in Neon DB!', 'success');
+        }}
+      />
     </div>
   );
 }

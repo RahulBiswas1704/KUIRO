@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       type: 'single',
       publicUrl: result.publicUrl,
       hasIndicScript: hasIndic,
-      renderEngine: hasIndic ? 'playwright-shaping-fallback' : 'sharp-satori-fast',
+      renderEngine: hasIndic ? 'sharp-bundled-indic-noto' : 'sharp-sora-fast',
     });
   } catch (error: any) {
     console.error('Compositor render error:', error);

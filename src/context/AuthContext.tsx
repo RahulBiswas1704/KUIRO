@@ -22,6 +22,7 @@ interface AuthContextType {
   login: (email: string, password?: string) => Promise<boolean>;
   signup: (name: string, businessName: string, email: string, password?: string) => Promise<boolean>;
   loginDemoUser: () => Promise<void>;
+  switchPersona: (personaKey: 'sharma' | 'sengupta' | 'mehta') => Promise<boolean>;
   logout: () => Promise<void>;
   completeOnboarding: () => void;
   // Modal controls
@@ -204,6 +205,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   /**
+   * 1-Click Multi-Tenant Persona Simulator Switcher
+   */
+  const switchPersona = async (personaKey: 'sharma' | 'sengupta' | 'mehta'): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      const res = await fetch('/api/auth/switch-persona', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ personaKey }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const switchedUser: AuthUser = {
+          id: data.user.id,
+          name: data.user.name,
+          email: data.user.email,
+          businessName: data.workspace?.name || data.user.businessName,
+          workspaceId: data.workspace?.id,
+          hasCompletedOnboarding: true,
+          role: data.user.role,
+          emailVerified: true,
+        };
+        saveSession(switchedUser);
+        if (typeof window !== 'undefined') {
+          window.location.reload();
+        }
+        return true;
+      }
+    } catch (err) {
+      console.error('[AuthContext] Persona switch failed:', err);
+    } finally {
+      setIsLoading(false);
+    }
+    return false;
+  };
+
+  /**
    * Sign Up a new user -> Neon DB /api/auth/signup -> Directs to onboarding wizard (/get-started)
    */
   const signup = async (
@@ -316,6 +355,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         signup,
         loginDemoUser,
+        switchPersona,
         logout,
         completeOnboarding,
         isAuthModalOpen,
