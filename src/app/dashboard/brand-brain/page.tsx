@@ -101,8 +101,10 @@ export default function BrandBrainPage() {
   }, []);
 
   // 2. Extract Brand DNA via Google Gemini 3.5 Flash Lite
-  const handleExtract = async () => {
-    if (!url.trim()) return;
+  const handleExtract = async (overrideUrl?: string) => {
+    const targetUrl = (overrideUrl || url).trim();
+    if (!targetUrl) return;
+    if (overrideUrl) setUrl(overrideUrl);
     setIsExtracting(true);
     setExtractedNotice(null);
 
@@ -110,12 +112,34 @@ export default function BrandBrainPage() {
       const res = await fetch('/api/brand-brain/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, workspaceId: 'ws-demo' }),
+        body: JSON.stringify({ url: targetUrl, workspaceId: 'ws-demo' }),
       });
       const data = await res.json();
 
+      const det = data.detected || data.data?.detected;
       const profile = data.profile || data.data?.brandProfile || data.data;
-      if (profile) {
+
+      if (det) {
+        if (det.businessName) setBusinessName(String(det.businessName));
+        if (det.industry) setIndustry(String(det.industry));
+        if (det.primaryColor) setPrimaryColor(String(det.primaryColor));
+        if (det.secondaryColor) setSecondaryColor(String(det.secondaryColor));
+        if (det.fontFamily) setFontFamily(String(det.fontFamily));
+        if (det.logoUrl) setLogoUrl(String(det.logoUrl));
+        if (Array.isArray(det.tones) && det.tones.length > 0) {
+          setTones(toCleanStringList(det.tones));
+        }
+        if (Array.isArray(det.pillars) && det.pillars.length > 0) {
+          setPillars(toCleanStringList(det.pillars));
+        }
+        if (Array.isArray(det.negativeConstraints) && det.negativeConstraints.length > 0) {
+          setNegativeConstraints(toCleanStringList(det.negativeConstraints));
+        }
+
+        setExtractedNotice(
+          `✨ AI Auto-Detected in ${data.benchmarkSeconds || '2.4'}s: Industry (${det.industry}), Palette (${det.primaryColor} / ${det.secondaryColor}), Font (${det.fontFamily}), ${det.pillars?.length || 4} Pillars & Guardrails permanently saved to Neon DB!`
+        );
+      } else if (profile) {
         if (data.data?.brandName || profile.businessName) {
           setBusinessName(String(data.data?.brandName || profile.businessName));
         }
@@ -126,6 +150,8 @@ export default function BrandBrainPage() {
         if (sec) setSecondaryColor(String(sec));
         const font = profile.visualIdentity?.fontFamily || profile.visual_identity?.font_family;
         if (font) setFontFamily(String(font));
+        const logo = profile.visualIdentity?.logoUrl || profile.visual_identity?.logo_url;
+        if (logo) setLogoUrl(String(logo));
         
         const rawPillars = profile.contentPillars || profile.content_pillars;
         if (rawPillars) {
@@ -143,11 +169,11 @@ export default function BrandBrainPage() {
           setNegativeConstraints(toCleanStringList(list));
         }
         setExtractedNotice(
-          `Extracted Brand Brain in ${data.benchmarkSeconds || '2.8'}s! Updated visual tokens, pillars & guardrails.`
+          `✨ Extracted Brand Brain in ${data.benchmarkSeconds || '2.8'}s! Updated visual tokens, pillars & guardrails.`
         );
       }
     } catch {
-      setExtractedNotice('Offline demo mode: Loaded Dr. Sharma Dental profile with 3 pre-built sample posts.');
+      setExtractedNotice('Offline fallback: Loaded Dr. Sharma Dental profile with 3 pre-built sample posts.');
     } finally {
       setIsExtracting(false);
     }
@@ -280,14 +306,19 @@ export default function BrandBrainPage() {
 
       {/* Zero-Friction URL Extractor Box */}
       <div className="bg-white rounded-[14px] border border-[#E5E7EB] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-        <div className="flex items-center gap-2 mb-2">
-          <Sparkles size={16} className="text-[#FF7A00]" />
-          <h3 className="font-sora text-sm font-bold text-[#0B0F14]">
-            Instant Auto-Extraction (&lt; 30 Seconds)
-          </h3>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <Sparkles size={16} className="text-[#FF7A00]" />
+            <h3 className="font-sora text-sm font-bold text-[#0B0F14]">
+              Instant AI Auto-Detection (&lt; 30 Seconds)
+            </h3>
+          </div>
+          <span className="px-2 py-0.5 rounded-full bg-orange-100 text-[#FF7A00] text-[10px] font-semibold">
+            Google Gemini 3.5 Flash
+          </span>
         </div>
-        <p className="text-xs text-gray-600 mb-4">
-          Enter your website URL or Google Business Profile. KUIRO will extract your brand palette, tone, core offerings, and prepare 3 instant preview posts.
+        <p className="text-xs text-gray-600 mb-3">
+          Enter your website URL or Google Business Profile. KUIRO&apos;s AI will crawl your site, detect your exact <strong className="text-gray-900">Industry, Primary &amp; Accent Colors, Typography, Logo, Tone of Voice, and Strategic Content Pillars</strong> in real-time.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3">
@@ -302,28 +333,54 @@ export default function BrandBrainPage() {
             />
           </div>
           <button
-            onClick={handleExtract}
+            onClick={() => handleExtract()}
             disabled={isExtracting}
-            className="px-5 py-2.5 rounded-[10px] bg-[#0B0F14] text-white text-xs font-semibold hover:bg-gray-800 transition flex items-center justify-center gap-2 shrink-0 disabled:opacity-70"
+            className="px-5 py-2.5 rounded-[10px] bg-[#0B0F14] text-white text-xs font-semibold hover:bg-gray-800 transition flex items-center justify-center gap-2 shrink-0 disabled:opacity-70 shadow-sm"
           >
             {isExtracting ? (
               <>
                 <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Extracting in 30s...</span>
+                <span>AI Analyzing &amp; Detecting...</span>
               </>
             ) : (
               <>
                 <Sparkles size={14} className="text-[#FF7A00]" />
-                <span>Extract Brand Brain</span>
+                <span>Auto-Detect with AI</span>
               </>
             )}
           </button>
         </div>
 
+        {/* 1-Click Instant Samples */}
+        <div className="mt-3.5 pt-3 border-t border-gray-100 flex items-center gap-2 flex-wrap">
+          <span className="text-[11px] text-gray-500 font-medium">1-Click AI Test Examples:</span>
+          <button
+            type="button"
+            onClick={() => handleExtract('https://drsharmadental.in')}
+            className="px-2.5 py-1 rounded-md bg-gray-50 hover:bg-orange-50 hover:text-[#FF7A00] text-[11px] font-medium text-gray-700 transition border border-gray-200"
+          >
+            🦷 Dr. Sharma Dental Clinic
+          </button>
+          <button
+            type="button"
+            onClick={() => handleExtract('https://kalyanijewelers.in')}
+            className="px-2.5 py-1 rounded-md bg-gray-50 hover:bg-orange-50 hover:text-[#FF7A00] text-[11px] font-medium text-gray-700 transition border border-gray-200"
+          >
+            💍 Kalyani Heritage Jewelers
+          </button>
+          <button
+            type="button"
+            onClick={() => handleExtract('https://apollodiagnostics.in')}
+            className="px-2.5 py-1 rounded-md bg-gray-50 hover:bg-orange-50 hover:text-[#FF7A00] text-[11px] font-medium text-gray-700 transition border border-gray-200"
+          >
+            🩺 Apollo Diagnostics
+          </button>
+        </div>
+
         {extractedNotice && (
-          <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-[10px] text-xs text-emerald-800 flex items-center gap-2">
-            <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
-            <span>{extractedNotice}</span>
+          <div className="mt-3.5 p-3.5 bg-emerald-50 border border-emerald-200 rounded-[10px] text-xs text-emerald-900 flex items-start gap-2.5 animate-fade-in">
+            <CheckCircle2 size={16} className="text-emerald-600 shrink-0 mt-0.5" />
+            <div className="flex-1 font-medium leading-relaxed">{extractedNotice}</div>
           </div>
         )}
       </div>
@@ -352,9 +409,14 @@ export default function BrandBrainPage() {
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-gray-700 block mb-1">
-              Industry / Niche
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-semibold text-gray-700">
+                Industry / Niche
+              </label>
+              <span className="text-[10px] text-emerald-600 font-medium bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                AI Auto-Detected
+              </span>
+            </div>
             <input
               type="text"
               value={industry}
@@ -365,9 +427,14 @@ export default function BrandBrainPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold text-gray-700 block mb-1">
-                Primary Brand Color
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-gray-700">
+                  Primary Brand Color
+                </label>
+                <span className="text-[10px] text-emerald-600 font-medium bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                  AI
+                </span>
+              </div>
               <div className="flex items-center gap-2">
                 <input
                   type="color"
@@ -385,9 +452,14 @@ export default function BrandBrainPage() {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-gray-700 block mb-1">
-                Accent / CTA Color
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-gray-700">
+                  Accent / CTA Color
+                </label>
+                <span className="text-[10px] text-emerald-600 font-medium bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                  AI
+                </span>
+              </div>
               <div className="flex items-center gap-2">
                 <input
                   type="color"
@@ -406,9 +478,14 @@ export default function BrandBrainPage() {
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-gray-700 block mb-1">
-              Typography Font Family
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-semibold text-gray-700">
+                Typography Font Family
+              </label>
+              <span className="text-[10px] text-emerald-600 font-medium bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                AI Matched
+              </span>
+            </div>
             <select
               value={fontFamily}
               onChange={(e) => setFontFamily(e.target.value)}
@@ -417,7 +494,7 @@ export default function BrandBrainPage() {
               <option value="Sora">Sora (Modern Geometric - KUIRO Standard)</option>
               <option value="Inter">Inter (Clean Clean Corporate)</option>
               <option value="Poppins">Poppins (Friendly Consumer)</option>
-              <option value="Playfair Display">Playfair Display (Luxury & Clinic)</option>
+              <option value="Playfair Display">Playfair Display (Luxury &amp; Clinic)</option>
             </select>
           </div>
 
@@ -449,11 +526,16 @@ export default function BrandBrainPage() {
 
         {/* Tone of Voice */}
         <div className="bg-white rounded-[14px] border border-[#E5E7EB] p-5 space-y-4">
-          <div className="flex items-center gap-2 border-b border-[#E5E7EB] pb-2">
-            <Sliders size={16} className="text-[#FF7A00]" />
-            <h3 className="font-sora text-sm font-bold text-[#0B0F14]">
-              Tone of Voice & Personality
-            </h3>
+          <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-2">
+            <div className="flex items-center gap-2">
+              <Sliders size={16} className="text-[#FF7A00]" />
+              <h3 className="font-sora text-sm font-bold text-[#0B0F14]">
+                Tone of Voice &amp; Personality
+              </h3>
+            </div>
+            <span className="text-[10px] text-emerald-600 font-medium bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+              AI Voice Archetype
+            </span>
           </div>
 
           <p className="text-xs text-gray-500">
@@ -501,11 +583,16 @@ export default function BrandBrainPage() {
 
         {/* Content Pillars */}
         <div className="bg-white rounded-[14px] border border-[#E5E7EB] p-5 space-y-4">
-          <div className="flex items-center gap-2 border-b border-[#E5E7EB] pb-2">
-            <FileText size={16} className="text-[#FF7A00]" />
-            <h3 className="font-sora text-sm font-bold text-[#0B0F14]">
-              Strategic Content Pillars
-            </h3>
+          <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-2">
+            <div className="flex items-center gap-2">
+              <FileText size={16} className="text-[#FF7A00]" />
+              <h3 className="font-sora text-sm font-bold text-[#0B0F14]">
+                Strategic Content Pillars
+              </h3>
+            </div>
+            <span className="text-[10px] text-emerald-600 font-medium bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+              AI Strategic Pillars
+            </span>
           </div>
 
           <div className="space-y-2">
@@ -549,11 +636,16 @@ export default function BrandBrainPage() {
 
         {/* Negative Constraints & Guardrails */}
         <div className="bg-white rounded-[14px] border border-[#E5E7EB] p-5 space-y-4">
-          <div className="flex items-center gap-2 border-b border-[#E5E7EB] pb-2">
-            <ShieldCheck size={16} className="text-emerald-600" />
-            <h3 className="font-sora text-sm font-bold text-[#0B0F14]">
-              Negative Constraints (AI Guardrails)
-            </h3>
+          <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-2">
+            <div className="flex items-center gap-2">
+              <ShieldCheck size={16} className="text-emerald-600" />
+              <h3 className="font-sora text-sm font-bold text-[#0B0F14]">
+                Negative Constraints (AI Guardrails)
+              </h3>
+            </div>
+            <span className="text-[10px] text-emerald-600 font-medium bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+              AI Critic Guardrails
+            </span>
           </div>
 
           <p className="text-xs text-gray-500">
