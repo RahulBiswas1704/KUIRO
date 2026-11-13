@@ -58,6 +58,20 @@ export default function BrandBrainPage() {
 
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  // Helper to ensure lists are strictly arrays of plain strings
+  const toCleanStringList = (arr: any): string[] => {
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .map((item) => {
+        if (typeof item === 'string') return item.trim();
+        if (item && typeof item === 'object') {
+          return item.name || item.phrase || item.rule || item.title || '';
+        }
+        return String(item || '').trim();
+      })
+      .filter(Boolean);
+  };
+
   // 1. Fetch live Brand Profile from Neon PostgreSQL on Mount
   useEffect(() => {
     fetch('/api/brand-brain/profile')
@@ -65,17 +79,21 @@ export default function BrandBrainPage() {
       .then((data) => {
         if (data.success && data.data) {
           const d = data.data;
-          if (d.businessName) setBusinessName(d.businessName);
-          if (d.industry) setIndustry(d.industry);
-          if (d.websiteUrl) setUrl(d.websiteUrl);
-          if (d.visualIdentity?.primaryHex) setPrimaryColor(d.visualIdentity.primaryHex);
-          if (d.visualIdentity?.secondaryHex) setSecondaryColor(d.visualIdentity.secondaryHex);
-          if (d.visualIdentity?.fontFamily) setFontFamily(d.visualIdentity.fontFamily);
-          if (d.visualIdentity?.logoUrl) setLogoUrl(d.visualIdentity.logoUrl);
-          if (d.tones && d.tones.length > 0) setTones(d.tones);
-          if (d.pillars && d.pillars.length > 0) setPillars(d.pillars);
-          if (d.negativeConstraints && d.negativeConstraints.length > 0) {
-            setNegativeConstraints(d.negativeConstraints);
+          if (d.businessName) setBusinessName(String(d.businessName));
+          if (d.industry) setIndustry(String(d.industry));
+          if (d.websiteUrl) setUrl(String(d.websiteUrl));
+          if (d.visualIdentity?.primaryHex) setPrimaryColor(String(d.visualIdentity.primaryHex));
+          if (d.visualIdentity?.secondaryHex) setSecondaryColor(String(d.visualIdentity.secondaryHex));
+          if (d.visualIdentity?.fontFamily) setFontFamily(String(d.visualIdentity.fontFamily));
+          if (d.visualIdentity?.logoUrl) setLogoUrl(String(d.visualIdentity.logoUrl));
+          if (Array.isArray(d.tones) && d.tones.length > 0) {
+            setTones(toCleanStringList(d.tones));
+          }
+          if (Array.isArray(d.pillars) && d.pillars.length > 0) {
+            setPillars(toCleanStringList(d.pillars));
+          }
+          if (Array.isArray(d.negativeConstraints) && d.negativeConstraints.length > 0) {
+            setNegativeConstraints(toCleanStringList(d.negativeConstraints));
           }
         }
       })
@@ -98,17 +116,34 @@ export default function BrandBrainPage() {
 
       const profile = data.profile || data.data?.brandProfile || data.data;
       if (profile) {
-        setBusinessName(data.data?.brandName || profile.businessName || businessName);
-        setIndustry(profile.industry || industry);
-        if (profile.visualIdentity?.primaryHex || profile.visual_identity?.primary_hex) {
-          setPrimaryColor(profile.visualIdentity?.primaryHex || profile.visual_identity?.primary_hex);
+        if (data.data?.brandName || profile.businessName) {
+          setBusinessName(String(data.data?.brandName || profile.businessName));
         }
-        if (profile.contentPillars || profile.content_pillars) {
-          const rawPillars = profile.contentPillars || profile.content_pillars;
-          setPillars(Array.isArray(rawPillars) ? rawPillars : Object.values(rawPillars));
+        if (profile.industry) setIndustry(String(profile.industry));
+        const prim = profile.visualIdentity?.primaryHex || profile.visual_identity?.primary_hex;
+        if (prim) setPrimaryColor(String(prim));
+        const sec = profile.visualIdentity?.secondaryHex || profile.visual_identity?.secondary_hex;
+        if (sec) setSecondaryColor(String(sec));
+        const font = profile.visualIdentity?.fontFamily || profile.visual_identity?.font_family;
+        if (font) setFontFamily(String(font));
+        
+        const rawPillars = profile.contentPillars || profile.content_pillars;
+        if (rawPillars) {
+          const list = Array.isArray(rawPillars) ? rawPillars : Object.values(rawPillars);
+          setPillars(toCleanStringList(list));
+        }
+        const rawTones = profile.toneOfVoice?.samplePhrases || profile.tone_of_voice?.sample_phrases;
+        if (rawTones) {
+          const list = Array.isArray(rawTones) ? rawTones : Object.values(rawTones);
+          setTones(toCleanStringList(list));
+        }
+        const rawConstraints = profile.negativeConstraints || profile.negative_constraints;
+        if (rawConstraints) {
+          const list = Array.isArray(rawConstraints) ? rawConstraints : Object.values(rawConstraints);
+          setNegativeConstraints(toCleanStringList(list));
         }
         setExtractedNotice(
-          `Extracted Brand Brain in ${data.benchmarkSeconds || '2.8'}s! Extracted 3 preview posts and updated visual tokens.`
+          `Extracted Brand Brain in ${data.benchmarkSeconds || '2.8'}s! Updated visual tokens, pillars & guardrails.`
         );
       }
     } catch {
@@ -426,21 +461,24 @@ export default function BrandBrainPage() {
           </p>
 
           <div className="flex flex-wrap gap-2">
-            {tones.map((t) => (
-              <span
-                key={t}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-gray-800 text-xs font-medium border border-gray-200"
-              >
-                <span>{t}</span>
-                <button
-                  type="button"
-                  onClick={() => removeTone(t)}
-                  className="text-gray-400 hover:text-gray-700"
+            {tones.map((t, idx) => {
+              const label = typeof t === 'string' ? t : (t as any)?.phrase || (t as any)?.name || String(t);
+              return (
+                <span
+                  key={`tone-${idx}-${label}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 text-gray-800 text-xs font-medium border border-gray-200"
                 >
-                  <X size={12} />
-                </button>
-              </span>
-            ))}
+                  <span>{label}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeTone(label)}
+                    className="text-gray-400 hover:text-gray-700"
+                  >
+                    <X size={12} />
+                  </button>
+                </span>
+              );
+            })}
           </div>
 
           <div className="flex gap-2">
@@ -471,21 +509,24 @@ export default function BrandBrainPage() {
           </div>
 
           <div className="space-y-2">
-            {pillars.map((p) => (
-              <div
-                key={p}
-                className="flex items-center justify-between p-2.5 rounded-[10px] bg-gray-50 border border-gray-200 text-xs font-medium text-gray-800"
-              >
-                <span>{p}</span>
-                <button
-                  type="button"
-                  onClick={() => removePillar(p)}
-                  className="text-gray-400 hover:text-red-500"
+            {pillars.map((p, idx) => {
+              const label = typeof p === 'string' ? p : (p as any)?.name || (p as any)?.title || String(p);
+              return (
+                <div
+                  key={`pillar-${idx}-${label}`}
+                  className="flex items-center justify-between p-2.5 rounded-[10px] bg-gray-50 border border-gray-200 text-xs font-medium text-gray-800"
                 >
-                  <X size={14} />
-                </button>
-              </div>
-            ))}
+                  <span>{label}</span>
+                  <button
+                    type="button"
+                    onClick={() => removePillar(label)}
+                    className="text-gray-400 hover:text-red-500"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              );
+            })}
           </div>
 
           <div className="flex gap-2">
@@ -520,24 +561,27 @@ export default function BrandBrainPage() {
           </p>
 
           <div className="space-y-2">
-            {negativeConstraints.map((c) => (
-              <div
-                key={c}
-                className="flex items-start justify-between p-2.5 rounded-[10px] bg-red-50/50 border border-red-100 text-xs text-red-900"
-              >
-                <div className="flex items-start gap-2">
-                  <span className="text-red-500 font-bold shrink-0 mt-0.5">•</span>
-                  <span>{c}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeConstraint(c)}
-                  className="text-gray-400 hover:text-red-600 shrink-0 ml-2"
+            {negativeConstraints.map((c, idx) => {
+              const label = typeof c === 'string' ? c : (c as any)?.rule || (c as any)?.constraint || String(c);
+              return (
+                <div
+                  key={`rule-${idx}-${label}`}
+                  className="flex items-start justify-between p-2.5 rounded-[10px] bg-red-50/50 border border-red-100 text-xs text-red-900"
                 >
-                  <X size={14} />
-                </button>
-              </div>
-            ))}
+                  <div className="flex items-start gap-2">
+                    <span className="text-red-500 font-bold shrink-0 mt-0.5">•</span>
+                    <span>{label}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeConstraint(label)}
+                    className="text-gray-400 hover:text-red-600 shrink-0 ml-2"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              );
+            })}
           </div>
 
           <div className="flex gap-2">

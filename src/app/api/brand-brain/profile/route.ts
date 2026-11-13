@@ -81,24 +81,64 @@ export async function GET() {
         .returning();
     }
 
+    const sanitizePillars = (pillars: any): string[] => {
+      if (!Array.isArray(pillars)) return [];
+      return pillars
+        .map((p: any) => (typeof p === 'string' ? p : p?.name || String(p)))
+        .filter(Boolean);
+    };
+
+    const sanitizeTones = (tones: any): string[] => {
+      if (!Array.isArray(tones)) return [];
+      return tones
+        .map((t: any) => (typeof t === 'string' ? t : t?.phrase || t?.name || String(t)))
+        .filter(Boolean);
+    };
+
+    const sanitizeRules = (rules: any): string[] => {
+      if (!Array.isArray(rules)) return [];
+      return rules
+        .map((r: any) => (typeof r === 'string' ? r : r?.rule || String(r)))
+        .filter(Boolean);
+    };
+
+    const rawTones = sanitizeTones(bp.toneOfVoice?.samplePhrases);
+    const finalTones = rawTones.length > 0 ? rawTones : [
+      'Empathetic & Caring',
+      'Clinically Authoritative',
+      'Jargon-Free',
+      'Culturally Warm',
+    ];
+
+    const rawPillars = sanitizePillars(bp.contentPillars);
+    const finalPillars = rawPillars.length > 0 ? rawPillars : [
+      'Preventive Care & Diagnostics',
+      'Treatment Options & Clear Aligners',
+      'Indian Festival Greetings & Health Tips',
+      'Patient Case Studies & Myths Busted',
+    ];
+
+    const finalRules = sanitizeRules(bp.negativeConstraints);
+
     return NextResponse.json({
       success: true,
       source: 'neon_postgres',
       data: {
         workspaceId: ws.id,
         businessName: ws.name,
-        industry: bp.industry,
-        websiteUrl: bp.websiteUrl,
-        tones: bp.toneOfVoice.samplePhrases || [
-          'Empathetic & Caring',
-          'Clinically Authoritative',
-          'Jargon-Free',
-          'Culturally Warm',
-        ],
-        visualIdentity: bp.visualIdentity,
-        pillars: bp.contentPillars.map((p) => p.name),
-        negativeConstraints: bp.negativeConstraints,
-        updatedAt: bp.createdAt.toISOString(),
+        industry: bp.industry || 'Healthcare & Diagnostics',
+        websiteUrl: bp.websiteUrl || '',
+        tones: finalTones,
+        visualIdentity: bp.visualIdentity || {
+          primaryHex: '#0B3B60',
+          secondaryHex: '#FF7A00',
+          accentHex: '#10B981',
+          fontFamily: 'Sora',
+          logoUrl: '/brand/kuiro-primary.svg',
+        },
+        pillars: finalPillars,
+        negativeConstraints: finalRules,
+        updatedAt: bp.createdAt ? bp.createdAt.toISOString() : new Date().toISOString(),
       },
     });
   } catch (error: any) {
@@ -154,12 +194,27 @@ export async function POST(req: NextRequest) {
       await db.update(workspaces).set({ name: businessName }).where(eq(workspaces.id, ws.id));
     }
 
-    // 2. Format JSON payloads
+    // 2. Format & Sanitize JSON payloads
+    const cleanTones = (Array.isArray(tones) ? tones : [])
+      .map((t: any) => (typeof t === 'string' ? t.trim() : t?.phrase || t?.name || String(t).trim()))
+      .filter(Boolean);
+
+    const cleanPillars = (Array.isArray(pillars) ? pillars : [])
+      .map((p: any) => ({
+        name: typeof p === 'string' ? p.trim() : p?.name || String(p).trim(),
+        weight: typeof p === 'object' && p?.weight ? Number(p.weight) : 25,
+      }))
+      .filter((p: any) => Boolean(p.name));
+
+    const cleanConstraints = (Array.isArray(negativeConstraints) ? negativeConstraints : [])
+      .map((c: any) => (typeof c === 'string' ? c.trim() : c?.rule || String(c).trim()))
+      .filter(Boolean);
+
     const toneOfVoice = {
       style: 'clinical_empathetic' as const,
       formality: 'semi-formal' as const,
       archetype: 'compassionate_caregiver',
-      samplePhrases: tones,
+      samplePhrases: cleanTones,
     };
 
     const visualIdentity = {
@@ -170,10 +225,19 @@ export async function POST(req: NextRequest) {
       logoUrl: logoUrl || '/brand/kuiro-primary.svg',
     };
 
-    const contentPillars = pillars.map((name: string) => ({
-      name,
-      weight: 25,
-    }));
+    const contentPillars = cleanPillars.length > 0 ? cleanPillars : [
+      { name: 'Preventive Care & Diagnostics', weight: 40 },
+      { name: 'Treatment Options & Clear Aligners', weight: 30 },
+      { name: 'Indian Festival Greetings & Health Tips', weight: 15 },
+      { name: 'Patient Case Studies & Myths Busted', weight: 15 },
+    ];
+
+    const negativeRules = cleanConstraints.length > 0 ? cleanConstraints : [
+      'Never mention competitor chains or compare pricing',
+      'No clinical guarantees without medical disclaimer',
+      'Place links on X in the first reply to avoid API link post fees',
+      'Keep graphics clean and avoid cluttered stock photos',
+    ];
 
     // 3. Upsert brand profile in Neon PostgreSQL
     const existing = await db
@@ -191,7 +255,7 @@ export async function POST(req: NextRequest) {
           toneOfVoice,
           visualIdentity,
           contentPillars,
-          negativeConstraints,
+          negativeConstraints: negativeRules,
         })
         .where(eq(brandProfiles.workspaceId, ws.id))
         .returning();
@@ -206,7 +270,7 @@ export async function POST(req: NextRequest) {
           toneOfVoice,
           visualIdentity,
           contentPillars,
-          negativeConstraints,
+          negativeConstraints: negativeRules,
         })
         .returning();
       savedProfile = created;
