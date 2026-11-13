@@ -2,61 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, workspaces, socialConnections } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { getSessionFromRequest } from '@/lib/auth';
+import { DEFAULT_CHANNELS, PlatformKey } from '@/constants/channels';
 
 export const dynamic = 'force-dynamic';
-
-const DEFAULT_CHANNELS = [
-  {
-    platform: 'instagram' as const,
-    name: 'Instagram Graph API',
-    handle: '@drsharma.dental',
-    platformAccountId: 'act_ig_948271',
-    status: 'CONNECTED',
-    scopes: ['instagram_basic', 'instagram_content_publish', 'pages_read_engagement'],
-    expiresInDays: 58,
-    isConfigured: true,
-  },
-  {
-    platform: 'linkedin' as const,
-    name: 'LinkedIn Company Page',
-    handle: 'Dr. Sharma Dental Clinics',
-    platformAccountId: 'urn:li:organization:8472910',
-    status: 'CONNECTED',
-    scopes: ['w_organization_social', 'r_organization_social'],
-    expiresInDays: 365,
-    isConfigured: true,
-  },
-  {
-    platform: 'x' as const,
-    name: 'X (Twitter) Developer App',
-    handle: '@sharmadental_in',
-    platformAccountId: 'x_app_2984102',
-    status: 'CONNECTED',
-    scopes: ['tweet.read', 'tweet.write', 'users.read', 'zero_link_surcharge_guard'],
-    expiresInDays: 180,
-    isConfigured: true,
-  },
-  {
-    platform: 'whatsapp' as const,
-    name: 'Meta WhatsApp Cloud API',
-    handle: '+91 98301 24589',
-    platformAccountId: 'waba_948102948',
-    status: 'CONNECTED',
-    scopes: ['whatsapp_business_messaging', 'whatsapp_business_management'],
-    expiresInDays: 365,
-    isConfigured: true,
-  },
-  {
-    platform: 'email' as const,
-    name: 'Transactional & Campaign ESP (DKIM)',
-    handle: 'hello@kuiro.in',
-    platformAccountId: 'esp_ses_verified',
-    status: 'CONNECTED',
-    scopes: ['email_send', 'domain_dkim_verified'],
-    expiresInDays: 730,
-    isConfigured: true,
-  },
-];
 
 export async function GET(req: NextRequest) {
   try {

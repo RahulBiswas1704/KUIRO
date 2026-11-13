@@ -13,6 +13,15 @@
 # Production
 /build
 
+# TypeScript build cache
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Test Scratch Artifacts
+scripts/*.png
+scripts/indic-test-out.png
+scripts/bengali-test.png
+
 # Misc
 .DS_Store
 *.pem
