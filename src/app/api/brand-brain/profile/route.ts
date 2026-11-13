@@ -172,6 +172,7 @@ export async function POST(req: NextRequest) {
       secondaryColor,
       fontFamily,
       logoUrl,
+      whatsappAdminPhone,
       tones = [],
       pillars = [],
       negativeConstraints = [],
@@ -209,8 +210,13 @@ export async function POST(req: NextRequest) {
         ownerId: u.id,
         subscriptionTier: 'GROWTH',
       }).returning();
-    } else if (businessName && businessName !== ws.name) {
-      await db.update(workspaces).set({ name: businessName }).where(eq(workspaces.id, ws.id));
+    } else {
+      const updateFields: any = {};
+      if (businessName && businessName !== ws.name) updateFields.name = businessName;
+      if (whatsappAdminPhone) updateFields.whatsappAdminPhone = whatsappAdminPhone;
+      if (Object.keys(updateFields).length > 0) {
+        await db.update(workspaces).set(updateFields).where(eq(workspaces.id, ws.id));
+      }
     }
 
     // 2. Format & Sanitize JSON payloads
