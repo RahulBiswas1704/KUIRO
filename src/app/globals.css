@@ -1,0 +1,148 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #FFFFFF;
+  --foreground: #0B0F14;
+  --kuiro-charcoal: #0B0F14;
+  --kuiro-slate: #374151;
+  --kuiro-orange: #FF7A00;
+  --kuiro-gray: #D1D5DB;
+  --kuiro-white: #FFFFFF;
+}
+
+.dark {
+  --background: #0B0F14;
+  --foreground: #FFFFFF;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-weight: 400;
+  overflow-x: hidden;
+}
+
+/* Typography Hierarchy Directives */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Sora', system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+button, .kuiro-btn {
+  font-family: 'Sora', system-ui, sans-serif;
+  font-weight: 600;
+}
+
+.kuiro-numeric, .kuiro-dashboard-metric {
+  font-family: 'Inter', monospace;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   Section 6: Product Design Language UI Rules
+   ========================================================================== */
+
+/* 1. Rounded cards: 10-14px corner radius */
+.kuiro-card {
+  border-radius: 12px;
+  border: 1px solid rgba(209, 213, 219, 0.14);
+  box-shadow: none; /* Subtle borders instead of heavy shadows */
+}
+
+/* 2. Subtle borders instead of heavy shadows */
+.kuiro-border-subtle {
+  border: 1px solid rgba(209, 213, 219, 0.14);
+}
+
+.kuiro-border-subtle-light {
+  border: 1px solid #E5E7EB;
+}
+
+/* 3. Orange primary buttons */
+.kuiro-btn-primary {
+  background-color: #FF7A00;
+  color: #FFFFFF;
+  border-radius: 10px;
+  font-family: var(--font-sora), system-ui, sans-serif;
+  font-weight: 600;
+  padding: 0.625rem 1.25rem;
+  transition: background-color 150ms ease-in-out;
+}
+
+.kuiro-btn-primary:hover {
+  background-color: #E06C00;
+}
+
+/* 4. Charcoal sidebar and clean light dashboard surfaces */
+.kuiro-sidebar {
+  background-color: #0B0F14;
+  color: #FFFFFF;
+  border-right: 1px solid rgba(209, 213, 219, 0.12);
+}
+
+.kuiro-light-dashboard {
+  background-color: #FFFFFF;
+  color: #0B0F14;
+}
+
+/* 5. Minimal animations & generous whitespace */
+* {
+  transition-duration: 150ms;
+}
+
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes floatReverse {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(8px);
+  }
+}
+
+.animate-float-slow {
+  animation: floatSlow 6s ease-in-out infinite;
+}
+
+.animate-float-reverse {
+  animation: floatReverse 7s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: floatSlow 8s ease-in-out 1.5s infinite;
+}
+
+/* Legacy panel support mapped to design language tokens */
+.glass-panel {
+  background: rgba(11, 15, 20, 0.88);
+  border-radius: 14px;
+  border: 1px solid rgba(209, 213, 219, 0.12);
+}
+
+.glass-card {
+  background: rgba(55, 65, 81, 0.22);
+  border-radius: 12px;
+  border: 1px solid rgba(209, 213, 219, 0.10);
+}
+
+/* Hide scrollbar for smooth mobile swipe carousels */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
