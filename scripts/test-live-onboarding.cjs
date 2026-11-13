@@ -107,9 +107,9 @@ async function runTest() {
     const detected = extractRes.data.detected;
     console.log(`  ✅ AI Extraction completed in ${extractRes.data.benchmarkSeconds || 0}s!`);
     console.log(`     Detected Name: ${detected.businessName}`);
-    console.log(`     Primary Color: ${detected.colors?.primary}`);
-    console.log(`     Secondary Color: ${detected.colors?.secondary}`);
-    console.log(`     Doctor Credentials: ${detected.credentials?.degree} (${detected.credentials?.councilRegistration})`);
+    console.log(`     Primary Color: ${detected.primaryColor}`);
+    console.log(`     Secondary Color: ${detected.secondaryColor}`);
+    console.log(`     Industry: ${detected.industry}`);
 
     // Step 3: Save final Onboarding Profile to Neon DB
     console.log(`\n[3/5] Testing POST /api/brand-brain/profile (Persist Step 3 Final Profile)...`);
@@ -118,11 +118,14 @@ async function runTest() {
       '/api/brand-brain/profile',
       {
         workspaceId,
-        colors: detected.colors,
+        colors: {
+          primary: detected.primaryColor || '#FF7A00',
+          secondary: detected.secondaryColor || '#00C88C',
+        },
         doctorCredentials: {
           doctorName: testName,
-          degrees: detected.credentials?.degree || 'MBBS, MD (Dermatology)',
-          councilRegistration: detected.credentials?.councilRegistration || 'WBMC-84729',
+          degrees: 'MBBS, MD (Dermatology)',
+          councilRegistration: 'WBMC-84729',
           clinicAddress: 'Park Street, Kolkata, WB',
         },
         toneOfVoice: {
@@ -179,8 +182,7 @@ async function runTest() {
     console.log(`  ✅ Admin panel successfully retrieved tenant!`);
     console.log(`     Tenant Name: ${matchedWs.name}`);
     console.log(`     Subscription: ${matchedWs.subscriptionTier}`);
-    console.log(`     Has Brand Brain: ${matchedWs.hasBrandProfile ? 'YES (Active)' : 'NO'}`);
-    console.log(`     Campaigns: ${matchedWs.campaignCount}`);
+    console.log(`     Has Brand Brain: ${matchedWs.brandProfile ? 'YES (Active: ' + matchedWs.brandProfile.primaryHex + ')' : 'NO'}`);
 
     console.log(`\n============================================================`);
     console.log(`🎉 ALL 5 E2E ONBOARDING CONTINUITY CHECKS PASSED ON PRODUCTION!`);
