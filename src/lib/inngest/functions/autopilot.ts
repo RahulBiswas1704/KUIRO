@@ -20,7 +20,7 @@ export const autopilot48hStateMachine = inngest.createFunction(
   {
     id: 'kuiro-48h-autopilot-workflow',
     retries: 3,
-    concurrency: { limit: 10, key: 'event.data.workspaceId' },
+    concurrency: { limit: 5, key: 'event.data.workspaceId' },
   },
   { event: 'kuiro/campaign.initiate' },
   async ({ event, step }) => {
