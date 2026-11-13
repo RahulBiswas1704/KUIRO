@@ -15,8 +15,8 @@ export class WhatsAppClient {
   private apiVersion: string = 'v21.0';
 
   constructor() {
-    this.phoneNumberId = process.env.META_WA_PHONE_NUMBER_ID || 'mock_phone_id';
-    this.accessToken = process.env.META_WA_ACCESS_TOKEN || 'mock_access_token';
+    this.phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID || process.env.META_WA_PHONE_NUMBER_ID || 'mock_phone_id';
+    this.accessToken = process.env.WHATSAPP_ACCESS_TOKEN || process.env.META_WA_ACCESS_TOKEN || 'mock_access_token';
   }
 
   /**
