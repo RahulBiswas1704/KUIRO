@@ -17,8 +17,9 @@ import {
   Zap,
   Lock,
 } from 'lucide-react';
+import { PlatformKey } from '@/constants/channels';
 
-export type PlatformKey = 'instagram' | 'linkedin' | 'x' | 'whatsapp' | 'email';
+export type { PlatformKey };
 
 interface ConnectedChannelsModalProps {
   isOpen: boolean;

@@ -251,3 +251,11 @@ export interface InboxAnalyticsSummary {
     email: number;
   };
 }
+
+// ============================================================================
+// Multi-Tenant Persona Simulator & Channel Vault Types
+// ============================================================================
+
+export type { PersonaKey, PersonaConfig } from '@/constants/personas';
+export type { PlatformKey, ChannelConfig } from '@/constants/channels';
+

@@ -21,13 +21,12 @@ Your biggest competitive advantage will not be the raw AI model you use. It will
 ## 🏗️ Architecture Stack
 
 - **Framework**: Next.js 15 (App Router, React 19, TypeScript, Tailwind CSS)
-- **Database & Auth**: Supabase (PostgreSQL, Row-Level Security, pgvector)
-- **Async Queue & 48h Timer**: Inngest (`step.sleepUntil(publishAt)`)
-- **AI Models**:
-  - Copywriting & Critic: Google Gemini 2.5 Flash / Pro
-  - Voice Note Revisions: OpenAI Whisper / Gemini Multimodal Audio
-  - Visuals: Flux.1 Pro/Dev & Satori / Sharp Compositor
-- **Messaging**: Meta WhatsApp Business Cloud API
+- **Database & Auth**: Neon Serverless PostgreSQL (Drizzle ORM) + NIST-compliant persistent database sessions
+- **Storage & Media Compositor**: Cloudflare R2 / Neon Storage (S3 SDK) + Sharp Compositor with bundled pre-shaped Indic Google Fonts (Noto Sans Bengali, Devanagari, Tamil)
+- **Async Engine & 48h Timer**: Inngest Durable Workflows (`step.sleepUntil(publishAt)`)
+- **AI Models**: Google Gemini 3.5 Flash Lite (Brand Brain URL extraction, multi-channel copy synthesis & AI Critic)
+- **Messaging & Channels**: Meta WhatsApp Business Cloud API, Instagram Graph API, LinkedIn Community API, and X Developer App (with zero-link surcharge guardrail)
+- **Operator Command Center**: Multi-Tenant Administration Console (`/admin`) and 1-Click Persona Simulator
 
 ---
 
@@ -44,12 +43,11 @@ Copy `.env.example` to `.env.local` and configure your credentials:
 cp .env.example .env.local
 ```
 
-### 3. Database Migration
-Apply the Supabase migration and seed cultural calendar:
+### 3. Database Migration & Schema
+Push schema to Neon PostgreSQL via Drizzle:
 ```bash
-supabase db push
-# or run supabase/migrations/20261113000000_init_kuiro.sql in the Supabase SQL editor
-# and seed with supabase/seed.sql
+npm run db:push
+# or execute SQL migrations in supabase/migrations/
 ```
 
 ### 4. Run Development Server

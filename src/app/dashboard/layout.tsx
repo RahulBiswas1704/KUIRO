@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import KuiroLogo from '@/components/brand/KuiroLogo';
 import { useAuth } from '@/context/AuthContext';
+import { PERSONAS_LIST, PersonaKey } from '@/constants/personas';
 
 const navItems = [
   {
@@ -68,36 +69,6 @@ const navItems = [
     href: '/admin',
     icon: ShieldCheck,
     badge: 'CORE',
-  },
-];
-
-const PERSONAS_LIST = [
-  {
-    key: 'sharma' as const,
-    name: 'Dr. Sharma Dental Clinics',
-    doctor: 'Dr. Rajesh Sharma (BDS, MDS)',
-    category: 'Healthcare',
-    color: '#FF7A00',
-    iconBg: 'bg-orange-50 text-[#FF7A00] border-orange-200',
-    emoji: '🩺',
-  },
-  {
-    key: 'sengupta' as const,
-    name: 'Sengupta Aesthetic & Skin Clinic',
-    doctor: 'Dr. Debolina Sengupta (MD Derm)',
-    category: 'Dermatology',
-    color: '#6366F1',
-    iconBg: 'bg-indigo-50 text-indigo-600 border-indigo-200',
-    emoji: '✨',
-  },
-  {
-    key: 'mehta' as const,
-    name: 'Mehta Yoga & Holistic Wellness',
-    doctor: 'Ananya Mehta (E-RYT 500)',
-    category: 'Fitness/Wellness',
-    color: '#00C88C',
-    iconBg: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-    emoji: '🧘',
   },
 ];
 
