@@ -185,13 +185,13 @@ export default function ContactPage() {
                   <div>
                     <span className="font-semibold text-white block">Email Inquiries</span>
                     <p className="text-slate-400 text-[11px] mt-0.5">
-                      General: <a href="mailto:hello@kuiro.ai" className="text-white hover:underline font-mono">hello@kuiro.ai</a>
+                      General: <a href="mailto:hello@kuiro.in" className="text-white hover:underline font-mono">hello@kuiro.in</a>
                     </p>
                     <p className="text-slate-400 text-[11px]">
-                      Support: <a href="mailto:support@kuiro.ai" className="text-white hover:underline font-mono">support@kuiro.ai</a>
+                      Support: <a href="mailto:support@kuiro.in" className="text-white hover:underline font-mono">support@kuiro.in</a>
                     </p>
                     <p className="text-slate-400 text-[11px]">
-                      Agencies: <a href="mailto:partners@kuiro.ai" className="text-white hover:underline font-mono">partners@kuiro.ai</a>
+                      Agencies: <a href="mailto:partners@kuiro.in" className="text-white hover:underline font-mono">partners@kuiro.in</a>
                     </p>
                   </div>
                 </div>
@@ -409,7 +409,7 @@ export default function ContactPage() {
           </div>
 
           <a
-            href="mailto:partners@kuiro.ai?subject=Agency%20Partnership%20Inquiry%20-%20KUIRO"
+            href="mailto:partners@kuiro.in?subject=Agency%20Partnership%20Inquiry%20-%20KUIRO"
             className="px-6 py-3 rounded-[10px] bg-white text-[#0B0F14] hover:bg-gray-100 font-sora font-semibold text-xs transition shadow-md shrink-0 flex items-center gap-2"
           >
             <Briefcase size={14} />

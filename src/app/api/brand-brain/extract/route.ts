@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
               .insert(users)
               .values({
                 name: 'KUIRO Administrator',
-                email: 'admin@kuiro.ai',
+                email: 'admin@kuiro.in',
                 emailVerified: true,
               })
               .returning();

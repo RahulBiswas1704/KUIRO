@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
       if (!u) {
         [u] = await db.insert(users).values({
           name: 'KUIRO Administrator',
-          email: 'admin@kuiro.ai',
+          email: 'admin@kuiro.in',
           emailVerified: true,
         }).returning();
       }
@@ -200,7 +200,7 @@ export async function POST(req: NextRequest) {
       if (!u) {
         [u] = await db.insert(users).values({
           name: 'KUIRO Administrator',
-          email: 'admin@kuiro.ai',
+          email: 'admin@kuiro.in',
           emailVerified: true,
         }).returning();
       }

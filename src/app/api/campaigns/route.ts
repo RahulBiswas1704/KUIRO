@@ -78,7 +78,7 @@ You MUST return ONLY a raw valid JSON object (no markdown, no backticks, no mark
   },
   "x": {
     "caption": "Punchy tweet under 240 chars with zero external links",
-    "firstComment": "Booking link or full guide link: https://kuiro.ai/book"
+    "firstComment": "Booking link or full guide link: https://kuiro.in/book"
   },
   "whatsapp": {
     "caption": "Interactive WhatsApp broadcast message with clear CTA"
@@ -165,7 +165,7 @@ export async function GET(req: NextRequest) {
           .insert(users)
           .values({
             name: 'KUIRO Administrator',
-            email: 'admin@kuiro.ai',
+            email: 'admin@kuiro.in',
             emailVerified: true,
           })
           .returning();
@@ -356,7 +356,7 @@ export async function POST(req: NextRequest) {
     if (!ws) {
       let [u] = await database.select().from(users).limit(1);
       if (!u) {
-        [u] = await database.insert(users).values({ name: 'KUIRO Administrator', email: 'admin@kuiro.ai' }).returning();
+        [u] = await database.insert(users).values({ name: 'KUIRO Administrator', email: 'admin@kuiro.in' }).returning();
       }
       [ws] = await database.insert(workspaces).values({ name: 'Apex Clinic', ownerId: u.id }).returning();
     }

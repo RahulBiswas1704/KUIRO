@@ -58,7 +58,7 @@ export async function compositeBrandOverlay({
   brandName,
   primaryColor = '#FF7A00',
   phone = '+91 98765 43210',
-  website = 'kuiro.ai',
+  website = 'kuiro.in',
   width = 1080,
   height = 1350,
   uploadKey,

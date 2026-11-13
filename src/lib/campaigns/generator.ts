@@ -73,7 +73,7 @@ You MUST return ONLY a raw valid JSON object (no markdown, no backticks, no mark
   },
   "x": {
     "caption": "Punchy tweet under 240 chars with zero external links",
-    "firstComment": "Booking link or full guide link: https://kuiro.ai/book"
+    "firstComment": "Booking link or full guide link: https://kuiro.in/book"
   },
   "whatsapp": {
     "caption": "Interactive WhatsApp broadcast message with clear CTA"
@@ -125,7 +125,7 @@ You MUST return ONLY a raw valid JSON object (no markdown, no backticks, no mark
     },
     x: {
       caption: `A busy schedule is no excuse to ignore your body’s signals. Early detection beats late regrets every single time. 🩺 Priority morning slots open today at ${businessName}.`,
-      firstComment: `Book direct consultation: https://kuiro.ai/book`,
+      firstComment: `Book direct consultation: https://kuiro.in/book`,
     },
     whatsapp: {
       caption: `🌟 *Priority Update from ${businessName}*\n\nRoutine prevention is always better than cure. We have reserved priority slots for our comprehensive Vital Checkup package this week.\n\nReply *BOOK* to reserve your slot or tap below to confirm.`,

@@ -546,7 +546,7 @@ export default function DashboardPage() {
 
                   <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-gray-400">
                     <span>Zero Link-Surcharge Engine</span>
-                    <span>kuiro.ai</span>
+                    <span>kuiro.in</span>
                   </div>
                 </div>
 

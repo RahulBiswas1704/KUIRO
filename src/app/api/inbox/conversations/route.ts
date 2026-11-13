@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
       if (!u) {
         [u] = await database.insert(users).values({
           name: 'KUIRO Administrator',
-          email: 'admin@kuiro.ai',
+          email: 'admin@kuiro.in',
           emailVerified: true,
         }).returning();
       }
