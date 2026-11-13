@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { AuthModal } from '@/components/auth';
+import { Analytics } from '@vercel/analytics/react';
 
 export const metadata: Metadata = {
   title: 'KUIRO — Your Always-On AI Marketing Employee',
@@ -43,6 +44,7 @@ export default function RootLayout({
           {children}
           <AuthModal />
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
