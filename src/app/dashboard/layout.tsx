@@ -58,6 +58,12 @@ const navItems = [
     href: '/dashboard#channels',
     icon: Share2,
   },
+  {
+    name: 'Admin Command Center',
+    href: '/admin',
+    icon: ShieldCheck,
+    badge: 'CORE',
+  },
 ];
 
 export default function DashboardLayout({
