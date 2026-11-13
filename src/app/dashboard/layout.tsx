@@ -18,7 +18,12 @@ import {
   X,
   BellRing,
   LogOut,
-  MessagesSquare
+  MessagesSquare,
+  Building2,
+  Check,
+  Loader2,
+  UserCheck,
+  RefreshCw
 } from 'lucide-react';
 import KuiroLogo from '@/components/brand/KuiroLogo';
 import { useAuth } from '@/context/AuthContext';
@@ -66,17 +71,71 @@ const navItems = [
   },
 ];
 
+const PERSONAS_LIST = [
+  {
+    key: 'sharma' as const,
+    name: 'Dr. Sharma Dental Clinics',
+    doctor: 'Dr. Rajesh Sharma (BDS, MDS)',
+    category: 'Healthcare',
+    color: '#FF7A00',
+    iconBg: 'bg-orange-50 text-[#FF7A00] border-orange-200',
+    emoji: '🩺',
+  },
+  {
+    key: 'sengupta' as const,
+    name: 'Sengupta Aesthetic & Skin Clinic',
+    doctor: 'Dr. Debolina Sengupta (MD Derm)',
+    category: 'Dermatology',
+    color: '#6366F1',
+    iconBg: 'bg-indigo-50 text-indigo-600 border-indigo-200',
+    emoji: '✨',
+  },
+  {
+    key: 'mehta' as const,
+    name: 'Mehta Yoga & Holistic Wellness',
+    doctor: 'Ananya Mehta (E-RYT 500)',
+    category: 'Fitness/Wellness',
+    color: '#00C88C',
+    iconBg: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+    emoji: '🧘',
+  },
+];
+
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, logout, switchPersona } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isPersonaMenuOpen, setIsPersonaMenuOpen] = useState(false);
+  const [isSwitchingPersona, setIsSwitchingPersona] = useState(false);
 
-  const currentWorkspaceName = user?.businessName || 'Dr. Sharma Dental Clinics';
-  const userName = user?.name || 'Dr. Rajesh Sharma';
+  const getActivePersonaKey = (): 'sharma' | 'sengupta' | 'mehta' => {
+    const email = user?.email?.toLowerCase() || '';
+    const biz = user?.businessName?.toLowerCase() || '';
+    if (email.includes('sengupta') || biz.includes('sengupta')) return 'sengupta';
+    if (email.includes('mehta') || biz.includes('mehta') || biz.includes('yoga')) return 'mehta';
+    return 'sharma';
+  };
+
+  const activePersonaKey = getActivePersonaKey();
+  const activePersona = PERSONAS_LIST.find((p) => p.key === activePersonaKey) || PERSONAS_LIST[0];
+
+  const handlePersonaSelect = async (key: 'sharma' | 'sengupta' | 'mehta') => {
+    if (key === activePersonaKey) {
+      setIsPersonaMenuOpen(false);
+      return;
+    }
+    setIsPersonaMenuOpen(false);
+    setIsSwitchingPersona(true);
+    await switchPersona(key);
+    setIsSwitchingPersona(false);
+  };
+
+  const currentWorkspaceName = user?.businessName || activePersona.name;
+  const userName = user?.name || activePersona.doctor.split(' (')[0];
   const userInitials = userName
     .split(' ')
     .filter(Boolean)
@@ -128,19 +187,25 @@ export default function DashboardLayout({
         </div>
 
         {/* Workspace Selector */}
-        <div className="px-4 py-3 border-b border-[#1E2530]">
+        <div className="px-4 py-3 border-b border-[#1E2530] relative">
           <label className="text-[10px] font-medium text-gray-400 uppercase tracking-wider block mb-1">
             Current Workspace
           </label>
-          <div className="flex items-center justify-between px-3 py-2 rounded-[10px] bg-[#161C24] border border-[#27313F] text-sm text-gray-200">
+          <button
+            onClick={() => setIsPersonaMenuOpen(!isPersonaMenuOpen)}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-[10px] bg-[#161C24] hover:bg-[#1E2530] border border-[#27313F] text-sm text-gray-200 transition text-left"
+          >
             <div className="flex items-center gap-2 truncate">
-              <div className="w-5 h-5 rounded-md bg-[#FF7A00] flex items-center justify-center text-[11px] font-bold text-white shrink-0">
-                {userInitials || 'RS'}
+              <div
+                className="w-5 h-5 rounded-md flex items-center justify-center text-[11px] font-bold text-white shrink-0"
+                style={{ backgroundColor: activePersona.color }}
+              >
+                {activePersona.emoji}
               </div>
               <span className="truncate text-xs font-medium">{currentWorkspaceName}</span>
             </div>
             <ChevronDown size={14} className="text-gray-400 shrink-0 ml-1" />
-          </div>
+          </button>
         </div>
 
         {/* Navigation Items */}
@@ -248,6 +313,93 @@ export default function DashboardLayout({
           </div>
 
           <div className="flex items-center gap-3">
+            {/* 1-Click Tenant Switcher / Persona Simulator */}
+            <div className="relative">
+              <button
+                onClick={() => setIsPersonaMenuOpen(!isPersonaMenuOpen)}
+                disabled={isSwitchingPersona}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-gray-200 hover:border-gray-300 bg-gray-50 hover:bg-gray-100 text-xs font-semibold text-[#0B0F14] transition shadow-sm"
+                title="Switch Multi-Tenant Operator Persona"
+              >
+                {isSwitchingPersona ? (
+                  <Loader2 size={14} className="animate-spin text-[#FF7A00]" />
+                ) : (
+                  <span className="text-sm">{activePersona.emoji}</span>
+                )}
+                <div className="text-left hidden lg:block leading-tight">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Tenant Simulator:</span>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-gray-200 text-gray-700">{activePersona.category}</span>
+                  </div>
+                  <p className="font-semibold text-xs text-[#0B0F14] truncate max-w-[190px]">
+                    {activePersona.name}
+                  </p>
+                </div>
+                <ChevronDown size={13} className="text-gray-400 shrink-0 ml-0.5" />
+              </button>
+
+              {/* Persona Dropdown Menu */}
+              {isPersonaMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setIsPersonaMenuOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-2xl shadow-2xl z-50 p-2 space-y-1 animate-fade-in text-left">
+                    <div className="px-3 py-2 border-b border-gray-100">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        1-Click Tenant Persona Simulator
+                      </p>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        Instantly inspect workspace Brand Brain, colors, and 48h campaign queues:
+                      </p>
+                    </div>
+
+                    {PERSONAS_LIST.map((p) => {
+                      const isSelected = p.key === activePersonaKey;
+                      return (
+                        <button
+                          key={p.key}
+                          onClick={() => handlePersonaSelect(p.key)}
+                          disabled={isSwitchingPersona}
+                          className={`w-full flex items-start gap-3 p-2.5 rounded-xl text-left transition ${
+                            isSelected
+                              ? 'bg-orange-50 border border-orange-200'
+                              : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          <div
+                            className="w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0 border"
+                            style={{ backgroundColor: `${p.color}15`, borderColor: `${p.color}40` }}
+                          >
+                            {p.emoji}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <p className="text-xs font-bold text-gray-900 truncate">
+                                {p.name}
+                              </p>
+                              {isSelected && (
+                                <span className="text-[9px] font-bold text-[#FF7A00] bg-orange-100 px-1.5 py-0.5 rounded-full shrink-0">
+                                  ACTIVE
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-gray-500 truncate mt-0.5">
+                              {p.doctor}
+                            </p>
+                            <span className="inline-block text-[9px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.2 rounded mt-1">
+                              {p.category}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+
             <Link
               href="/dashboard/simulator"
               className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] bg-orange-50 border border-orange-200 text-[#FF7A00] text-xs font-semibold hover:bg-orange-100 transition"

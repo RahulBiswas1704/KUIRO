@@ -1,5 +1,6 @@
 import sharp from 'sharp';
 import { uploadToR2 } from '../storage/r2';
+import { detectIndicScript, getIndicFontFaceSvgStyle, IndicScript } from './indic-fonts';
 
 export interface OverlayOptions {
   backgroundBuffer?: Buffer;
@@ -29,8 +30,7 @@ export interface ContactSheetCard {
  * that require complex ligature shaping.
  */
 export function containsIndicScript(text: string): boolean {
-  // Devanagari (0900-097F), Bengali (0980-09FF), Tamil (0B80-0BFF), Telugu (0C00-0C7F)
-  return /[\u0900-\u097F\u0980-\u09FF\u0B80-\u0BFF\u0C00-\u0C7F]/.test(text);
+  return detectIndicScript(text).hasIndic;
 }
 
 /**
@@ -48,8 +48,8 @@ export function escapeXml(unsafe: string): string {
 
 /**
  * Programmatic Brand Compositor (Satori / Sharp Hybrid)
- * Overlays high-DPI Sora/Inter typography, verified SVG logos, phone numbers,
- * and brand footers onto AI-generated background canvases.
+ * Overlays high-DPI Sora/Inter & bundled Google Fonts (Noto Sans Bengali, Devanagari, Tamil)
+ * with pre-shaped ligatures onto AI-generated background canvases.
  */
 export async function compositeBrandOverlay({
   backgroundBuffer,
@@ -63,6 +63,16 @@ export async function compositeBrandOverlay({
   height = 1350,
   uploadKey,
 }: OverlayOptions): Promise<{ buffer: Buffer; publicUrl: string }> {
+  // Detect Indic scripts in headline, subheadline, and brand
+  const fullText = `${headline || ''} ${subheadline || ''} ${brandName || ''}`;
+  const scriptDetection = detectIndicScript(fullText);
+  const headlineFontFamily = detectIndicScript(headline).fontFamily;
+  const subheadlineFontFamily = detectIndicScript(subheadline).fontFamily;
+  const brandFontFamily = detectIndicScript(brandName).fontFamily;
+
+  // Generate SVG embedded @font-face style block with base64 TTF fonts
+  const fontFaceStyle = getIndicFontFaceSvgStyle(scriptDetection.script);
+
   // If backgroundBuffer is not provided, generate a sleek luxury dark gradient canvas
   const baseCanvas = backgroundBuffer
     ? sharp(backgroundBuffer).resize(width, height, { fit: 'cover' })
@@ -75,10 +85,11 @@ export async function compositeBrandOverlay({
         },
       });
 
-  // Programmatic crisp SVG overlay using KUIRO design tokens
+  // Programmatic crisp SVG overlay using KUIRO design tokens & pre-shaped Indic Google Fonts
   const svgOverlay = `
     <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
       <defs>
+        ${fontFaceStyle}
         <linearGradient id="scrim" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stop-color="#0B0F14" stop-opacity="0.85" />
           <stop offset="35%" stop-color="#0B0F14" stop-opacity="0.20" />
@@ -92,20 +103,20 @@ export async function compositeBrandOverlay({
 
       <!-- Top Header / Verified Brand Badge -->
       <g transform="translate(64, 72)">
-        <rect x="0" y="0" width="${Math.min(360, brandName.length * 18 + 40)}" height="54" rx="12" fill="#0B0F14" stroke="${primaryColor}" stroke-width="2" />
+        <rect x="0" y="0" width="${Math.min(420, (brandName || '').length * 20 + 50)}" height="54" rx="12" fill="#0B0F14" stroke="${primaryColor}" stroke-width="2" />
         <circle cx="28" cy="27" r="10" fill="${primaryColor}" />
-        <text x="52" y="34" fill="#FFFFFF" font-family="'Sora', system-ui, sans-serif" font-size="20" font-weight="700" letter-spacing="0.04em">
-          ${escapeXml(brandName.toUpperCase())}
+        <text x="52" y="34" fill="#FFFFFF" font-family="${brandFontFamily}" font-size="20" font-weight="700" letter-spacing="0.04em">
+          ${escapeXml((brandName || '').toUpperCase())}
         </text>
       </g>
 
-      <!-- Center Headline (Sora Bold) & Subheadline (Inter Regular) -->
+      <!-- Center Headline & Subheadline (With Noto Sans Bengali/Devanagari/Tamil ligature shaping) -->
       <g transform="translate(64, ${height - 480})">
-        <text x="0" y="0" fill="#FFFFFF" font-family="'Sora', system-ui, sans-serif" font-size="56" font-weight="700" letter-spacing="-0.02em">
-          ${escapeXml(headline.slice(0, 48))}
+        <text x="0" y="0" fill="#FFFFFF" font-family="${headlineFontFamily}" font-size="54" font-weight="700" letter-spacing="-0.01em">
+          ${escapeXml((headline || '').slice(0, 48))}
         </text>
-        <text x="0" y="70" fill="#D1D5DB" font-family="'Inter', system-ui, sans-serif" font-size="28" font-weight="400">
-          ${escapeXml(subheadline.slice(0, 72))}
+        <text x="0" y="70" fill="#D1D5DB" font-family="${subheadlineFontFamily}" font-size="28" font-weight="400">
+          ${escapeXml((subheadline || '').slice(0, 72))}
         </text>
       </g>
 
@@ -150,12 +161,15 @@ export async function generateContactSheetGrid(
 ): Promise<{ buffer: Buffer; publicUrl: string }> {
   const sheetWidth = 1200;
   const sheetHeight = 800;
+  const fontFaceStyle = getIndicFontFaceSvgStyle('all');
+  const brandFontFamily = detectIndicScript(brandName).fontFamily;
 
   const cardSvgBlocks = cards.slice(0, 4).map((card, idx) => {
     const col = idx % 2;
     const row = Math.floor(idx / 2);
     const x = 50 + col * 560;
     const y = 140 + row * 300;
+    const titleFontFamily = detectIndicScript(card.title).fontFamily;
 
     return `
       <g transform="translate(${x}, ${y})">
@@ -175,7 +189,7 @@ export async function generateContactSheetGrid(
         </text>
 
         <!-- Card Title -->
-        <text x="20" y="85" fill="#FFFFFF" font-family="'Sora', sans-serif" font-size="17" font-weight="700">
+        <text x="20" y="85" fill="#FFFFFF" font-family="${titleFontFamily}" font-size="17" font-weight="700">
           ${escapeXml(card.title.slice(0, 36))}
         </text>
 
@@ -197,6 +211,9 @@ export async function generateContactSheetGrid(
 
   const sheetSvg = `
     <svg width="${sheetWidth}" height="${sheetHeight}" viewBox="0 0 ${sheetWidth} ${sheetHeight}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        ${fontFaceStyle}
+      </defs>
       <!-- Background Charcoal #0B0F14 -->
       <rect width="100%" height="100%" fill="#0B0F14" />
       
@@ -205,7 +222,7 @@ export async function generateContactSheetGrid(
         <text x="0" y="36" fill="#FFFFFF" font-family="'Sora', sans-serif" font-size="30" font-weight="700">
           KUIRO 48-Hour Campaign Grid
         </text>
-        <text x="0" y="68" fill="#D1D5DB" font-family="'Inter', sans-serif" font-size="15">
+        <text x="0" y="68" fill="#D1D5DB" font-family="${brandFontFamily}" font-size="15">
           ${escapeXml(brandName)} • Multi-Channel Payloads Ready for Review
         </text>
         <rect x="${sheetWidth - 260}" y="10" width="160" height="34" rx="8" fill="#FF7A00" />
