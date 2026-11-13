@@ -143,8 +143,8 @@ export async function sendAutonomousEmailNewsletter(
   const recipientCount = Array.isArray(payload.to) ? payload.to.length : 1;
   const html = buildBrandedNewsletterHtml(payload);
 
-  // If in local/dev mode or missing live keys, gracefully mock the delivery
-  if (!apiKey || process.env.NODE_ENV !== 'production') {
+  // If missing live keys, gracefully mock the delivery
+  if (!apiKey || apiKey.startsWith('re_mock') || apiKey.includes('your_resend_api_key')) {
     console.log(`[Email Mock Publisher] Automated newsletter dispatched: "${payload.subject}" to ${recipientCount} recipients.`);
     return {
       status: 'MOCK_PUBLISHED',
@@ -153,6 +153,8 @@ export async function sendAutonomousEmailNewsletter(
       provider: 'mock'
     };
   }
+
+  const fromAddress = process.env.RESEND_FROM_EMAIL || 'KUIRO Updates <onboarding@resend.dev>';
 
   try {
     // Live Resend API Integration
@@ -163,7 +165,7 @@ export async function sendAutonomousEmailNewsletter(
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: `${payload.fromName || payload.brandName} <updates@kuiro.in>`,
+        from: fromAddress,
         to: payload.to,
         subject: payload.subject,
         html
