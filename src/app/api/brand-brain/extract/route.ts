@@ -2,13 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { extractBrandBrainFromUrl } from '@/lib/brand-brain/extractor';
 import { db, workspaces, brandProfiles, users } from '@/db';
 import { eq } from 'drizzle-orm';
+import { getSessionFromRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
   try {
-    const { url } = await req.json();
+    const session = await getSessionFromRequest(req);
+    const body = await req.json();
+    const { url, workspaceId } = body;
 
     if (!url || typeof url !== 'string') {
       return NextResponse.json({ error: 'Valid URL is required' }, { status: 400 });
@@ -20,7 +23,14 @@ export async function POST(req: NextRequest) {
     // Persist immediately to Neon PostgreSQL so changes are saved in real-time
     if (db) {
       try {
-        let [ws] = await db.select().from(workspaces).limit(1);
+        const targetWorkspaceId = workspaceId || session?.workspace.id;
+        let ws;
+        if (targetWorkspaceId) {
+          [ws] = await db.select().from(workspaces).where(eq(workspaces.id, targetWorkspaceId)).limit(1);
+        }
+        if (!ws) {
+          [ws] = await db.select().from(workspaces).limit(1);
+        }
         if (!ws) {
           let [u] = await db.select().from(users).limit(1);
           if (!u) {
@@ -41,7 +51,7 @@ export async function POST(req: NextRequest) {
               subscriptionTier: 'GROWTH',
             })
             .returning();
-        } else {
+        } else if (extractionResult.detected.businessName) {
           await db
             .update(workspaces)
             .set({ name: extractionResult.detected.businessName })
