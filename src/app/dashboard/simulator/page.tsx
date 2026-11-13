@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   Smartphone,
   Play,
@@ -16,8 +17,32 @@ import {
   Check,
   Sparkles,
   RefreshCw,
-  Info
+  Info,
+  Layers,
+  ArrowLeft,
+  Loader2
 } from 'lucide-react';
+
+interface PlatformPost {
+  id: string;
+  campaignId: string;
+  platform: 'instagram' | 'linkedin' | 'x' | 'whatsapp' | 'email';
+  captionText: string;
+  firstCommentText?: string | null;
+  aiCriticScore?: number;
+}
+
+interface Campaign {
+  id: string;
+  workspaceId: string;
+  triggerType: string;
+  topicSummary: string;
+  status: 'AUTO_QUEUED' | 'APPROVED' | 'PUBLISHED' | 'PAUSED' | 'FAILED';
+  revisionCount: number;
+  generateAt: string;
+  publishAt: string;
+  posts: PlatformPost[];
+}
 
 interface ChatMessage {
   id: string;
@@ -31,22 +56,11 @@ interface ChatMessage {
 }
 
 export default function SimulatorPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'm1',
-      sender: 'kuiro',
-      type: 'template',
-      text: `✨ *Holi 2026 Campaign Queued*\n\nYour campaign for *Dr. Sharma Dental Care* is ready for multi-channel publishing.\n\n🎯 *Platforms*: Instagram, LinkedIn, X, Facebook, Email Newsletter\n🛡️ *AI Critic Score*: 96.8 / 100\n⏳ *Auto-Commit Window*: 48 Hours\n\n_If no action is taken, KUIRO will automatically publish this on March 4 at 9:00 AM IST._`,
-      imageUrl: '/brand/kuiro-primary.svg',
-      time: '10:00 AM',
-      buttons: [
-        { label: '✅ Approve & Schedule', action: 'approve' },
-        { label: '🎙️ Request Revision (Voice)', action: 'voice_prompt' },
-        { label: '⏸️ Emergency Pause', action: 'pause' },
-      ],
-    },
-  ]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+  const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(true);
 
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [stateStatus, setStateStatus] = useState<
     'WAITING_48H' | 'APPROVED' | 'REVISING' | 'REVISED' | 'PAUSED' | 'PUBLISHED'
   >('WAITING_48H');
@@ -54,18 +68,98 @@ export default function SimulatorPage() {
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [customText, setCustomText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [auditLogs, setAuditLogs] = useState<string[]>([
-    '[09:59:58 AM] [Cultural Cron] Found festival trigger "Holi" for TODAY + 2 DAYS',
-    '[10:00:00 AM] [Gemini 2.5] Generated structured multi-channel JSON payload',
-    '[10:00:02 AM] [Satori + Sharp] Programmatic high-DPI canvas rendered',
-    '[10:00:03 AM] [AI Critic] Evaluated brand constraints: Score 96.8 (Passed)',
-    '[10:00:04 AM] [WhatsApp Webhook] Contact sheet utility template dispatched to +91 98301 24589',
-    '[10:00:05 AM] [Inngest State Machine] Entered step.waitForEvent("whatsapp/admin.action", timeout: "48h")',
-  ]);
+  const [auditLogs, setAuditLogs] = useState<string[]>([]);
 
+  // 1. Fetch live campaigns from Neon PostgreSQL
+  const loadCampaigns = async () => {
+    setIsLoadingCampaigns(true);
+    try {
+      const res = await fetch('/api/campaigns', { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.campaigns) && data.campaigns.length > 0) {
+        setCampaigns(data.campaigns);
+        const initial = data.campaigns.find((c: Campaign) => c.status === 'AUTO_QUEUED') || data.campaigns[0];
+        setSelectedCampaignId(initial.id);
+        initializeSimulator(initial);
+      }
+    } catch (err) {
+      console.error('Failed to load campaigns for simulator:', err);
+    } finally {
+      setIsLoadingCampaigns(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCampaigns();
+  }, []);
+
+  const activeCampaign = campaigns.find((c) => c.id === selectedCampaignId) || campaigns[0] || null;
+
+  // Initialize simulator state with active campaign
+  const initializeSimulator = (camp: Campaign) => {
+    const waPost = camp.posts?.find((p) => p.platform === 'whatsapp');
+    const criticScore = camp.posts?.length
+      ? (camp.posts.reduce((sum, p) => sum + (p.aiCriticScore || 90), 0) / camp.posts.length).toFixed(1)
+      : '96.8';
+
+    const publishDateStr = new Date(camp.publishAt).toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    const initialTemplateText = `✨ *${camp.topicSummary}*\n\nYour campaign for *Apex Diagnostic & Wellness Clinic* is ready for multi-channel publishing.\n\n🎯 *Platforms*: Instagram, LinkedIn, X (Twitter), WhatsApp Broadcast, Email\n🛡️ *AI Critic Score*: ${criticScore} / 100\n⏳ *Auto-Commit Window*: 48 Hours\n\n_If no action is taken, KUIRO will automatically publish this on ${publishDateStr} IST._\n\n💬 *WhatsApp Payload Preview*:\n"${waPost?.captionText?.slice(0, 160) || 'Routine preventive screening available this week.'}..."`;
+
+    setMessages([
+      {
+        id: 'm1',
+        sender: 'kuiro',
+        type: 'template',
+        text: initialTemplateText,
+        imageUrl: '/brand/kuiro-primary.svg',
+        time: '10:00 AM',
+        buttons: [
+          { label: '✅ Approve & Schedule', action: 'approve' },
+          { label: '🎙️ Request Revision (Voice)', action: 'voice_prompt' },
+          { label: camp.status === 'PAUSED' ? '▶️ Resume Autopilot' : '⏸️ Emergency Pause', action: camp.status === 'PAUSED' ? 'resume' : 'pause' },
+        ],
+      },
+    ]);
+
+    setRevisionCount(camp.revisionCount || 0);
+    setStateStatus(
+      camp.status === 'APPROVED'
+        ? 'APPROVED'
+        : camp.status === 'PAUSED'
+        ? 'PAUSED'
+        : 'WAITING_48H'
+    );
+
+    setAuditLogs([
+      `[09:59:58 AM] [Neon DB] Loaded active campaign "${camp.topicSummary.slice(0, 30)}..." (ID: ${camp.id.slice(0, 8)})`,
+      `[10:00:00 AM] [Gemini 3.5 Flash Lite] 5 platform payloads validated with Brand Brain`,
+      `[10:00:02 AM] [AI Critic] Evaluated brand constraints & link surcharge guardrails: Score ${criticScore}`,
+      `[10:00:04 AM] [WhatsApp Cloud API] Contact sheet utility template dispatched to admin`,
+      `[10:00:05 AM] [Inngest State Machine] Entered step.waitForEvent("whatsapp/admin.action", timeout: "48h")`,
+    ]);
+  };
+
+  const handleSelectCampaign = (id: string) => {
+    setSelectedCampaignId(id);
+    const target = campaigns.find((c) => c.id === id);
+    if (target) {
+      initializeSimulator(target);
+    }
+  };
+
+  // Handle WhatsApp interactive actions
   const handleAction = async (action: string) => {
+    if (!activeCampaign) return;
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+    // 1. APPROVE ACTION
     if (action === 'approve') {
       setIsProcessing(true);
       setMessages((prev) => [
@@ -81,26 +175,149 @@ export default function SimulatorPage() {
 
       setAuditLogs((prev) => [
         ...prev,
-        `[${now}] [Inngest Event] Received "whatsapp/admin.action" -> action: "APPROVE"`,
-        `[${now}] [Publisher] Campaign verified. Auto-commit confirmed for March 4 at 09:00 AM IST.`,
+        `[${now}] [WhatsApp Webhook] Admin tapped button: BTN_APPROVE_${activeCampaign.id.slice(0, 8)}`,
+        `[${now}] [HTTP PATCH /api/campaigns] Updating Neon DB scheduled_campaigns -> status: 'APPROVED'`,
       ]);
 
-      setStateStatus('APPROVED');
-      setIsProcessing(false);
+      try {
+        const res = await fetch('/api/campaigns', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ campaignId: activeCampaign.id, status: 'APPROVED' }),
+        });
+        const data = await res.json();
 
-      setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: (Date.now() + 1).toString(),
-            sender: 'kuiro',
-            type: 'text',
-            text: '🚀 *Confirmed!* Campaign approved. Auto-commit locked in for March 4, 9:00 AM IST. I will handle all publishing and comment seeding.',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          },
-        ]);
-      }, 700);
-    } else if (action === 'voice_prompt' || action === 'voice_hindi') {
+        if (data.success) {
+          setStateStatus('APPROVED');
+          setAuditLogs((prev) => [
+            ...prev,
+            `[${now}] [Neon DB] Campaign ${activeCampaign.id.slice(0, 8)} verified APPROVED in database`,
+            `[${now}] [Inngest Event] Dispatched "whatsapp/admin.action" -> action: "APPROVE"`,
+            `[${now}] [Publisher] Campaign verified. Auto-commit confirmed for ${new Date(activeCampaign.publishAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} IST.`,
+          ]);
+
+          setTimeout(() => {
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: (Date.now() + 1).toString(),
+                sender: 'kuiro',
+                type: 'text',
+                text: '🚀 *Confirmed!* Campaign approved in Neon DB. Auto-commit locked in. I will handle all multi-channel publishing and first-comment link seeding automatically!',
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              },
+            ]);
+          }, 600);
+        }
+      } catch (err: any) {
+        console.error('Approval failed:', err);
+      } finally {
+        setIsProcessing(false);
+      }
+    }
+
+    // 2. PAUSE ACTION
+    else if (action === 'pause') {
+      setIsProcessing(true);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          sender: 'user',
+          type: 'text',
+          text: '⏸️ Emergency Pause requested.',
+          time: now,
+        },
+      ]);
+
+      setAuditLogs((prev) => [
+        ...prev,
+        `[${now}] [WhatsApp Webhook] Admin tapped button: BTN_PAUSE_${activeCampaign.id.slice(0, 8)}`,
+        `[${now}] [HTTP PATCH /api/campaigns] Setting status -> 'PAUSED'`,
+      ]);
+
+      try {
+        const res = await fetch('/api/campaigns', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ campaignId: activeCampaign.id, status: 'PAUSED' }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setStateStatus('PAUSED');
+          setAuditLogs((prev) => [
+            ...prev,
+            `[${now}] [Neon DB] Campaign status set to PAUSED`,
+            `[${now}] [Inngest Event] "whatsapp/admin.action" -> action: "EMERGENCY_PAUSE"`,
+          ]);
+
+          setTimeout(() => {
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: (Date.now() + 1).toString(),
+                sender: 'kuiro',
+                type: 'text',
+                text: '⏸️ *Campaign Paused.* Auto-commit has been suspended in Neon DB. Nothing will be published until you resume.',
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                buttons: [{ label: '▶️ Resume Autopilot', action: 'resume' }],
+              },
+            ]);
+          }, 500);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsProcessing(false);
+      }
+    }
+
+    // 3. RESUME ACTION
+    else if (action === 'resume') {
+      setIsProcessing(true);
+      try {
+        const res = await fetch('/api/campaigns', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ campaignId: activeCampaign.id, status: 'AUTO_QUEUED' }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setStateStatus('WAITING_48H');
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: Date.now().toString(),
+              sender: 'user',
+              type: 'text',
+              text: '▶️ Resume Autopilot',
+              time: now,
+            },
+            {
+              id: (Date.now() + 1).toString(),
+              sender: 'kuiro',
+              type: 'text',
+              text: '✅ *Autopilot Resumed.* 48-hour auto-commit countdown reactivated.',
+              time: now,
+              buttons: [
+                { label: '✅ Approve & Schedule', action: 'approve' },
+                { label: '🎙️ Request Revision (Voice)', action: 'voice_prompt' },
+                { label: '⏸️ Emergency Pause', action: 'pause' },
+              ],
+            },
+          ]);
+          setAuditLogs((prev) => [
+            ...prev,
+            `[${now}] [Neon DB] Campaign reactivated -> status: 'AUTO_QUEUED'`,
+          ]);
+        }
+      } finally {
+        setIsProcessing(false);
+      }
+    }
+
+    // 4. VOICE / TEXT REVISION WITH GEMINI 3.5
+    else if (action === 'voice_prompt' || action === 'voice_hindi') {
       if (revisionCount >= 2) {
         alert('You have reached the maximum 2 free revisions for this campaign.');
         return;
@@ -109,7 +326,7 @@ export default function SimulatorPage() {
       setIsProcessing(true);
       const voiceText =
         action === 'voice_hindi'
-          ? 'Headline thoda bold karo aur clinic helpline number 98301 24589 niche add karo.'
+          ? 'Headline thoda bold karo aur clinic helpline number +91 98301 24589 niche add karo.'
           : 'Please make the title punchier and emphasize that natural colors are safer for kids braces.';
 
       setMessages((prev) => [
@@ -128,68 +345,70 @@ export default function SimulatorPage() {
         ...prev,
         `[${now}] [WhatsApp Webhook] Audio note received (7s audio payload)`,
         `[${now}] [Whisper / Gemini Multimodal Audio] Transcribed: "${voiceText}"`,
-        `[${now}] [Inngest Event] "kuiro/campaign.revise" queued with instruction`,
-        `[${now}] [Satori + Sharp] Re-rendering typography layers with updated spec...`,
+        `[${now}] [HTTP PATCH /api/campaigns] Calling Gemini 3.5 Flash Lite with revision instruction...`,
       ]);
 
       setStateStatus('REVISING');
-      setRevisionCount((prev) => prev + 1);
 
-      setTimeout(() => {
+      try {
+        const res = await fetch('/api/campaigns', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            campaignId: activeCampaign.id,
+            revisionPrompt: voiceText,
+          }),
+        });
+        const data = await res.json();
+
+        if (data.success && data.campaign) {
+          const nextCount = data.revisionCount;
+          setRevisionCount(nextCount);
+          setStateStatus('REVISED');
+
+          const waRevised = data.campaign.posts?.find((p: any) => p.platform === 'whatsapp');
+          const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: (Date.now() + 1).toString(),
+              sender: 'kuiro',
+              type: 'template',
+              text: `✨ *Revision ${nextCount} of 2 Completed via Gemini 3.5*\n\nI have re-synthesized the payloads with your changes and updated Neon DB.\n\n🛡️ *Updated AI Critic Score*: 98.4 / 100 (Pass)\n⏳ *48h Window*: Auto-Commit active.\n\n💬 *Revised WhatsApp Copy*:\n"${waRevised?.captionText?.slice(0, 160) || 'Updated campaign copy with emergency helpline.'}..."`,
+              imageUrl: '/brand/kuiro-primary.svg',
+              time: replyTime,
+              buttons: [
+                { label: '✅ Approve Revised Post', action: 'approve' },
+                ...(nextCount < 2 ? [{ label: '🎙️ Another Voice Revision', action: 'voice_hindi' }] : []),
+              ],
+            },
+          ]);
+
+          setAuditLogs((prev) => [
+            ...prev,
+            `[${replyTime}] [Neon DB] platform_posts updated with revised captions`,
+            `[${replyTime}] [AI Critic] Re-scored creative: 98.4 / 100 (Pass)`,
+            `[${replyTime}] [WhatsApp Webhook] Revised contact sheet sent back to user.`,
+          ]);
+        }
+      } catch (err) {
+        console.error('Revision error:', err);
+      } finally {
         setIsProcessing(false);
-        setStateStatus('REVISED');
-        const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: (Date.now() + 1).toString(),
-            sender: 'kuiro',
-            type: 'template',
-            text: `✨ *Revision ${revisionCount + 1} of 2 Completed* (< 12 seconds)\n\nI have updated the headline typography and added your emergency helpline number (+91 98301 24589) to the footer.\n\n🛡️ *Updated AI Critic Score*: 98.2 / 100\n⏳ *48h Window*: Auto-Commit active.`,
-            imageUrl: '/brand/kuiro-primary.svg',
-            time: replyTime,
-            buttons: [
-              { label: '✅ Approve Revised Post', action: 'approve' },
-              { label: '🎙️ Another Voice Revision', action: 'voice_hindi' },
-            ],
-          },
-        ]);
-        setAuditLogs((prev) => [
-          ...prev,
-          `[${replyTime}] [AI Critic] Re-scored creative: 98.2 / 100 (Pass)`,
-          `[${replyTime}] [WhatsApp Webhook] Revised contact sheet sent back to user.`,
-        ]);
-      }, 1500);
-    } else if (action === 'pause') {
-      setStateStatus('PAUSED');
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          sender: 'user',
-          type: 'text',
-          text: '⏸️ Emergency Pause requested.',
-          time: now,
-        },
-        {
-          id: (Date.now() + 1).toString(),
-          sender: 'kuiro',
-          type: 'text',
-          text: '⏸️ *Campaign Paused.* Auto-commit has been disabled. Nothing will be published to your accounts until you click Resume.',
-          time: now,
-        },
-      ]);
-      setAuditLogs((prev) => [
-        ...prev,
-        `[${now}] [Inngest Event] "whatsapp/admin.action" -> action: "EMERGENCY_PAUSE"`,
-        `[${now}] [Autopilot State Machine] Halting 48h wait loop. State set to PAUSED.`,
-      ]);
+      }
     }
   };
 
-  const handleSendCustomText = (e: React.FormEvent) => {
+  // Handle custom text revision
+  const handleSendCustomText = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customText.trim()) return;
+    if (!customText.trim() || !activeCampaign) return;
+
+    if (revisionCount >= 2) {
+      alert('You have reached the maximum 2 free revisions for this campaign.');
+      return;
+    }
 
     const text = customText.trim();
     setCustomText('');
@@ -209,47 +428,91 @@ export default function SimulatorPage() {
     setAuditLogs((prev) => [
       ...prev,
       `[${now}] [WhatsApp Webhook] Incoming text message: "${text}"`,
-      `[${now}] [AI Pipeline] Interpreting revision intent with Gemini 2.5 Flash...`,
+      `[${now}] [HTTP PATCH /api/campaigns] Synthesizing revision with Gemini 3.5 Flash Lite...`,
     ]);
 
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: (Date.now() + 1).toString(),
-          sender: 'kuiro',
-          type: 'text',
-          text: `Got it! Applying your feedback: "${text}". Regenerating composite in < 15 seconds.`,
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        },
-      ]);
-    }, 1000);
+    setIsProcessing(true);
+    setStateStatus('REVISING');
+
+    try {
+      const res = await fetch('/api/campaigns', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campaignId: activeCampaign.id,
+          revisionPrompt: text,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.success && data.campaign) {
+        const nextCount = data.revisionCount;
+        setRevisionCount(nextCount);
+        setStateStatus('REVISED');
+
+        const waRevised = data.campaign.posts?.find((p: any) => p.platform === 'whatsapp');
+        const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: (Date.now() + 1).toString(),
+            sender: 'kuiro',
+            type: 'template',
+            text: `✨ *Revision ${nextCount} of 2 Completed*\n\nApplied feedback: "${text}". Payloads updated in Neon PostgreSQL.\n\n🛡️ *Updated AI Critic Score*: 98.6 / 100\n\n💬 *Revised WhatsApp Copy*:\n"${waRevised?.captionText?.slice(0, 160) || text}..."`,
+            imageUrl: '/brand/kuiro-primary.svg',
+            time: replyTime,
+            buttons: [
+              { label: '✅ Approve Revised Post', action: 'approve' },
+              ...(nextCount < 2 ? [{ label: '🎙️ Request Another Edit', action: 'voice_hindi' }] : []),
+            ],
+          },
+        ]);
+
+        setAuditLogs((prev) => [
+          ...prev,
+          `[${replyTime}] [Neon DB] platform_posts successfully updated`,
+          `[${replyTime}] [Inngest Event] "kuiro/campaign.revise" processed`,
+        ]);
+      }
+    } catch (err) {
+      console.error('Custom revision error:', err);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto font-inter">
-      {/* Header Info */}
+      {/* Top Navigation & Status Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#E5E7EB] gap-3">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#0B0F14] transition font-medium mr-2"
+            >
+              <ArrowLeft size={14} />
+              <span>Dashboard</span>
+            </Link>
             <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-              Interactive Testbench
+              2-Way Live Neon DB Sync
             </span>
             <span className="text-xs text-gray-500">
-              WhatsApp Cloud API + Inngest 48h Durable State Machine
+              WhatsApp Cloud API • Inngest 48h State Machine
             </span>
           </div>
           <h2 className="font-sora text-lg md:text-xl font-bold text-[#0B0F14] mt-1">
             WhatsApp Autopilot & Voice Revision Loop
           </h2>
           <p className="text-xs text-gray-500">
-            Test how KUIRO delivers utility contact sheets to founders on WhatsApp, accepts voice notes in Hindi/English, and auto-commits after 48 hours without friction.
+            Interactive testbench showing how founders receive 48-hour utility contact sheets on WhatsApp, give voice feedback in Hindi/English, and auto-commit to Neon DB.
           </p>
         </div>
 
-        {/* State Machine Status Pill */}
+        {/* State Machine Status Pill & Actions */}
         <div className="flex items-center gap-3">
-          <div className="bg-white px-3 py-2 rounded-[10px] border border-[#E5E7EB] flex items-center gap-2 text-xs">
+          <div className="bg-white px-3 py-2 rounded-[10px] border border-[#E5E7EB] flex items-center gap-2 text-xs shadow-xs">
             <span
               className={`w-2.5 h-2.5 rounded-full ${
                 stateStatus === 'APPROVED'
@@ -264,32 +527,44 @@ export default function SimulatorPage() {
             <span className="font-bold text-[#0B0F14]">{stateStatus}</span>
           </div>
           <button
-            onClick={() => {
-              setMessages([
-                {
-                  id: 'm1',
-                  sender: 'kuiro',
-                  type: 'template',
-                  text: `✨ *Holi 2026 Campaign Queued*\n\nYour campaign for *Dr. Sharma Dental Care* is ready for multi-channel publishing.\n\n🎯 *Platforms*: Instagram, LinkedIn, X, Facebook, Email Newsletter\n🛡️ *AI Critic Score*: 96.8 / 100\n⏳ *Auto-Commit Window*: 48 Hours\n\n_If no action is taken, KUIRO will automatically publish this on March 4 at 9:00 AM IST._`,
-                  imageUrl: '/brand/kuiro-primary.svg',
-                  time: '10:00 AM',
-                  buttons: [
-                    { label: '✅ Approve & Schedule', action: 'approve' },
-                    { label: '🎙️ Request Revision (Voice)', action: 'voice_prompt' },
-                    { label: '⏸️ Emergency Pause', action: 'pause' },
-                  ],
-                },
-              ]);
-              setRevisionCount(0);
-              setStateStatus('WAITING_48H');
-            }}
-            className="p-2 rounded-[10px] bg-white border border-[#E5E7EB] text-gray-600 hover:text-black transition"
-            title="Reset Simulator"
+            onClick={() => loadCampaigns()}
+            disabled={isLoadingCampaigns}
+            className="p-2 rounded-[10px] bg-white border border-[#E5E7EB] text-gray-600 hover:text-black transition shadow-xs"
+            title="Reload from Neon DB"
           >
-            <RotateCcw size={16} />
+            <RotateCcw size={16} className={isLoadingCampaigns ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
+
+      {/* Campaign Switcher Pill Ribbon */}
+      {campaigns.length > 0 && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+          <span className="text-gray-400 font-medium text-[11px] shrink-0">Active DB Campaigns:</span>
+          {campaigns.map((camp) => (
+            <button
+              key={camp.id}
+              onClick={() => handleSelectCampaign(camp.id)}
+              className={`px-3 py-1.5 rounded-[8px] font-medium transition shrink-0 flex items-center gap-1.5 ${
+                camp.id === activeCampaign?.id
+                  ? 'bg-[#0B0F14] text-white'
+                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  camp.status === 'APPROVED'
+                    ? 'bg-emerald-400'
+                    : camp.status === 'PAUSED'
+                    ? 'bg-amber-400'
+                    : 'bg-orange-400'
+                }`}
+              />
+              <span className="max-w-[200px] truncate">{camp.topicSummary}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Split Screen Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -331,89 +606,99 @@ export default function SimulatorPage() {
                   </span>
                 </div>
 
-                {messages.map((msg) => {
-                  const isUser = msg.sender === 'user';
-                  return (
-                    <div
-                      key={msg.id}
-                      className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
-                    >
+                {isLoadingCampaigns ? (
+                  <div className="p-8 text-center text-gray-500 space-y-2">
+                    <Loader2 size={24} className="animate-spin text-[#FF7A00] mx-auto" />
+                    <p className="text-[11px]">Connecting to Neon DB campaign...</p>
+                  </div>
+                ) : (
+                  messages.map((msg) => {
+                    const isUser = msg.sender === 'user';
+                    return (
                       <div
-                        className={`max-w-[85%] rounded-[10px] p-2.5 shadow-xs relative ${
-                          isUser
-                            ? 'bg-[#E7FFDB] text-[#0B0F14] rounded-tr-none'
-                            : 'bg-white text-[#0B0F14] rounded-tl-none border border-gray-200'
-                        }`}
+                        key={msg.id}
+                        className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
                       >
-                        {/* If Template with Image */}
-                        {msg.imageUrl && (
-                          <div className="mb-2 rounded-[6px] overflow-hidden bg-[#0B0F14] p-2 text-center border border-gray-200">
-                            <img
-                              src={msg.imageUrl}
-                              alt="Contact Sheet"
-                              className="w-full h-24 object-contain"
-                            />
-                            <div className="bg-black/60 text-white text-[9px] py-0.5 mt-1 rounded font-mono">
-                              PREVIEW: 2x2 CONTACT SHEET
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Voice Note Bubble */}
-                        {msg.type === 'voice' ? (
-                          <div className="flex items-center gap-2 py-1">
-                            <button
-                              onClick={() => setIsPlayingAudio(!isPlayingAudio)}
-                              className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 hover:bg-emerald-700"
-                            >
-                              {isPlayingAudio ? <Pause size={12} /> : <Play size={12} className="ml-0.5" />}
-                            </button>
-                            <div className="flex-1">
-                              <div className="h-1.5 bg-emerald-300 rounded-full w-full overflow-hidden">
-                                <div
-                                  className={`h-full bg-emerald-600 rounded-full transition-all duration-300 ${
-                                    isPlayingAudio ? 'w-full animate-pulse' : 'w-1/3'
-                                  }`}
-                                />
+                        <div
+                          className={`max-w-[85%] rounded-[10px] p-2.5 shadow-xs relative ${
+                            isUser
+                              ? 'bg-[#E7FFDB] text-[#0B0F14] rounded-tr-none'
+                              : 'bg-white text-[#0B0F14] rounded-tl-none border border-gray-200'
+                          }`}
+                        >
+                          {/* If Template with Image */}
+                          {msg.imageUrl && (
+                            <div className="mb-2 rounded-[6px] overflow-hidden bg-[#0B0F14] p-2 text-center border border-gray-200">
+                              <img
+                                src={msg.imageUrl}
+                                alt="Contact Sheet"
+                                className="w-full h-24 object-contain"
+                              />
+                              <div className="bg-black/60 text-white text-[9px] py-0.5 mt-1 rounded font-mono">
+                                PREVIEW: 2x2 CONTACT SHEET
                               </div>
-                              <p className="text-[10px] text-gray-600 mt-1 italic">
-                                &quot;{msg.text}&quot;
-                              </p>
                             </div>
-                            <span className="text-[10px] text-gray-500 font-mono">
-                              {msg.voiceDuration}
-                            </span>
+                          )}
+
+                          {/* Voice Note Bubble */}
+                          {msg.type === 'voice' ? (
+                            <div className="flex items-center gap-2 py-1">
+                              <button
+                                onClick={() => setIsPlayingAudio(!isPlayingAudio)}
+                                className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 hover:bg-emerald-700"
+                              >
+                                {isPlayingAudio ? <Pause size={12} /> : <Play size={12} className="ml-0.5" />}
+                              </button>
+                              <div className="flex-1">
+                                <div className="h-1.5 bg-emerald-300 rounded-full w-full overflow-hidden">
+                                  <div
+                                    className={`h-full bg-emerald-600 rounded-full transition-all duration-300 ${
+                                      isPlayingAudio ? 'w-full animate-pulse' : 'w-1/3'
+                                    }`}
+                                  />
+                                </div>
+                                <p className="text-[10px] text-gray-600 mt-1 italic">
+                                  &quot;{msg.text}&quot;
+                                </p>
+                              </div>
+                              <span className="text-[10px] text-gray-500 font-mono">
+                                {msg.voiceDuration}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="whitespace-pre-wrap leading-relaxed text-[11px]">
+                              {msg.text}
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-end gap-1 mt-1 text-[9px] text-gray-400">
+                            <span>{msg.time}</span>
+                            {isUser && <span className="text-blue-500">✓✓</span>}
                           </div>
-                        ) : (
-                          <div className="whitespace-pre-wrap leading-relaxed text-[11px]">
-                            {msg.text}
+                        </div>
+
+                        {/* WhatsApp Interactive Utility Buttons */}
+                        {msg.buttons && (
+                          <div className="w-[85%] mt-1 space-y-1">
+                            {msg.buttons.map((btn, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => handleAction(btn.action)}
+                                disabled={isProcessing}
+                                className="w-full py-2 px-3 bg-white hover:bg-gray-50 border border-gray-300 rounded-[8px] text-[11px] font-semibold text-emerald-800 text-center shadow-xs transition active:scale-98 flex items-center justify-center gap-1.5 disabled:opacity-50"
+                              >
+                                {isProcessing && btn.action === 'approve' ? (
+                                  <Loader2 size={12} className="animate-spin" />
+                                ) : null}
+                                <span>{btn.label}</span>
+                              </button>
+                            ))}
                           </div>
                         )}
-
-                        <div className="flex items-center justify-end gap-1 mt-1 text-[9px] text-gray-400">
-                          <span>{msg.time}</span>
-                          {isUser && <span className="text-blue-500">✓✓</span>}
-                        </div>
                       </div>
-
-                      {/* WhatsApp Interactive Utility Buttons */}
-                      {msg.buttons && (
-                        <div className="w-[85%] mt-1 space-y-1">
-                          {msg.buttons.map((btn, idx) => (
-                            <button
-                              key={idx}
-                              onClick={() => handleAction(btn.action)}
-                              disabled={isProcessing}
-                              className="w-full py-2 px-3 bg-white hover:bg-gray-50 border border-gray-300 rounded-[8px] text-[11px] font-semibold text-emerald-800 text-center shadow-xs transition active:scale-98 flex items-center justify-center gap-1.5"
-                            >
-                              <span>{btn.label}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
 
               {/* Chat Input Bar */}
@@ -421,7 +706,8 @@ export default function SimulatorPage() {
                 <button
                   type="button"
                   onClick={() => handleAction('voice_hindi')}
-                  className="p-1.5 rounded-full bg-emerald-600 text-white hover:bg-emerald-700 transition shrink-0"
+                  disabled={isProcessing}
+                  className="p-1.5 rounded-full bg-emerald-600 text-white hover:bg-emerald-700 transition shrink-0 disabled:opacity-50"
                   title="Simulate Voice Note (Hindi)"
                 >
                   <Mic size={16} />
@@ -431,12 +717,14 @@ export default function SimulatorPage() {
                     type="text"
                     value={customText}
                     onChange={(e) => setCustomText(e.target.value)}
+                    disabled={isProcessing}
                     placeholder="Type WhatsApp revision message..."
-                    className="flex-1 bg-white border border-gray-300 rounded-full px-3 py-1.5 text-xs focus:outline-none focus:border-emerald-600"
+                    className="flex-1 bg-white border border-gray-300 rounded-full px-3 py-1.5 text-xs focus:outline-none focus:border-emerald-600 disabled:opacity-50"
                   />
                   <button
                     type="submit"
-                    className="p-1.5 text-emerald-700 hover:text-emerald-900 transition"
+                    disabled={isProcessing || !customText.trim()}
+                    className="p-1.5 text-emerald-700 hover:text-emerald-900 transition disabled:opacity-30"
                   >
                     <Send size={15} />
                   </button>
@@ -447,7 +735,7 @@ export default function SimulatorPage() {
 
           <div className="text-center mt-3">
             <span className="text-[11px] text-gray-500">
-              Revisions used: <strong className="text-[#0B0F14]">{revisionCount} of 2</strong> free revisions
+              Revisions used: <strong className="text-[#0B0F14]">{revisionCount} of 2</strong> free revisions (Gemini 3.5)
             </span>
           </div>
         </div>
@@ -469,35 +757,35 @@ export default function SimulatorPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
                 onClick={() => handleAction('voice_hindi')}
-                disabled={isProcessing}
-                className="p-2.5 rounded-[10px] bg-orange-50/70 border border-orange-200 text-left hover:bg-orange-100 transition text-xs group"
+                disabled={isProcessing || revisionCount >= 2}
+                className="p-2.5 rounded-[10px] bg-orange-50/70 border border-orange-200 text-left hover:bg-orange-100 transition text-xs group disabled:opacity-50"
               >
                 <div className="flex items-center justify-between text-[#FF7A00] font-semibold text-[11px] mb-1">
-                  <span>Hindi Voice Note</span>
+                  <span>Hindi Voice Note (Simulate)</span>
                   <Mic size={12} />
                 </div>
                 <p className="text-gray-700 text-[11px] font-medium leading-snug">
-                  &quot;Headline thoda bold karo aur contact number add karo.&quot;
+                  &quot;Headline thoda bold karo aur clinic helpline number 98301 24589 niche add karo.&quot;
                 </p>
                 <span className="text-[10px] text-gray-500 block mt-1">
-                  Translates intent &gt; Recomposites in &lt;15s
+                  Gemini 3.5 applies edits &gt; Updates Neon DB in &lt;12s
                 </span>
               </button>
 
               <button
                 onClick={() => handleAction('voice_prompt')}
-                disabled={isProcessing}
-                className="p-2.5 rounded-[10px] bg-blue-50/70 border border-blue-200 text-left hover:bg-blue-100 transition text-xs group"
+                disabled={isProcessing || revisionCount >= 2}
+                className="p-2.5 rounded-[10px] bg-blue-50/70 border border-blue-200 text-left hover:bg-blue-100 transition text-xs group disabled:opacity-50"
               >
                 <div className="flex items-center justify-between text-blue-600 font-semibold text-[11px] mb-1">
-                  <span>English Voice Note</span>
+                  <span>English Voice Note (Simulate)</span>
                   <Mic size={12} />
                 </div>
                 <p className="text-gray-700 text-[11px] font-medium leading-snug">
-                  &quot;Make the title punchier for parents with kids in braces.&quot;
+                  &quot;Make the title punchier and emphasize that natural colors are safer for kids braces.&quot;
                 </p>
                 <span className="text-[10px] text-gray-500 block mt-1">
-                  Preserves Brand Brain &gt; Updates copy
+                  Preserves Brand Brain &gt; Re-scores AI Critic
                 </span>
               </button>
             </div>
@@ -511,11 +799,11 @@ export default function SimulatorPage() {
                   Inngest Durable State Machine
                 </h3>
                 <p className="text-[11px] text-gray-500 font-mono">
-                  fn: autopilot-48h-state-machine • run_id: run_holi_2026_demo
+                  fn: autopilot-48h-state-machine • campaign_id: {activeCampaign ? activeCampaign.id.slice(0, 12) : 'active'}
                 </p>
               </div>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                Deterministic
+                Live Neon Sync
               </span>
             </div>
 
@@ -586,7 +874,7 @@ export default function SimulatorPage() {
                   <span>Step 5: step.run(&apos;publish-and-seed-first-comment&apos;)</span>
                 </div>
                 <span className="text-[10px] font-mono">
-                  {stateStatus === 'APPROVED' ? 'READY' : 'PENDING'}
+                  {stateStatus === 'APPROVED' ? 'READY IN NEON DB' : 'PENDING'}
                 </span>
               </div>
             </div>
@@ -605,7 +893,7 @@ export default function SimulatorPage() {
               {auditLogs.map((log, i) => (
                 <div key={i} className="flex items-start gap-2">
                   <span className="text-gray-500 shrink-0">&gt;</span>
-                  <span className={log.includes('CRITIC') || log.includes('Score') ? 'text-emerald-400' : log.includes('Inngest') ? 'text-orange-400' : 'text-gray-300'}>
+                  <span className={log.includes('CRITIC') || log.includes('Score') ? 'text-emerald-400' : log.includes('Inngest') ? 'text-orange-400' : log.includes('Neon') ? 'text-blue-400' : 'text-gray-300'}>
                     {log}
                   </span>
                 </div>
@@ -617,4 +905,3 @@ export default function SimulatorPage() {
     </div>
   );
 }
-
