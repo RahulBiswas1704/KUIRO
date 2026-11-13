@@ -34,7 +34,7 @@ export const autopilot48hStateMachine = inngest.createFunction(
       const database = db;
       let brandName = 'Apex Diagnostic & Wellness Clinic';
       let adminPhone = '+919876543210';
-      let website = 'kuiro.ai';
+      let website = 'kuiro.in';
       let topicSummary = event.data.eventName || 'Autonomous Brand Health Campaign';
       let revisionCount = 0;
 
@@ -269,7 +269,7 @@ export const autopilot48hStateMachine = inngest.createFunction(
       const results = await publishToAllChannels({
         caption: generatedAssets[0].caption,
         mediaUrls: [contactSheet.publicUrl],
-        firstReply: generatedAssets[2].firstComment || 'Read our full guide at kuiro.ai',
+        firstReply: generatedAssets[2].firstComment || 'Read our full guide at kuiro.in',
         aspectRatio: '1:1',
       });
 

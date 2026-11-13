@@ -84,7 +84,7 @@ const teamMembers: TeamMember[] = [
   {
     id: 'agent-ai',
     name: 'KUIRO AI Co-Pilot',
-    email: 'bot@kuiro.ai',
+    email: 'bot@kuiro.in',
     role: 'ai_bot',
     avatar: 'AI',
     isOnline: true,

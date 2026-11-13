@@ -44,7 +44,7 @@ export async function GET() {
     let drizzleTestResult: any = null;
     if (db) {
       // Create or ensure a verification test user
-      const testEmail = 'verify-neon@kuiro.ai';
+      const testEmail = 'verify-neon@kuiro.in';
       let [testUser] = await db.select().from(users).where(drizzleSql`email = ${testEmail}`);
       if (!testUser) {
         [testUser] = await db.insert(users).values({

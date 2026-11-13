@@ -114,7 +114,7 @@ async function main() {
 
   // 4. Test Multi-Tenant Signup Flow
   console.log('\n--- 4. Testing Multi-Tenant Signup Simulation ---');
-  const testEmail = `test_founder_${Date.now()}@kuiro.ai`;
+  const testEmail = `test_founder_${Date.now()}@kuiro.in`;
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = crypto.scryptSync('SecureTest123!', salt, 64).toString('hex');
   const testPasswordHash = `${salt}:${hash}`;
