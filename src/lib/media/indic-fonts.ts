@@ -123,3 +123,4 @@ export function getIndicFontFaceSvgStyle(targetScript?: IndicScript | 'all'): st
 
   return `<style>${styles.join('\n')}</style>`;
 }
+
