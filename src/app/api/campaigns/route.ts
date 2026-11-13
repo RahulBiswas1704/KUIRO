@@ -105,7 +105,39 @@ You MUST return ONLY a raw valid JSON object (no markdown, no backticks, no mark
         const d = await res.json();
         const rawText = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
         const clean = rawText.replace(/```json/gi, '').replace(/```/gi, '').trim();
-        return JSON.parse(clean);
+        const parsed = JSON.parse(clean);
+        return {
+          topicSummary: parsed.topicSummary || topic,
+          instagram: {
+            hook: parsed.instagram?.hook || '',
+            caption: parsed.instagram?.caption || '',
+            hashtags: Array.isArray(parsed.instagram?.hashtags)
+              ? parsed.instagram.hashtags
+              : typeof parsed.instagram?.hashtags === 'string'
+              ? parsed.instagram.hashtags.split(/\s+/).filter(Boolean)
+              : ['PreventiveCare', 'HealthFirst', 'WellnessIndia', 'EarlyDetection'],
+          },
+          linkedin: {
+            hook: parsed.linkedin?.hook || '',
+            caption: parsed.linkedin?.caption || '',
+            hashtags: Array.isArray(parsed.linkedin?.hashtags)
+              ? parsed.linkedin.hashtags
+              : typeof parsed.linkedin?.hashtags === 'string'
+              ? parsed.linkedin.hashtags.split(/\s+/).filter(Boolean)
+              : ['CorporateWellness', 'Leadership', 'PreventiveMedicine'],
+          },
+          x: {
+            caption: parsed.x?.caption || '',
+            firstComment: parsed.x?.firstComment || '',
+          },
+          whatsapp: {
+            caption: parsed.whatsapp?.caption || '',
+          },
+          email: {
+            subject: parsed.email?.subject || `Update from ${businessName}`,
+            bodyHtml: parsed.email?.bodyHtml || `<p>${topic}</p>`,
+          },
+        };
       }
     } catch (err) {
       console.warn('[Campaign Gemini Generation Error]:', err);
@@ -232,8 +264,8 @@ export async function GET(req: NextRequest) {
         {
           campaignId: newCamp.id,
           platform: 'instagram' as const,
-          captionText: generated.instagram.caption,
-          firstCommentText: generated.instagram.hashtags.map((t) => `#${t}`).join(' '),
+          captionText: generated.instagram?.caption || '',
+          firstCommentText: (generated.instagram?.hashtags || []).map((t) => `#${String(t).replace(/^#/, '')}`).join(' '),
           mediaUrls: ['/brand/kuiro-primary.svg'],
           aspectRatio: '4:5',
           aiCriticScore: 96,
@@ -241,8 +273,8 @@ export async function GET(req: NextRequest) {
         {
           campaignId: newCamp.id,
           platform: 'linkedin' as const,
-          captionText: generated.linkedin.caption,
-          firstCommentText: generated.linkedin.hashtags.map((t) => `#${t}`).join(' '),
+          captionText: generated.linkedin?.caption || '',
+          firstCommentText: (generated.linkedin?.hashtags || []).map((t) => `#${String(t).replace(/^#/, '')}`).join(' '),
           mediaUrls: ['/brand/kuiro-primary.svg'],
           aspectRatio: '1:1',
           aiCriticScore: 94,
@@ -404,8 +436,8 @@ export async function POST(req: NextRequest) {
       {
         campaignId: newCamp.id,
         platform: 'instagram' as const,
-        captionText: generated.instagram.caption,
-        firstCommentText: generated.instagram.hashtags.map((t) => `#${t}`).join(' '),
+        captionText: generated.instagram?.caption || '',
+        firstCommentText: (generated.instagram?.hashtags || []).map((t) => `#${String(t).replace(/^#/, '')}`).join(' '),
         mediaUrls: [bp?.visualIdentity?.logoUrl || '/brand/kuiro-primary.svg'],
         aspectRatio: '4:5',
         aiCriticScore: 96,
@@ -413,8 +445,8 @@ export async function POST(req: NextRequest) {
       {
         campaignId: newCamp.id,
         platform: 'linkedin' as const,
-        captionText: generated.linkedin.caption,
-        firstCommentText: generated.linkedin.hashtags.map((t) => `#${t}`).join(' '),
+        captionText: generated.linkedin?.caption || '',
+        firstCommentText: (generated.linkedin?.hashtags || []).map((t) => `#${String(t).replace(/^#/, '')}`).join(' '),
         mediaUrls: [bp?.visualIdentity?.logoUrl || '/brand/kuiro-primary.svg'],
         aspectRatio: '1:1',
         aiCriticScore: 94,
@@ -422,8 +454,8 @@ export async function POST(req: NextRequest) {
       {
         campaignId: newCamp.id,
         platform: 'x' as const,
-        captionText: generated.x.caption,
-        firstCommentText: generated.x.firstComment,
+        captionText: generated.x?.caption || '',
+        firstCommentText: generated.x?.firstComment || '',
         mediaUrls: [],
         aspectRatio: '1:1',
         aiCriticScore: 92,
@@ -431,7 +463,7 @@ export async function POST(req: NextRequest) {
       {
         campaignId: newCamp.id,
         platform: 'whatsapp' as const,
-        captionText: generated.whatsapp.caption,
+        captionText: generated.whatsapp?.caption || '',
         mediaUrls: [bp?.visualIdentity?.logoUrl || '/brand/kuiro-primary.svg'],
         aspectRatio: '1:1',
         aiCriticScore: 98,
@@ -439,9 +471,9 @@ export async function POST(req: NextRequest) {
       {
         campaignId: newCamp.id,
         platform: 'email' as const,
-        captionText: generated.email.bodyHtml,
-        emailSubject: generated.email.subject,
-        emailHtml: generated.email.bodyHtml,
+        captionText: generated.email?.bodyHtml || '',
+        emailSubject: generated.email?.subject || `Update from ${businessName}`,
+        emailHtml: generated.email?.bodyHtml || '',
         mediaUrls: [bp?.visualIdentity?.logoUrl || '/brand/kuiro-primary.svg'],
         aspectRatio: '1:1',
         aiCriticScore: 95,
