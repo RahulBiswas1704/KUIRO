@@ -105,3 +105,4 @@ export async function GET() {
     { status: overallStatus === 'unhealthy' ? 503 : 200 }
   );
 }
+
