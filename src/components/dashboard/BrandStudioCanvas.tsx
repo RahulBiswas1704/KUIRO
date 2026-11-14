@@ -13,8 +13,66 @@ import {
   Layers,
   Eye,
   Type,
-  Palette
+  Palette,
+  Edit3,
+  RotateCcw,
+  Check,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
+
+export interface CuratedPalette {
+  id: string;
+  name: string;
+  primary: string;
+  secondary: string;
+  accent: string;
+}
+
+export const CURATED_PALETTES: CuratedPalette[] = [
+  {
+    id: 'marigold',
+    name: 'Royal Marigold & Charcoal',
+    primary: '#FF7A00',
+    secondary: '#0B0F14',
+    accent: '#10B981',
+  },
+  {
+    id: 'saffron',
+    name: 'Kashmir Saffron & Warm Slate',
+    primary: '#E65100',
+    secondary: '#1C1917',
+    accent: '#F59E0B',
+  },
+  {
+    id: 'indigo',
+    name: 'Jaipur Indigo & Temple Gold',
+    primary: '#1A237E',
+    secondary: '#0A0E1A',
+    accent: '#FFD700',
+  },
+  {
+    id: 'emerald',
+    name: 'Mughal Emerald & Champagne',
+    primary: '#004D40',
+    secondary: '#051A15',
+    accent: '#F7E7CE',
+  },
+  {
+    id: 'crimson',
+    name: 'Velvet Crimson & Rose Gold',
+    primary: '#880E4F',
+    secondary: '#1A0510',
+    accent: '#F8BBD0',
+  },
+  {
+    id: 'cyberpunk',
+    name: 'Cyberpunk Neon & Obsidian',
+    primary: '#00E5FF',
+    secondary: '#0F172A',
+    accent: '#EC4899',
+  },
+];
 
 interface BrandStudioCanvasProps {
   businessName: string;
@@ -26,6 +84,7 @@ interface BrandStudioCanvasProps {
   tones: string[];
   pillars: string[];
   negativeConstraints: string[];
+  onUpdatePalette?: (primary: string, secondary: string) => void;
 }
 
 type AspectRatio = '1:1' | '4:5' | '16:9' | '9:16';
@@ -41,6 +100,7 @@ export default function BrandStudioCanvas({
   tones,
   pillars,
   negativeConstraints,
+  onUpdatePalette,
 }: BrandStudioCanvasProps) {
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1');
   const [theme, setTheme] = useState<CanvasTheme>('festive');
@@ -48,7 +108,15 @@ export default function BrandStudioCanvas({
   const [includeIndic, setIncludeIndic] = useState(true);
   const [copiedNotice, setCopiedNotice] = useState(false);
 
-  // Dynamic Theme Content
+  // Phase 2: Direct Inline Text Editing
+  const [isEditingText, setIsEditingText] = useState(false);
+  const [customHeadline, setCustomHeadline] = useState('');
+  const [customSubheadline, setCustomSubheadline] = useState('');
+  const [customTag, setCustomTag] = useState('');
+  const [customIndicQuote, setCustomIndicQuote] = useState('');
+  const [customCta, setCustomCta] = useState('');
+
+  // Dynamic Theme Content Presets
   const themeData = {
     festive: {
       tag: 'Festive Prosperity Edition',
@@ -76,6 +144,28 @@ export default function BrandStudioCanvas({
     },
   }[theme];
 
+  // Active Display Text (Uses custom text if edited, else falls back to theme)
+  const displayTag = customTag.trim() || themeData.tag;
+  const displayHeadline = customHeadline.trim() || themeData.headline;
+  const displaySubheadline = customSubheadline.trim() || themeData.subheadline;
+  const displayIndicQuote = customIndicQuote.trim() || themeData.indicQuote;
+  const displayCta = customCta.trim() || themeData.cta;
+  const hasCustomText = Boolean(
+    customHeadline.trim() ||
+      customSubheadline.trim() ||
+      customTag.trim() ||
+      customIndicQuote.trim() ||
+      customCta.trim()
+  );
+
+  const handleResetCustomText = () => {
+    setCustomHeadline('');
+    setCustomSubheadline('');
+    setCustomTag('');
+    setCustomIndicQuote('');
+    setCustomCta('');
+  };
+
   // Font styling mapping
   const getFontFamilyStyle = () => {
     switch (fontFamily) {
@@ -93,7 +183,6 @@ export default function BrandStudioCanvas({
 
   // Contrast / Readability heuristic
   const calculateContrastScore = () => {
-    // High contrast check against dark canvas
     return 98;
   };
 
@@ -122,10 +211,16 @@ export default function BrandStudioCanvas({
     URL.revokeObjectURL(url);
   };
 
+  const handleSelectPalette = (palette: CuratedPalette) => {
+    if (onUpdatePalette) {
+      onUpdatePalette(palette.primary, palette.secondary);
+    }
+  };
+
   return (
-    <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col">
+    <div className="bg-white rounded-[16px] border border-[#E5E7EB] shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden flex flex-col font-inter">
       {/* Studio Header & Tool Controls */}
-      <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 via-white to-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="p-4 border-b border-gray-200 bg-linear-to-r from-gray-50 via-white to-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-[#FF7A00]/10 flex items-center justify-center text-[#FF7A00]">
             <Sparkles size={16} />
@@ -138,13 +233,30 @@ export default function BrandStudioCanvas({
               </span>
             </div>
             <p className="text-[11px] text-gray-500">
-              Interactive preview of multi-channel creatives composited with your brand tokens.
+              Interactive preview composited with your visual tokens &amp; customizable copy.
             </p>
           </div>
         </div>
 
         {/* View Controls */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setIsEditingText(!isEditingText)}
+            className={`px-2.5 py-1.5 rounded-[8px] text-xs font-semibold border flex items-center gap-1.5 transition ${
+              isEditingText
+                ? 'bg-[#FF7A00] text-white border-[#FF7A00] shadow-xs'
+                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+            }`}
+            title="Edit headline, subheadline and CTA text"
+          >
+            <Edit3 size={13} />
+            <span>{isEditingText ? 'Done Editing' : 'Edit Copy'}</span>
+            {hasCustomText && !isEditingText && (
+              <span className="w-1.5 h-1.5 rounded-full bg-[#FF7A00]" />
+            )}
+          </button>
+
           <button
             type="button"
             onClick={() => setShowDeviceFrame(!showDeviceFrame)}
@@ -171,8 +283,48 @@ export default function BrandStudioCanvas({
         </div>
       </div>
 
+      {/* Curated Color Palettes Picker Strip */}
+      <div className="px-4 py-2 bg-gray-50/90 border-b border-gray-200 flex items-center gap-2 overflow-x-auto scrollbar-none text-xs">
+        <span className="text-[10px] font-mono text-gray-500 uppercase flex items-center gap-1 shrink-0">
+          <Palette size={12} className="text-[#FF7A00]" />
+          <span>Curated Palettes:</span>
+        </span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {CURATED_PALETTES.map((pal) => {
+            const isSelected =
+              primaryColor.toLowerCase() === pal.primary.toLowerCase() &&
+              secondaryColor.toLowerCase() === pal.secondary.toLowerCase();
+            return (
+              <button
+                key={pal.id}
+                type="button"
+                onClick={() => handleSelectPalette(pal)}
+                title={`Apply ${pal.name}`}
+                className={`px-2 py-1 rounded-lg border text-[11px] font-medium flex items-center gap-1.5 transition whitespace-nowrap ${
+                  isSelected
+                    ? 'bg-white border-[#FF7A00] text-gray-900 shadow-xs ring-1 ring-[#FF7A00]'
+                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center -space-x-1">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full border border-white shadow-2xs shrink-0"
+                    style={{ backgroundColor: pal.primary }}
+                  />
+                  <span
+                    className="w-2.5 h-2.5 rounded-full border border-white shadow-2xs shrink-0"
+                    style={{ backgroundColor: pal.secondary }}
+                  />
+                </div>
+                <span>{pal.name.split('&')[0].trim()}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Sub-bar: Aspect Ratio & Theme Switcher */}
-      <div className="px-4 py-2.5 bg-gray-50/80 border-b border-gray-200 flex items-center justify-between gap-2 overflow-x-auto scrollbar-none text-xs">
+      <div className="px-4 py-2 bg-white border-b border-gray-200 flex items-center justify-between gap-2 overflow-x-auto scrollbar-none text-xs">
         {/* Aspect Ratios */}
         <div className="flex items-center gap-1 shrink-0">
           <span className="text-[10px] font-mono text-gray-400 uppercase mr-1">Format:</span>
@@ -230,6 +382,95 @@ export default function BrandStudioCanvas({
           </button>
         </div>
       </div>
+
+      {/* Collapsible Direct Text Editor Drawer */}
+      {isEditingText && (
+        <div className="p-4 bg-orange-50/40 border-b border-orange-200 animate-fade-in space-y-3 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="font-sora font-semibold text-gray-800 flex items-center gap-1.5 text-xs">
+              <Edit3 size={13} className="text-[#FF7A00]" />
+              <span>Direct Canvas Copy Editor (60 FPS Live)</span>
+            </span>
+            {hasCustomText && (
+              <button
+                type="button"
+                onClick={handleResetCustomText}
+                className="text-[11px] text-gray-500 hover:text-rose-600 flex items-center gap-1 transition"
+              >
+                <RotateCcw size={11} />
+                <span>Reset to Theme Preset</span>
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div>
+              <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1">
+                Badge / Tagline
+              </label>
+              <input
+                type="text"
+                value={customTag}
+                placeholder={themeData.tag}
+                onChange={(e) => setCustomTag(e.target.value)}
+                className="w-full px-2.5 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-[#FF7A00]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1">
+                CTA Button Text
+              </label>
+              <input
+                type="text"
+                value={customCta}
+                placeholder={themeData.cta}
+                onChange={(e) => setCustomCta(e.target.value)}
+                className="w-full px-2.5 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-[#FF7A00]"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1">
+              Primary Headline
+            </label>
+            <input
+              type="text"
+              value={customHeadline}
+              placeholder={themeData.headline}
+              onChange={(e) => setCustomHeadline(e.target.value)}
+              className="w-full px-2.5 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-[#FF7A00]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1">
+              Subheadline Description
+            </label>
+            <input
+              type="text"
+              value={customSubheadline}
+              placeholder={themeData.subheadline}
+              onChange={(e) => setCustomSubheadline(e.target.value)}
+              className="w-full px-2.5 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-[#FF7A00]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold uppercase text-gray-500 mb-1">
+              Indic Ligature / Regional Script
+            </label>
+            <input
+              type="text"
+              value={customIndicQuote}
+              placeholder={themeData.indicQuote}
+              onChange={(e) => setCustomIndicQuote(e.target.value)}
+              className="w-full px-2.5 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-[#FF7A00]"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Main Interactive Canvas Area */}
       <div className="p-5 flex-1 flex flex-col items-center justify-center bg-[#0B0F14]/[0.02] min-h-[460px] relative">
@@ -320,7 +561,7 @@ export default function BrandStudioCanvas({
                 </div>
 
                 <div className="px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] font-semibold text-white/90">
-                  {themeData.tag}
+                  {displayTag}
                 </div>
               </div>
 
@@ -336,19 +577,19 @@ export default function BrandStudioCanvas({
                 <h2
                   className={`text-lg sm:text-2xl font-extrabold leading-tight tracking-tight text-white drop-shadow-md ${getFontFamilyStyle()}`}
                 >
-                  {themeData.headline}
+                  {displayHeadline}
                 </h2>
 
                 {/* Subheadline Description */}
                 <p className="text-[11px] sm:text-xs text-white/80 leading-relaxed max-w-sm font-inter">
-                  {themeData.subheadline}
+                  {displaySubheadline}
                 </p>
 
                 {/* Regional Cultural Script (Indic Ligature Preview) */}
                 {includeIndic && (
                   <div className="pt-1">
                     <span className="inline-block px-2.5 py-1 rounded-[8px] bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-amber-300">
-                      ✨ {themeData.indicQuote}
+                      ✨ {displayIndicQuote}
                     </span>
                   </div>
                 )}
@@ -364,7 +605,7 @@ export default function BrandStudioCanvas({
                   }}
                   className="px-3 py-1.5 rounded-[8px] text-[11px] font-bold shadow-md hover:brightness-110 transition flex items-center gap-1.5"
                 >
-                  <span>{themeData.cta}</span>
+                  <span>{displayCta}</span>
                   <span>→</span>
                 </button>
 

@@ -712,6 +712,10 @@ export default function BrandBrainPage() {
           tones={tones}
           pillars={pillars}
           negativeConstraints={negativeConstraints}
+          onUpdatePalette={(newPrimary, newSecondary) => {
+            setPrimaryColor(newPrimary);
+            setSecondaryColor(newSecondary);
+          }}
         />
       </div>
     </div>
