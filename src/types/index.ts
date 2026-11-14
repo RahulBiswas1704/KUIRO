@@ -316,4 +316,30 @@ export interface WorkspaceRoiSummary {
   campaignBreakdown: CampaignRoiMetric[];
 }
 
+export interface ExecutiveReportData {
+  totalPipelineValue: number;
+  totalRealizedRevenue: number;
+  totalAttributedLeads: number;
+  totalAppointmentsBooked: number;
+  estimatedAgencySavings?: number;
+  netRoiMultiplier?: number;
+  campaignBreakdown?: Array<{
+    campaignId: string;
+    topicSummary: string;
+    triggerType?: string;
+    publishAt: string;
+    inquiriesCount: number;
+    appointmentsBookedCount: number;
+    realizedRevenue: number;
+    estimatedPipelineValue?: number;
+    status: string;
+  }>;
+}
+
+// Re-export Modal Component Types
+export type { PlanTier } from '@/components/billing';
+export type { MilestoneCategory } from '@/components/calendar';
+export type { QuickSnippetItem, GeneratedPaymentData } from '@/components/inbox';
+
+
 
