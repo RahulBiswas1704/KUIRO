@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authorizeWorkspace } from '@/lib/auth';
-import { buildAuthorizationUrl, OAUTH_PLATFORMS } from '@/lib/social/oauth';
+import { buildAuthorizationUrl, OAUTH_PLATFORMS, validateRedirectUri, getPlatformClientId } from '@/lib/social/oauth';
 import { PlatformKey } from '@/constants/channels';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * Initiates the OAuth 2.0 Authorization Code Flow for a social platform.
+ * Initiates the genuine OAuth 2.0 Authorization Code Flow for a social platform.
  * 
- * Generates a signed anti-CSRF state token and redirects the browser
- * to the official authorization screen of Meta, LinkedIn, X, etc.
+ * Generates an unpredictable, tamper-proof anti-CSRF state token with HMAC-SHA256,
+ * calculates PKCE code_challenge (S256) for X (Twitter), verifies redirect destination,
+ * and redirects the browser to the official provider authorization screen.
  */
 export async function GET(
   req: NextRequest,
@@ -34,8 +35,25 @@ export async function GET(
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
+    const clientId = getPlatformClientId(platformKey);
+    if (!clientId) {
+      return NextResponse.json(
+        {
+          error: `OAuth credentials for ${platformKey} are not configured in environment (${OAUTH_PLATFORMS[platformKey].clientIdEnv} missing).`,
+        },
+        { status: 400 }
+      );
+    }
+
     const origin = req.nextUrl.origin || 'http://localhost:3000';
     const redirectUri = `${origin}/api/auth/oauth/${platformKey}/callback`;
+
+    if (!validateRedirectUri(redirectUri, origin)) {
+      return NextResponse.json(
+        { error: 'Security violation: Redirect URI rejected by strict whitelist policy.' },
+        { status: 400 }
+      );
+    }
 
     const { url, state } = buildAuthorizationUrl(
       platformKey,
@@ -44,8 +62,11 @@ export async function GET(
       redirectUri
     );
 
-    // If caller requests JSON (e.g. from frontend modal), return JSON payload
-    if (req.headers.get('accept')?.includes('application/json')) {
+    // If caller requests JSON (e.g. from frontend modal or test runner), return JSON payload
+    if (
+      req.headers.get('accept')?.includes('application/json') ||
+      searchParams.get('format') === 'json'
+    ) {
       return NextResponse.json({
         success: true,
         platform: platformKey,

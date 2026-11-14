@@ -4,7 +4,7 @@ import { eq, and } from 'drizzle-orm';
 import { authorizeWorkspace } from '@/lib/auth';
 import { DEFAULT_CHANNELS, PlatformKey } from '@/constants/channels';
 import { encryptToken, decryptToken, maskToken } from '@/lib/crypto/vault';
-import { testPlatformConnection, buildAuthorizationUrl, OAUTH_PLATFORMS } from '@/lib/social/oauth';
+import { testPlatformConnection, buildAuthorizationUrl, OAUTH_PLATFORMS, validateRedirectUri } from '@/lib/social/oauth';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,40 +25,56 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         success: true,
         source: 'local_fallback',
-        connections: DEFAULT_CHANNELS,
+        connections: DEFAULT_CHANNELS.map((def) => ({
+          ...def,
+          handle: 'Not connected',
+          platformAccountId: 'unconfigured',
+          status: 'DISCONNECTED',
+          isConfigured: false,
+          tokenMasked: null,
+        })),
       });
     }
 
     const wsId = auth.workspaceId!;
 
-    // Query Neon DB social_connections
+    // Query Neon DB social_connections for authorized workspace
     const dbConnections = await db
       .select()
       .from(socialConnections)
       .where(eq(socialConnections.workspaceId, wsId));
 
-    // Merge DB connections with defaults
+    // Map verified connections from DB
     const dbMap = new Map(dbConnections.map((c) => [c.platform, c]));
 
     const merged = DEFAULT_CHANNELS.map((def) => {
       const match = dbMap.get(def.platform);
       if (match) {
+        const isExpired = match.tokenExpiresAt ? new Date() > new Date(match.tokenExpiresAt) : false;
+        const currentStatus = isExpired ? 'EXPIRED' : match.status;
         return {
           id: match.id,
           platform: match.platform,
           name: def.name,
-          handle: match.platformAccountId.startsWith('@') || match.platformAccountId.startsWith('+') 
+          handle: match.platformAccountId.startsWith('@') || match.platformAccountId.startsWith('+') || match.platformAccountId.startsWith('urn:')
             ? match.platformAccountId 
             : def.handle,
           platformAccountId: match.platformAccountId,
-          status: match.status,
+          status: currentStatus,
           tokenMasked: maskToken(match.accessTokenEncrypted),
           expiresAt: match.tokenExpiresAt,
           scopes: def.scopes,
-          isConfigured: match.status === 'CONNECTED',
+          isConfigured: currentStatus === 'CONNECTED',
         };
       }
-      return def;
+      return {
+        ...def,
+        handle: 'Not connected',
+        platformAccountId: 'unconfigured',
+        status: 'DISCONNECTED',
+        isConfigured: false,
+        tokenMasked: null,
+      };
     });
 
     return NextResponse.json({
@@ -96,7 +112,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (!platform || !OAUTH_PLATFORMS[platform as PlatformKey]) {
-      return NextResponse.json({ error: 'Valid platform is required (instagram, linkedin, x, whatsapp, or email).' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Valid platform is required (instagram, linkedin, x, whatsapp, or email).' },
+        { status: 400 }
+      );
     }
 
     const wsId = auth.workspaceId!;
@@ -106,6 +125,14 @@ export async function POST(req: NextRequest) {
     if (action === 'authorize') {
       const origin = req.nextUrl.origin || 'http://localhost:3000';
       const redirectUri = `${origin}/api/auth/oauth/${platformKey}/callback`;
+
+      if (!validateRedirectUri(redirectUri, origin)) {
+        return NextResponse.json(
+          { success: false, error: 'Redirect URI failed whitelist security validation.' },
+          { status: 400 }
+        );
+      }
+
       const { url, state } = buildAuthorizationUrl(platformKey, wsId, auth.session!.user.id, redirectUri);
 
       return NextResponse.json({
@@ -143,18 +170,22 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const testResult = await testPlatformConnection(platformKey, candidateToken, platformAccountId);
+      const testResult = await testPlatformConnection(platformKey, candidateToken, platformAccountId, wsId);
 
-      return NextResponse.json({
-        success: testResult.success,
-        action: 'test',
-        platform: platformKey,
-        latencyMs: testResult.latencyMs,
-        verifiedAccount: testResult.verifiedAccount,
-        permissions: testResult.permissions,
-        tokenValid: testResult.success,
-        message: testResult.message,
-      }, { status: testResult.success ? 200 : 400 });
+      return NextResponse.json(
+        {
+          success: testResult.success,
+          action: 'test',
+          platform: platformKey,
+          status: testResult.status,
+          latencyMs: testResult.latencyMs,
+          verifiedAccount: testResult.verifiedAccount,
+          permissions: testResult.permissions,
+          tokenValid: testResult.success,
+          message: testResult.message,
+        },
+        { status: testResult.success ? 200 : 400 }
+      );
     }
 
     // 3. Action: Disconnect / Revoke
@@ -165,6 +196,7 @@ export async function POST(req: NextRequest) {
           .set({
             status: 'REVOKED',
             accessTokenEncrypted: '',
+            refreshTokenEncrypted: null,
           })
           .where(
             and(
@@ -182,9 +214,46 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Action: Connect & Store with AES-256-GCM Encryption in Neon DB Vault
-    const accountIdentifier = platformAccountId || `@${platformKey}_autopilot`;
-    const tokenToEncrypt = accessToken || `kuiro_oauth2_${platformKey}_${Date.now()}`;
-    const encryptedToken = encryptToken(tokenToEncrypt);
+    if (!accessToken || typeof accessToken !== 'string' || accessToken.trim().length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Access token is required to establish a connection. Please authorize via OAuth 2.0 or supply valid credentials.',
+        },
+        { status: 400 }
+      );
+    }
+
+    if (
+      accessToken.startsWith('kuiro_oauth2_') ||
+      accessToken.startsWith('mock_') ||
+      accessToken.startsWith('simulated_')
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Simulated tokens (kuiro_oauth2_*) are rejected. Genuine platform OAuth connection required.',
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate the token against the real platform before saving
+    const testResult = await testPlatformConnection(platformKey, accessToken, platformAccountId, wsId);
+    if (!testResult.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Token verification failed against ${OAUTH_PLATFORMS[platformKey].name}.`,
+          details: testResult.message,
+          status: testResult.status,
+        },
+        { status: 400 }
+      );
+    }
+
+    const accountIdentifier = testResult.verifiedAccount || platformAccountId || `@${platformKey}_account`;
+    const encryptedToken = encryptToken(accessToken);
     const expiresAt = new Date(Date.now() + 60 * 24 * 3600 * 1000); // 60 days
 
     let updatedRecord = null;
