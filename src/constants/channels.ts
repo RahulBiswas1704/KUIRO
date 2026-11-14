@@ -1,4 +1,4 @@
-export type PlatformKey = 'instagram' | 'linkedin' | 'x' | 'whatsapp' | 'email';
+export type PlatformKey = 'facebook' | 'instagram' | 'linkedin' | 'x' | 'whatsapp' | 'email';
 
 export interface ChannelConfig {
   platform: PlatformKey;
@@ -15,6 +15,19 @@ export interface ChannelConfig {
 }
 
 export const DEFAULT_CHANNELS: ChannelConfig[] = [
+  {
+    platform: 'facebook',
+    name: 'Facebook Page Graph API',
+    handle: 'Sharma Heritage Handlooms',
+    platformAccountId: 'page_1092837482',
+    status: 'CONNECTED',
+    scopes: ['pages_show_list', 'pages_read_engagement', 'pages_manage_posts'],
+    expiresInDays: 60,
+    isConfigured: true,
+    color: 'text-blue-600',
+    badge: 'Verified',
+    description: 'Publishes announcements, product carousels, and high-res imagery directly to your official Facebook Business Page.',
+  },
   {
     platform: 'instagram',
     name: 'Instagram Graph API',

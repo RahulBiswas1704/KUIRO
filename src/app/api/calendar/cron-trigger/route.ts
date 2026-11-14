@@ -121,13 +121,29 @@ async function executeAutonomousScheduler(params: SchedulerExecutionParams) {
           const xPost = posts.find((p) => p.platform === 'x');
           const emailPost = posts.find((p) => p.platform === 'email');
 
-          const channelResults = await publishToAllChannels({
-            caption: instagramPost.captionText,
-            mediaUrls: instagramPost.mediaUrls || [],
-            firstReply: xPost?.firstCommentText || 'Read our full guide at kuiro.in',
-            aspectRatio: (instagramPost.aspectRatio as any) || '1:1',
-            emailSubject: emailPost?.emailSubject || campaign.topicSummary,
-          });
+          const channelResults = await publishToAllChannels(
+            {
+              caption: instagramPost.captionText,
+              mediaUrls: instagramPost.mediaUrls || [],
+              firstReply: xPost?.firstCommentText || 'Read our full guide at kuiro.in',
+              aspectRatio: (instagramPost.aspectRatio as any) || '1:1',
+              emailSubject: emailPost?.emailSubject || campaign.topicSummary,
+            },
+            { workspaceId: campaign.workspaceId }
+          );
+
+          // Synchronize returned platform post IDs to platformPosts table
+          for (const res of channelResults) {
+            if (res.platformPostId) {
+              const matchedPost = posts.find((p) => p.platform === res.platform);
+              if (matchedPost) {
+                await database
+                  .update(platformPosts)
+                  .set({ platformPostId: res.platformPostId })
+                  .where(eq(platformPosts.id, matchedPost.id));
+              }
+            }
+          }
 
           await database
             .update(scheduledCampaigns)

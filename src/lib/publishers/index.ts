@@ -1,4 +1,7 @@
 import { SocialPlatform } from '@/types';
+import { db, platformPosts } from '@/db';
+import { eq } from 'drizzle-orm';
+import { publishToFacebook } from '@/lib/social/facebookPublisher';
 
 export interface PublishResult {
   platform: SocialPlatform;
@@ -18,13 +21,46 @@ export async function publishToPlatforms(
 ): Promise<PublishResult[]> {
   console.log(`[Publishing Dispatcher] Initiating parallel publish for campaign ${campaignId} in workspace ${workspaceId}`);
 
-  // In production, queries social_connections table for active tokens and decrypts AES-GCM
-  const platforms: SocialPlatform[] = ['instagram', 'linkedin', 'x', 'whatsapp'];
+  const isUuid = (val?: string) => !!val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+  let dbPosts: any[] = [];
+  if (db && isUuid(campaignId)) {
+    try {
+      dbPosts = await db.select().from(platformPosts).where(eq(platformPosts.campaignId, campaignId));
+    } catch {}
+  }
+
+  const platforms: SocialPlatform[] = ['facebook', 'instagram', 'linkedin', 'x', 'whatsapp'];
 
   const results: PublishResult[] = await Promise.all(
     platforms.map(async (platform) => {
       try {
-        // Mock publish execution
+        const post = dbPosts.find((p) => p.platform === platform);
+        const caption = post?.captionText || 'New campaign update from KUIRO';
+        const mediaUrls = post?.mediaUrls || [];
+
+        if (platform === 'facebook') {
+          const fbRes = await publishToFacebook({
+            workspaceId,
+            campaignId,
+            payload: {
+              caption,
+              mediaUrls,
+              mediaType: mediaUrls.length > 1 ? 'CAROUSEL' : mediaUrls.length === 1 ? 'IMAGE' : 'TEXT',
+              link: post?.firstCommentText?.startsWith('http') ? post.firstCommentText : undefined,
+            },
+          });
+
+          return {
+            platform: 'facebook' as const,
+            success: fbRes.status === 'PUBLISHED' || fbRes.status === 'MOCK_PUBLISHED' || fbRes.status === 'SCHEDULED',
+            platformPostId: fbRes.platformPostId,
+            liveUrl: fbRes.postUrl,
+            error: fbRes.error,
+          };
+        }
+
+        // Standard mock publish execution
         const mockPostId = `kuiro_${platform}_${Date.now()}`;
         let liveUrl = '';
 

@@ -219,12 +219,55 @@ export async function publishToX({
 }
 
 import { sendAutonomousEmailNewsletter } from '../email/publisher';
+import { publishToFacebook as publishToFacebookNative } from './facebookPublisher';
 
 /**
- * Parallel Dispatcher for All Channels (Social + Email Newsletter)
+ * Publish to Facebook Page via Meta Graph API v21.0
  */
-export async function publishToAllChannels(payload: PublishPayload): Promise<ChannelPublishResult[]> {
+export async function publishFacebookChannel({
+  pageId,
+  accessToken,
+  workspaceId,
+  campaignId,
+  payload,
+}: {
+  pageId?: string;
+  accessToken?: string;
+  workspaceId?: string;
+  campaignId?: string;
+  payload: PublishPayload;
+}): Promise<ChannelPublishResult> {
+  const fbRes = await publishToFacebookNative({
+    pageId,
+    accessToken,
+    workspaceId,
+    campaignId,
+    payload: {
+      caption: payload.caption,
+      mediaUrls: payload.mediaUrls,
+      mediaType: payload.mediaUrls?.length ? 'IMAGE' : 'TEXT',
+      link: payload.firstReply?.startsWith('http') ? payload.firstReply : undefined,
+    },
+  });
+
+  return {
+    platform: 'facebook',
+    status: fbRes.status as any,
+    platformPostId: fbRes.platformPostId,
+    postUrl: fbRes.postUrl,
+    error: fbRes.error,
+  };
+}
+
+/**
+ * Parallel Dispatcher for All Channels (Facebook, Instagram, LinkedIn, X + Email Newsletter)
+ */
+export async function publishToAllChannels(
+  payload: PublishPayload,
+  options?: { workspaceId?: string; pageId?: string }
+): Promise<ChannelPublishResult[]> {
   const tasks: Promise<ChannelPublishResult>[] = [
+    publishFacebookChannel({ payload, workspaceId: options?.workspaceId, pageId: options?.pageId }),
     publishToInstagram({ payload }),
     publishToLinkedIn({ payload }),
     publishToX({ payload }),

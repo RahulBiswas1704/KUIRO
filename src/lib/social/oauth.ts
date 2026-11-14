@@ -17,6 +17,16 @@ export interface OAuthPlatformConfig {
 }
 
 export const OAUTH_PLATFORMS: Record<PlatformKey, OAuthPlatformConfig> = {
+  facebook: {
+    name: 'Meta (Facebook Pages Graph API)',
+    authUrl: 'https://www.facebook.com/v21.0/dialog/oauth',
+    tokenUrl: 'https://graph.facebook.com/v21.0/oauth/access_token',
+    userInfoUrl: 'https://graph.facebook.com/v21.0/me?fields=id,name',
+    scopes: ['pages_show_list', 'pages_read_engagement', 'pages_manage_posts', 'business_management'],
+    clientIdEnv: 'META_APP_ID',
+    clientSecretEnv: 'META_APP_SECRET',
+    defaultScopes: ['pages_show_list', 'pages_read_engagement', 'pages_manage_posts'],
+  },
   instagram: {
     name: 'Meta (Instagram Graph API)',
     authUrl: 'https://www.facebook.com/v21.0/dialog/oauth',
@@ -582,7 +592,7 @@ export async function exchangeOAuthCode(
     );
   }
 
-  if (platform === 'instagram' || platform === 'whatsapp') {
+  if (platform === 'facebook' || platform === 'instagram' || platform === 'whatsapp') {
     return exchangeMetaOAuth(code, redirectUri, clientId, clientSecret);
   }
 
@@ -650,7 +660,7 @@ export async function testPlatformConnection(
     let endpoint = config.userInfoUrl;
     let headers: Record<string, string> = { Authorization: `Bearer ${accessToken}` };
 
-    if (platform === 'instagram' || platform === 'whatsapp') {
+    if (platform === 'facebook' || platform === 'instagram' || platform === 'whatsapp') {
       endpoint = `https://graph.facebook.com/v21.0/me?fields=id,name&access_token=${encodeURIComponent(accessToken)}`;
       headers = {};
     } else if (platform === 'email') {

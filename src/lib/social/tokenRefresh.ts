@@ -106,7 +106,7 @@ export async function refreshConnectionToken(
 
     // A. Meta (Facebook / Instagram) Token Refresh Flow
     // Meta uses grant_type=fb_exchange_token over the long-lived access token
-    if (platform === 'instagram' || platform === 'whatsapp') {
+    if (platform === 'facebook' || platform === 'instagram' || platform === 'whatsapp') {
       if (!clientId || !clientSecret) {
         throw new Error(`Missing Meta client credentials in environment (${config.clientIdEnv} / ${config.clientSecretEnv}).`);
       }

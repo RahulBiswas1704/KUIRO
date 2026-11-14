@@ -294,6 +294,15 @@ export async function createAutonomousCampaign(params: {
   // 3. Pre-Publish AI Critic Evaluation & Auto-Refinement
   const rawAssets: GeneratedAssetPayload[] = [
     {
+      platform: 'facebook',
+      caption: generated.instagram.caption,
+      firstComment: generated.instagram.hashtags.map((t) => `#${String(t).replace(/^#/, '')}`).join(' '),
+      hashtags: generated.instagram.hashtags,
+      mediaUrls: [bp?.visualIdentity?.logoUrl || '/brand/kuiro-primary.svg'],
+      mediaType: 'IMAGE',
+      aspectRatio: '1:1',
+    },
+    {
       platform: 'instagram',
       caption: generated.instagram.caption,
       firstComment: generated.instagram.hashtags.map((t) => `#${String(t).replace(/^#/, '')}`).join(' '),
@@ -348,11 +357,12 @@ export async function createAutonomousCampaign(params: {
     negativeConstraints,
   });
 
-  const igAsset = refinedAssets.find((a) => a.platform === 'instagram') || rawAssets[0];
-  const liAsset = refinedAssets.find((a) => a.platform === 'linkedin') || rawAssets[1];
-  const xAsset = refinedAssets.find((a) => a.platform === 'x') || rawAssets[2];
-  const waAsset = refinedAssets.find((a) => a.platform === 'whatsapp') || rawAssets[3];
-  const emAsset = refinedAssets.find((a) => a.platform === 'email') || rawAssets[4];
+  const fbAsset = refinedAssets.find((a) => a.platform === 'facebook') || rawAssets[0];
+  const igAsset = refinedAssets.find((a) => a.platform === 'instagram') || rawAssets[1];
+  const liAsset = refinedAssets.find((a) => a.platform === 'linkedin') || rawAssets[2];
+  const xAsset = refinedAssets.find((a) => a.platform === 'x') || rawAssets[3];
+  const waAsset = refinedAssets.find((a) => a.platform === 'whatsapp') || rawAssets[4];
+  const emAsset = refinedAssets.find((a) => a.platform === 'email') || rawAssets[5];
 
   // 4. Insert Campaign into scheduledCampaigns in Neon DB
   const [campaign] = await database
@@ -368,8 +378,17 @@ export async function createAutonomousCampaign(params: {
     })
     .returning();
 
-  // 5. Insert 5 Platform Posts into Neon DB with genuine evaluated AI Critic scores
+  // 5. Insert 6 Platform Posts into Neon DB with genuine evaluated AI Critic scores
   const postsToInsert = [
+    {
+      campaignId: campaign.id,
+      platform: 'facebook' as const,
+      captionText: fbAsset.caption,
+      firstCommentText: fbAsset.firstComment || '',
+      mediaUrls: [bp?.visualIdentity?.logoUrl || '/brand/kuiro-primary.svg'],
+      aspectRatio: '1:1',
+      aiCriticScore: evaluation.platformScores['facebook']?.totalScore || 92,
+    },
     {
       campaignId: campaign.id,
       platform: 'instagram' as const,
