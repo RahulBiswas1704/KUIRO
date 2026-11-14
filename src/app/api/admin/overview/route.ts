@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, users, workspaces, brandProfiles, scheduledCampaigns, platformPosts, conversations, inboxMessages, culturalEventsCalendar, sessions } from '@/db';
 import { desc, sql as drizzleSql } from 'drizzle-orm';
+import { verifyManagementAuth } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
+    const auth = await verifyManagementAuth(req);
+    if (!auth.authorized) {
+      return NextResponse.json(
+        { success: false, error: 'Access Denied: KUIRO Executive Management Clearance Required.' },
+        { status: 403 }
+      );
+    }
     const database = db;
     if (!database) {
       return NextResponse.json({

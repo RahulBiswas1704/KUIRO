@@ -35,7 +35,12 @@ import {
   TrendingUp,
   Cpu,
   Layers,
-  ChevronDown
+  ChevronDown,
+  EyeOff,
+  Key,
+  ShieldAlert,
+  LogOut,
+  AlertCircle
 } from 'lucide-react';
 
 interface MetricOverview {
@@ -72,6 +77,15 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<
     'overview' | 'workspaces' | 'users' | 'campaigns' | 'calendar' | 'optimizer'
   >('overview');
+
+  // Management Security Clearance State
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [isManagementAuthenticated, setIsManagementAuthenticated] = useState(false);
+  const [managementEmail, setManagementEmail] = useState('');
+  const [managementPasskey, setManagementPasskey] = useState('');
+  const [showPasskey, setShowPasskey] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isAuthorizing, setIsAuthorizing] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -129,10 +143,37 @@ export default function AdminPage() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+  // Check Active Management Clearance
+  const checkManagementAuth = useCallback(async () => {
+    try {
+      setIsAuthChecking(true);
+      const res = await fetch('/api/admin/auth');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.authenticated) {
+          setIsManagementAuthenticated(true);
+          setManagementEmail(data.email || 'management@kuiro.in');
+          return true;
+        }
+      }
+      setIsManagementAuthenticated(false);
+      return false;
+    } catch (err) {
+      setIsManagementAuthenticated(false);
+      return false;
+    } finally {
+      setIsAuthChecking(false);
+    }
+  }, []);
+
   // 1. Fetch Overview
   const loadOverview = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/overview');
+      if (res.status === 401 || res.status === 403) {
+        setIsManagementAuthenticated(false);
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         setMetrics(data.metrics);
@@ -152,6 +193,10 @@ export default function AdminPage() {
       if (workspaceSearch) url.searchParams.set('search', workspaceSearch);
 
       const res = await fetch(url.toString());
+      if (res.status === 401 || res.status === 403) {
+        setIsManagementAuthenticated(false);
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         setWorkspacesList(data.workspaces || []);
@@ -165,6 +210,10 @@ export default function AdminPage() {
   const loadUsers = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/users');
+      if (res.status === 401 || res.status === 403) {
+        setIsManagementAuthenticated(false);
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         setUsersList(data.users || []);
@@ -181,6 +230,10 @@ export default function AdminPage() {
       if (campaignStatusFilter !== 'ALL') url.searchParams.set('status', campaignStatusFilter);
 
       const res = await fetch(url.toString());
+      if (res.status === 401 || res.status === 403) {
+        setIsManagementAuthenticated(false);
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         setCampaignsList(data.campaigns || []);
@@ -197,6 +250,10 @@ export default function AdminPage() {
       if (calendarRegionFilter !== 'All') url.searchParams.set('region', calendarRegionFilter);
 
       const res = await fetch(url.toString());
+      if (res.status === 401 || res.status === 403) {
+        setIsManagementAuthenticated(false);
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         setCalendarEvents(data.events || []);
@@ -210,6 +267,10 @@ export default function AdminPage() {
   const loadOptimizer = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/optimizer');
+      if (res.status === 401 || res.status === 403) {
+        setIsManagementAuthenticated(false);
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         setOptimizerConfig(data.config);
@@ -231,8 +292,45 @@ export default function AdminPage() {
     setIsRefreshing(false);
   };
 
+  // Initial Auth Check & Data Hydration
   useEffect(() => {
     async function init() {
+      const isAuthed = await checkManagementAuth();
+      if (isAuthed) {
+        setIsLoading(true);
+        await Promise.all([
+          loadOverview(),
+          loadWorkspaces(),
+          loadUsers(),
+          loadCampaigns(),
+          loadCalendar(),
+          loadOptimizer(),
+        ]);
+        setIsLoading(false);
+      }
+    }
+    init();
+  }, [checkManagementAuth, loadOverview, loadWorkspaces, loadUsers, loadCampaigns, loadCalendar, loadOptimizer]);
+
+  // Management Login Handler
+  const handleManagementLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setIsAuthorizing(true);
+    try {
+      const res = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: managementEmail, passkey: managementPasskey }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setAuthError(data.error || 'Access Denied: Invalid management clearance credentials.');
+        return;
+      }
+      setIsManagementAuthenticated(true);
+      setManagementEmail(data.user?.email || managementEmail);
+      showToast('KUIRO Management Clearance Granted: Terminal Unlocked');
       setIsLoading(true);
       await Promise.all([
         loadOverview(),
@@ -243,9 +341,25 @@ export default function AdminPage() {
         loadOptimizer(),
       ]);
       setIsLoading(false);
+    } catch (err: any) {
+      setAuthError(err.message || 'Network error while attempting authorization');
+    } finally {
+      setIsAuthorizing(false);
     }
-    init();
-  }, [loadOverview, loadWorkspaces, loadUsers, loadCampaigns, loadCalendar, loadOptimizer]);
+  };
+
+  // Management Logout / Lock Handler
+  const handleManagementLogout = async () => {
+    try {
+      await fetch('/api/admin/auth', { method: 'DELETE' });
+      setIsManagementAuthenticated(false);
+      setManagementPasskey('');
+      showToast('KUIRO Management Terminal Locked');
+    } catch (err) {
+      console.error(err);
+      setIsManagementAuthenticated(false);
+    }
+  };
 
   // Workspace Actions
   const handleCreateWorkspace = async (e: React.FormEvent) => {
@@ -443,6 +557,171 @@ export default function AdminPage() {
     }
   };
 
+  // 1. Initial Clearance Verification State
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen bg-[#06090F] flex flex-col items-center justify-center p-6 text-slate-100 font-sans selection:bg-[#FF7A00] selection:text-white">
+        <div className="relative flex items-center justify-center mb-6">
+          <div className="w-20 h-20 rounded-2xl bg-[#FF7A00]/10 border border-[#FF7A00]/30 flex items-center justify-center shadow-2xl shadow-[#FF7A00]/20 animate-pulse">
+            <ShieldCheck className="w-10 h-10 text-[#FF7A00]" />
+          </div>
+          <div className="absolute inset-0 rounded-2xl border border-[#FF7A00]/20 animate-ping opacity-25" />
+        </div>
+        <h2 className="text-xl font-bold font-syne text-white tracking-wide text-center">
+          Verifying Management Clearance
+        </h2>
+        <p className="text-xs text-slate-400 font-inter mt-2 text-center max-w-sm">
+          Cryptographically authenticating session token with Lakebase Neon Security Module...
+        </p>
+      </div>
+    );
+  }
+
+  // 2. High-Security Terminal Lock Gate
+  if (!isManagementAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#06090F] text-slate-100 flex flex-col items-center justify-center p-4 sm:p-6 font-sans selection:bg-[#FF7A00] selection:text-white relative overflow-hidden">
+        {/* Ambient Glows */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-[#FF7A00]/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute -bottom-10 right-1/4 w-80 h-80 bg-blue-600/10 rounded-full blur-[100px] pointer-events-none" />
+
+        {/* Security Toast */}
+        {toastMessage && (
+          <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-[12px] bg-[#111822] border border-[#FF7A00] text-white shadow-2xl flex items-center gap-3 animate-fade-in font-inter text-xs">
+            <div className="w-2 h-2 rounded-full bg-[#FF7A00] animate-ping" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
+
+        <div className="w-full max-w-md relative z-10">
+          {/* Top Brand & Clearance Badge */}
+          <div className="flex flex-col items-center text-center mb-8">
+            <Link href="/" className="mb-4 inline-block hover:opacity-90 transition">
+              <KuiroLogo variant="primary" theme="dark" symbolSize={38} showTagline={false} />
+            </Link>
+            
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-[11px] font-mono font-bold tracking-wider uppercase mb-3">
+              <ShieldAlert size={14} className="animate-pulse" />
+              <span>Level 5 Restricted • Management Only</span>
+            </div>
+            
+            <h1 className="text-2xl font-bold font-syne text-white tracking-tight">
+              Operator Terminal Locked
+            </h1>
+            <p className="text-xs text-slate-400 font-inter mt-1.5 max-w-sm">
+              Restricted to KUIRO Executive Management & Systems Operators. Access requires signed root clearance.
+            </p>
+          </div>
+
+          {/* Secure Card */}
+          <div className="bg-[#0B101B]/95 backdrop-blur-2xl border border-white/[0.12] rounded-2xl p-6 sm:p-8 shadow-2xl shadow-black/80 relative">
+            <div className="absolute top-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-[#FF7A00] to-transparent" />
+
+            <form onSubmit={handleManagementLogin} className="space-y-4">
+              {/* Error Banner */}
+              {authError && (
+                <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-start gap-2.5">
+                  <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5" />
+                  <div className="flex-1 font-inter leading-relaxed">{authError}</div>
+                </div>
+              )}
+
+              {/* Email Address */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5 font-inter">
+                  Management Clearance Email
+                </label>
+                <div className="relative">
+                  <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <input
+                    type="email"
+                    required
+                    value={managementEmail}
+                    onChange={(e) => setManagementEmail(e.target.value)}
+                    placeholder="e.g. rahul.biswas1704@gmail.com or name@kuiro.in"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#06090F] border border-white/10 text-white placeholder-slate-500 text-xs font-inter focus:outline-none focus:border-[#FF7A00] transition"
+                    autoComplete="username"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1 font-inter">
+                  Authorized domains: <span className="text-slate-400 font-mono">@kuiro.in</span>, <span className="text-slate-400 font-mono">@sharmaheritage.in</span>, or registered executive email.
+                </p>
+              </div>
+
+              {/* Master Security Passkey */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5 font-inter">
+                  Master Security Passkey
+                </label>
+                <div className="relative">
+                  <Key size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <input
+                    type={showPasskey ? 'text' : 'password'}
+                    required
+                    value={managementPasskey}
+                    onChange={(e) => setManagementPasskey(e.target.value)}
+                    placeholder="Enter Master Passkey"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[#06090F] border border-white/10 text-white placeholder-slate-500 text-xs font-mono focus:outline-none focus:border-[#FF7A00] transition"
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasskey(!showPasskey)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition p-1"
+                    title={showPasskey ? 'Hide passkey' : 'Show passkey'}
+                  >
+                    {showPasskey ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isAuthorizing}
+                className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-[#FF7A00] to-[#E05300] hover:from-[#ff881a] hover:to-[#eb5e0d] text-white text-xs font-bold font-syne tracking-wide uppercase transition shadow-lg shadow-[#FF7A00]/25 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {isAuthorizing ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" />
+                    <span>Verifying Clearance...</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock size={14} />
+                    <span>Authorize Management Terminal</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Terminal Security Metrics */}
+            <div className="mt-6 pt-5 border-t border-white/[0.08] grid grid-cols-2 gap-3 text-center">
+              <div className="p-2 rounded-lg bg-white/[0.02] border border-white/[0.05]">
+                <div className="text-[10px] uppercase font-mono text-slate-500">Session Guard</div>
+                <div className="text-[11px] font-mono text-emerald-400 font-semibold mt-0.5">HMAC-SHA256 8h</div>
+              </div>
+              <div className="p-2 rounded-lg bg-white/[0.02] border border-white/[0.05]">
+                <div className="text-[10px] uppercase font-mono text-slate-500">Security Clearance</div>
+                <div className="text-[11px] font-mono text-[#FF7A00] font-semibold mt-0.5">Tier 5 Root</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Links back to workspace */}
+          <div className="mt-6 text-center">
+            <Link
+              href="/dashboard"
+              className="text-xs text-slate-400 hover:text-white transition inline-flex items-center gap-1.5 font-inter"
+            >
+              <span>← Return to Client Workspace Dashboard</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#06090F] text-slate-100 flex flex-col font-sans selection:bg-[#FF7A00] selection:text-white">
       {/* Toast Alert */}
@@ -469,6 +748,11 @@ export default function AdminPage() {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span>Neon PostgreSQL 18.7 Live</span>
             </span>
+            <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-mono text-emerald-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Executive:</span>
+              <span className="font-semibold text-emerald-300">{managementEmail}</span>
+            </div>
           </div>
         </div>
 
@@ -490,6 +774,15 @@ export default function AdminPage() {
             <span>Client Dashboard</span>
             <ExternalLink size={13} />
           </Link>
+
+          <button
+            onClick={handleManagementLogout}
+            className="px-3 py-1.5 rounded-[10px] bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-xs font-semibold text-red-400 hover:text-red-300 transition flex items-center gap-1.5 cursor-pointer"
+            title="Lock Terminal & Terminate Session"
+          >
+            <Lock size={13} />
+            <span className="hidden sm:inline">Lock Terminal</span>
+          </button>
         </div>
       </header>
 

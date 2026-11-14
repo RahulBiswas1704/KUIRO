@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyManagementAuth } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +33,15 @@ let currentConfig = {
   },
 };
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const auth = await verifyManagementAuth(req);
+  if (!auth.authorized) {
+    return NextResponse.json(
+      { success: false, error: 'Access Denied: KUIRO Executive Management Clearance Required.' },
+      { status: 403 }
+    );
+  }
+
   return NextResponse.json({
     success: true,
     config: currentConfig,
@@ -49,6 +58,13 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = await verifyManagementAuth(req);
+    if (!auth.authorized) {
+      return NextResponse.json(
+        { success: false, error: 'Access Denied: KUIRO Executive Management Clearance Required.' },
+        { status: 403 }
+      );
+    }
     const body = await req.json();
 
     if (body.aiCritic) {
