@@ -86,7 +86,7 @@ export const subscriptions = pgTable('subscriptions', {
   workspaceId: uuid('workspace_id').references(() => workspaces.id, { onDelete: 'cascade' }).notNull(),
   planTier: text('plan_tier', { enum: ['STARTER', 'GROWTH', 'AGENCY'] }).notNull(),
   billingCycle: text('billing_cycle', { enum: ['monthly', 'annual'] }).default('monthly').notNull(),
-  status: text('status', { enum: ['ACTIVE', 'PAST_DUE', 'CANCELLED', 'PAUSED'] }).default('ACTIVE').notNull(),
+  status: text('status', { enum: ['PENDING', 'ACTIVE', 'PAST_DUE', 'CANCELLED', 'PAUSED'] }).default('PENDING').notNull(),
   currentPeriodStart: timestamp('current_period_start', { withTimezone: true }).defaultNow().notNull(),
   currentPeriodEnd: timestamp('current_period_end', { withTimezone: true }).notNull(),
   razorpaySubscriptionId: text('razorpay_subscription_id'),
