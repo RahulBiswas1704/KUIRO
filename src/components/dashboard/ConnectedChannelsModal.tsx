@@ -50,6 +50,22 @@ export default function ConnectedChannelsModal({
 
   if (!isOpen) return null;
 
+  const handleOAuthConnect = async () => {
+    try {
+      const res = await fetch(`/api/auth/oauth/${activePlatform}/authorize`, {
+        headers: { Accept: 'application/json' },
+      });
+      const data = await res.json();
+      if (data.authorizationUrl) {
+        window.location.href = data.authorizationUrl;
+      } else {
+        alert(data.error || 'Failed to initialize OAuth 2.0 flow.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'OAuth network error.');
+    }
+  };
+
   const handleTestHandshake = async () => {
     setIsTesting(true);
     setTestResult(null);
@@ -70,7 +86,8 @@ export default function ConnectedChannelsModal({
       } else {
         setTestResult({
           success: false,
-          message: data.error || 'API Handshake failed. Please verify token permissions.',
+          latencyMs: data.latencyMs,
+          message: data.message || data.error || 'API Handshake failed. Please verify token permissions.',
         });
       }
     } catch (err: any) {
@@ -101,7 +118,7 @@ export default function ConnectedChannelsModal({
       if (res.ok && data.success) {
         setTestResult({
           success: true,
-          message: data.message || 'Channel successfully connected to Neon Token Vault!',
+          message: data.message || 'Channel successfully encrypted with AES-256-GCM and saved to Neon Vault!',
         });
         if (onConnectionUpdated) onConnectionUpdated();
       } else {
@@ -115,7 +132,7 @@ export default function ConnectedChannelsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in font-inter">
       <div className="bg-[#0B0F14] border border-[#27313F] rounded-[16px] w-full max-w-2xl text-white shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Modal Header */}
         <div className="px-6 py-4 border-b border-[#1E2530] flex items-center justify-between bg-[#11141A]">
@@ -125,10 +142,10 @@ export default function ConnectedChannelsModal({
             </div>
             <div>
               <h3 className="font-sora text-sm font-bold text-white">
-                OAuth Token Vault & Channel Connections
+                OAuth 2.0 Token Vault & Channel Connections
               </h3>
               <p className="text-[11px] text-gray-400">
-                AES-256 Encrypted • Zero Surcharge Link Guard Active
+                AES-256-GCM Authenticated Encryption • Zero Surcharge Link Guard Active
               </p>
             </div>
           </div>
@@ -202,7 +219,7 @@ export default function ConnectedChannelsModal({
             <div className="p-3.5 rounded-xl bg-sky-950/30 border border-sky-900/50 flex items-start gap-3">
               <Twitter className="text-sky-400 shrink-0 mt-0.5" size={18} />
               <div>
-                <p className="font-semibold text-sky-200">X (Twitter) v2 Developer App & Guardrail</p>
+                <p className="font-semibold text-sky-200">X (Twitter) v2 Developer App &amp; Guardrail</p>
                 <p className="text-gray-400 text-[11px] mt-0.5">
                   Autonomous 240-char tweets. <strong className="text-amber-300">Unit-Economics Guardrail:</strong> External URLs are placed automatically in the first comment, saving $0.200 per post on X API surcharges.
                 </p>
@@ -226,13 +243,40 @@ export default function ConnectedChannelsModal({
             <div className="p-3.5 rounded-xl bg-amber-950/30 border border-amber-900/50 flex items-start gap-3">
               <Mail className="text-amber-400 shrink-0 mt-0.5" size={18} />
               <div>
-                <p className="font-semibold text-amber-200">Transactional ESP & DKIM Relay</p>
+                <p className="font-semibold text-amber-200">Transactional ESP &amp; DKIM Relay</p>
                 <p className="text-gray-400 text-[11px] mt-0.5">
                   Sends branded newsletters, customer drops, and promotional announcements using authenticated domain credentials.
                 </p>
               </div>
             </div>
           )}
+
+          {/* 1-Click OAuth 2.0 Connect Action */}
+          <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#161C24] border border-[#27313F]">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#FF7A00]/15 flex items-center justify-center text-[#FF7A00]">
+                <Zap size={16} />
+              </div>
+              <div>
+                <p className="font-semibold text-white text-xs">Official 1-Click OAuth 2.0</p>
+                <p className="text-[11px] text-gray-400">Authenticate directly through {activePlatform.toUpperCase()} consent dialog</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleOAuthConnect}
+              className="px-3.5 py-1.5 rounded-lg bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-semibold flex items-center gap-1.5 transition font-sora shadow-sm"
+            >
+              <span>Connect {activePlatform.toUpperCase()}</span>
+              <ExternalLink size={12} />
+            </button>
+          </div>
+
+          <div className="relative flex py-1 items-center">
+            <div className="grow border-t border-[#1E2530]"></div>
+            <span className="shrink mx-3 text-[10px] uppercase font-mono text-gray-500">Or Manual AES-256 Token Vault</span>
+            <div className="grow border-t border-[#1E2530]"></div>
+          </div>
 
           {/* Form Fields */}
           <div className="space-y-4">
@@ -278,7 +322,7 @@ export default function ConnectedChannelsModal({
                 <KeyRound size={16} className="absolute right-3.5 top-3 text-gray-500" />
               </div>
               <p className="text-[10px] text-gray-500 mt-1">
-                Tokens are encrypted in Neon DB with AES-256 and refreshed automatically via background cron.
+                Tokens are encrypted in Neon DB with AES-256-GCM and refreshed automatically via background cron.
               </p>
             </div>
           </div>
@@ -353,4 +397,3 @@ export default function ConnectedChannelsModal({
     </div>
   );
 }
-

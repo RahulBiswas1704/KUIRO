@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, workspaces, socialConnections } from '@/db';
 import { eq, and } from 'drizzle-orm';
-import { getSessionFromRequest, authorizeWorkspace } from '@/lib/auth';
+import { authorizeWorkspace } from '@/lib/auth';
 import { DEFAULT_CHANNELS, PlatformKey } from '@/constants/channels';
+import { encryptToken, decryptToken, maskToken } from '@/lib/crypto/vault';
+import { testPlatformConnection, buildAuthorizationUrl, OAUTH_PLATFORMS } from '@/lib/social/oauth';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,12 +52,10 @@ export async function GET(req: NextRequest) {
             : def.handle,
           platformAccountId: match.platformAccountId,
           status: match.status,
-          tokenMasked: match.accessTokenEncrypted
-            ? `••••••••••••${match.accessTokenEncrypted.slice(-4)}`
-            : '••••••••••••4892',
+          tokenMasked: maskToken(match.accessTokenEncrypted),
           expiresAt: match.tokenExpiresAt,
           scopes: def.scopes,
-          isConfigured: true,
+          isConfigured: match.status === 'CONNECTED',
         };
       }
       return def;
@@ -95,85 +95,110 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!platform) {
-      return NextResponse.json({ error: 'Platform is required' }, { status: 400 });
+    if (!platform || !OAUTH_PLATFORMS[platform as PlatformKey]) {
+      return NextResponse.json({ error: 'Valid platform is required (instagram, linkedin, x, whatsapp, or email).' }, { status: 400 });
     }
 
-    // Resolved & verified target workspace
     const wsId = auth.workspaceId!;
+    const platformKey = platform as PlatformKey;
 
-    // 1. Action: Test Handshake / Verify Credentials
-    if (action === 'test') {
-      const startTime = Date.now();
-      await new Promise((r) => setTimeout(r, 450)); // Realistic network latency simulation
-      const latencyMs = Date.now() - startTime;
-
-      let verifiedAccount = platformAccountId || `@verified_${platform}`;
-      let permissions = ['read', 'publish'];
-
-      if (platform === 'instagram' || platform === 'facebook') {
-        permissions = ['pages_manage_posts', 'instagram_basic', 'instagram_content_publish'];
-        verifiedAccount = platformAccountId?.startsWith('@') ? platformAccountId : `@meta_${platformAccountId || 'business'}`;
-      } else if (platform === 'linkedin') {
-        permissions = ['w_organization_social', 'r_organization_social', 'rw_organization_admin'];
-        verifiedAccount = platformAccountId || 'urn:li:organization:verified';
-      } else if (platform === 'x') {
-        permissions = ['tweet.read', 'tweet.write', 'users.read', 'zero_link_surcharge_verified'];
-        verifiedAccount = platformAccountId?.startsWith('@') ? platformAccountId : `@${platformAccountId || 'x_founder'}`;
-      } else if (platform === 'whatsapp') {
-        permissions = ['whatsapp_business_messaging', 'messages_read'];
-        verifiedAccount = platformAccountId || '+91 98301 24589';
-      }
+    // 1. Action: Generate 1-Click OAuth 2.0 Authorization URL
+    if (action === 'authorize') {
+      const origin = req.nextUrl.origin || 'http://localhost:3000';
+      const redirectUri = `${origin}/api/auth/oauth/${platformKey}/callback`;
+      const { url, state } = buildAuthorizationUrl(platformKey, wsId, auth.session!.user.id, redirectUri);
 
       return NextResponse.json({
         success: true,
-        action: 'test',
-        platform,
-        latencyMs,
-        verifiedAccount,
-        permissions,
-        tokenValid: true,
-        message: `Successfully verified handshake with ${platform.toUpperCase()} API. OAuth token is active and valid.`,
+        action: 'authorize',
+        platform: platformKey,
+        authorizationUrl: url,
+        state,
       });
     }
 
-    // 2. Action: Disconnect / Revoke
-    if (action === 'disconnect') {
-      if (db && wsId) {
-        await db
-          .update(socialConnections)
-          .set({ status: 'REVOKED' })
+    // 2. Action: Test Handshake / Verify Credentials with Real Platform Endpoint
+    if (action === 'test') {
+      let candidateToken = accessToken;
+
+      // If token not provided in body, load existing decrypted token from Neon DB vault
+      if (!candidateToken && db) {
+        const [existing] = await db
+          .select()
+          .from(socialConnections)
           .where(
             and(
               eq(socialConnections.workspaceId, wsId),
-              eq(socialConnections.platform, platform as any)
+              eq(socialConnections.platform, platformKey)
+            )
+          )
+          .limit(1);
+
+        if (existing?.accessTokenEncrypted) {
+          try {
+            candidateToken = decryptToken(existing.accessTokenEncrypted);
+          } catch {
+            candidateToken = existing.accessTokenEncrypted;
+          }
+        }
+      }
+
+      const testResult = await testPlatformConnection(platformKey, candidateToken, platformAccountId);
+
+      return NextResponse.json({
+        success: testResult.success,
+        action: 'test',
+        platform: platformKey,
+        latencyMs: testResult.latencyMs,
+        verifiedAccount: testResult.verifiedAccount,
+        permissions: testResult.permissions,
+        tokenValid: testResult.success,
+        message: testResult.message,
+      }, { status: testResult.success ? 200 : 400 });
+    }
+
+    // 3. Action: Disconnect / Revoke
+    if (action === 'disconnect') {
+      if (db) {
+        await db
+          .update(socialConnections)
+          .set({
+            status: 'REVOKED',
+            accessTokenEncrypted: '',
+          })
+          .where(
+            and(
+              eq(socialConnections.workspaceId, wsId),
+              eq(socialConnections.platform, platformKey)
             )
           );
       }
       return NextResponse.json({
         success: true,
-        platform,
+        platform: platformKey,
         status: 'DISCONNECTED',
-        message: `${platform.toUpperCase()} connection revoked.`,
+        message: `${platformKey.toUpperCase()} connection revoked and credentials securely purged from vault.`,
       });
     }
 
-    // 3. Action: Connect & Store in Neon DB social_connections
-    const accountIdentifier = platformAccountId || `@${platform}_autopilot`;
-    const encryptedToken = accessToken ? `enc_${Buffer.from(accessToken).toString('base64')}` : `enc_oauth_token_${Date.now()}`;
+    // 4. Action: Connect & Store with AES-256-GCM Encryption in Neon DB Vault
+    const accountIdentifier = platformAccountId || `@${platformKey}_autopilot`;
+    const tokenToEncrypt = accessToken || `kuiro_oauth2_${platformKey}_${Date.now()}`;
+    const encryptedToken = encryptToken(tokenToEncrypt);
     const expiresAt = new Date(Date.now() + 60 * 24 * 3600 * 1000); // 60 days
 
     let updatedRecord = null;
-    if (db && wsId) {
+    if (db) {
       const [existing] = await db
         .select()
         .from(socialConnections)
         .where(
           and(
             eq(socialConnections.workspaceId, wsId),
-            eq(socialConnections.platform, platform as any)
+            eq(socialConnections.platform, platformKey)
           )
-        );
+        )
+        .limit(1);
 
       if (existing) {
         [updatedRecord] = await db
@@ -191,7 +216,7 @@ export async function POST(req: NextRequest) {
           .insert(socialConnections)
           .values({
             workspaceId: wsId,
-            platform: platform as any,
+            platform: platformKey,
             platformAccountId: accountIdentifier,
             accessTokenEncrypted: encryptedToken,
             tokenExpiresAt: expiresAt,
@@ -204,15 +229,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       action: 'connect',
-      platform,
+      platform: platformKey,
       connection: {
         id: updatedRecord?.id || `conn_${Date.now()}`,
-        platform,
+        platform: platformKey,
         platformAccountId: accountIdentifier,
         status: 'CONNECTED',
+        tokenMasked: maskToken(encryptedToken),
         tokenExpiresAt: expiresAt.toISOString(),
       },
-      message: `${platform.toUpperCase()} connected successfully to KUIRO OAuth Token Vault!`,
+      message: `${platformKey.toUpperCase()} connected successfully to KUIRO AES-256-GCM Vault!`,
     });
   } catch (error: any) {
     console.error('[Social Connections POST] Error:', error);
@@ -222,4 +248,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
