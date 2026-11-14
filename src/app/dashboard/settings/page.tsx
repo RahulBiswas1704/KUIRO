@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import SubscriptionCheckoutModal, { PlanTier } from '@/components/billing/SubscriptionCheckoutModal';
 import {
   Settings,
   Building2,
@@ -31,7 +32,7 @@ interface TeamMember {
   id: string;
   name: string;
   email: string;
-  role: 'Owner' | 'Marketer' | 'Front-Desk' | 'Agency Staff';
+  role: 'Owner' | 'Admin' | 'Marketer' | 'Inbox Agent' | 'Front-Desk' | 'Agency Staff';
   status: 'Active' | 'Pending';
 }
 
@@ -42,6 +43,7 @@ export default function WorkspaceSettingsPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [copiedId, setCopiedId] = useState(false);
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
 
   // Form State
   const [workspaceId, setWorkspaceId] = useState('ws_loading');
@@ -69,7 +71,7 @@ export default function WorkspaceSettingsPage() {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteName, setInviteName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<'Marketer' | 'Front-Desk' | 'Agency Staff'>('Marketer');
+  const [inviteRole, setInviteRole] = useState<'Admin' | 'Marketer' | 'Inbox Agent' | 'Front-Desk' | 'Agency Staff'>('Marketer');
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToastMessage(msg);
@@ -92,9 +94,17 @@ export default function WorkspaceSettingsPage() {
         setWhatsappPhone(s.whatsappAdminPhone || '+91 98301 24589');
         setSubscriptionTier(s.subscriptionTier || 'GROWTH');
         if (s.gstin) setGstin(s.gstin);
-        if (s.teamMembers && Array.isArray(s.teamMembers)) {
-          setTeamMembers(s.teamMembers);
+      }
+
+      // Load team members from dedicated API
+      try {
+        const teamRes = await fetch('/api/workspace/team', { cache: 'no-store' });
+        const teamData = await teamRes.json();
+        if (teamData.success && Array.isArray(teamData.members)) {
+          setTeamMembers(teamData.members);
         }
+      } catch (e) {
+        console.warn('Failed to load team from API:', e);
       }
     } catch (err: any) {
       console.warn('Failed to load settings:', err);
@@ -160,28 +170,50 @@ export default function WorkspaceSettingsPage() {
     setTimeout(() => setCopiedId(false), 2000);
   };
 
-  // Add Team Member
-  const handleAddMember = (e: React.FormEvent) => {
+  // Add Team Member with real API dispatch
+  const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteName || !inviteEmail) return;
-    const newMember: TeamMember = {
-      id: String(Date.now()),
-      name: inviteName,
-      email: inviteEmail,
-      role: inviteRole,
-      status: 'Active',
-    };
-    setTeamMembers([...teamMembers, newMember]);
-    setInviteName('');
-    setInviteEmail('');
-    setIsInviteModalOpen(false);
-    showToast(`Invitation dispatched to ${inviteEmail}!`);
+
+    try {
+      const res = await fetch('/api/workspace/team', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: inviteName.trim(),
+          email: inviteEmail.trim(),
+          role: inviteRole,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.member) {
+        setTeamMembers((prev) => [...prev, data.member]);
+        setInviteName('');
+        setInviteEmail('');
+        setIsInviteModalOpen(false);
+        showToast(data.message || `Invitation dispatched to ${inviteEmail}!`);
+      } else {
+        showToast(data.error || 'Failed to dispatch invite', 'error');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Failed to dispatch invite', 'error');
+    }
   };
 
-  // Remove Team Member
-  const handleRemoveMember = (id: string) => {
-    setTeamMembers(teamMembers.filter((m) => m.id !== id));
-    showToast('Team member removed from workspace');
+  // Remove Team Member with real API dispatch
+  const handleRemoveMember = async (id: string) => {
+    try {
+      const res = await fetch(`/api/workspace/team?id=${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        setTeamMembers((prev) => prev.filter((m) => m.id !== id));
+        showToast('Team member removed from workspace');
+      } else {
+        showToast(data.error || 'Failed to remove member', 'error');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Failed to remove member', 'error');
+    }
   };
 
   return (
@@ -474,14 +506,23 @@ export default function WorkspaceSettingsPage() {
       {activeTab === 'billing' && (
         <div className="space-y-6">
           <div className="p-6 rounded-[16px] bg-[#0B0F14] border border-white/10 space-y-6">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4 flex-wrap gap-2">
               <div>
                 <h3 className="text-base font-sora font-bold text-white">Active Plan &amp; GST Tax Invoicing</h3>
                 <p className="text-xs text-slate-400 mt-0.5">Manage your KUIRO subscription tier, tax credentials, and invoices.</p>
               </div>
-              <span className="px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-600/50 text-emerald-300 text-xs font-mono font-bold">
-                {subscriptionTier} PLAN • ACTIVE
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-600/50 text-emerald-300 text-xs font-mono font-bold">
+                  {subscriptionTier} PLAN • ACTIVE
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsCheckoutModalOpen(true)}
+                  className="px-3 py-1 rounded-lg bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-semibold font-sora transition shadow-sm"
+                >
+                  Change / Upgrade Plan
+                </button>
+              </div>
             </div>
 
             {/* Current Plan Card */}
@@ -584,6 +625,32 @@ export default function WorkspaceSettingsPage() {
                 </div>
               ))}
             </div>
+
+            {/* Role Permissions Scoping Matrix */}
+            <div className="pt-4 border-t border-white/5 space-y-3">
+              <h4 className="text-xs font-sora font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                <ShieldCheck size={14} className="text-[#FF7A00]" />
+                <span>Multi-Seat RBAC Scoping Matrix</span>
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                <div className="p-3 rounded-[12px] bg-[#11141A] border border-white/5 space-y-1">
+                  <span className="font-bold text-[#FF7A00] block">Owner</span>
+                  <p className="text-[11px] text-slate-400">Full workspace ownership, billing &amp; tax invoicing, RLS policies, brand deletion.</p>
+                </div>
+                <div className="p-3 rounded-[12px] bg-[#11141A] border border-white/5 space-y-1">
+                  <span className="font-bold text-white block">Admin</span>
+                  <p className="text-[11px] text-slate-400">Campaign management, Brand Brain tuning, collaborator invites, WhatsApp loop.</p>
+                </div>
+                <div className="p-3 rounded-[12px] bg-[#11141A] border border-white/5 space-y-1">
+                  <span className="font-bold text-white block">Marketer</span>
+                  <p className="text-[11px] text-slate-400">Instant Campaign Composer, 1-Click Creative Kit ZIP exports, visual review.</p>
+                </div>
+                <div className="p-3 rounded-[12px] bg-[#11141A] border border-white/5 space-y-1">
+                  <span className="font-bold text-emerald-400 block">Inbox Agent</span>
+                  <p className="text-[11px] text-slate-400">Omni Inbox messaging only (WhatsApp, IG DMs, Email). Restricted from billing/settings.</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -634,9 +701,10 @@ export default function WorkspaceSettingsPage() {
                   onChange={(e) => setInviteRole(e.target.value as any)}
                   className="w-full bg-[#11141A] border border-white/10 rounded-[10px] px-3.5 py-2.5 text-white focus:outline-none focus:border-[#FF7A00] transition"
                 >
-                  <option value="Marketer">Marketer (Review &amp; Edit Campaigns)</option>
-                  <option value="Front-Desk">Front-Desk (Unified Inbox Inbound Replies)</option>
-                  <option value="Agency Staff">Agency Staff (Multi-Tenant Management)</option>
+                  <option value="Admin">Admin (Campaigns, Brand Brain &amp; Invites)</option>
+                  <option value="Marketer">Marketer (Composer &amp; Creative Kit ZIP Exports)</option>
+                  <option value="Inbox Agent">Inbox Agent (Omni Inbox Messaging Only)</option>
+                  <option value="Agency Staff">Agency Staff (Multi-Client Tenant Manager)</option>
                 </select>
               </div>
 
@@ -659,6 +727,19 @@ export default function WorkspaceSettingsPage() {
           </div>
         </div>
       )}
+
+      {/* Subscription Checkout Modal */}
+      <SubscriptionCheckoutModal
+        isOpen={isCheckoutModalOpen}
+        onClose={() => setIsCheckoutModalOpen(false)}
+        initialTier={subscriptionTier}
+        initialAnnual={billingFrequency === 'annual'}
+        onSuccess={(newTier) => {
+          setSubscriptionTier(newTier);
+          setIsCheckoutModalOpen(false);
+          showToast(`Successfully upgraded to KUIRO ${newTier} Plan!`);
+        }}
+      />
     </div>
   );
 }

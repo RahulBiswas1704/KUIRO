@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { AnnouncementBar, Navbar, Footer } from '@/components/layout';
+import SubscriptionCheckoutModal, { PlanTier } from '@/components/billing/SubscriptionCheckoutModal';
 import {
   CheckCircle2,
   Sparkles,
@@ -43,6 +44,8 @@ export default function RedesignedPricingPage() {
   const [annualBilling, setAnnualBilling] = useState(true);
   const [currentAgencySpend, setCurrentAgencySpend] = useState(45000); // INR per month
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [selectedCheckoutTier, setSelectedCheckoutTier] = useState<PlanTier>('GROWTH');
 
   // Pricing Matrix calculations
   const starterPrice = annualBilling ? 999 : 1199;
@@ -229,12 +232,15 @@ export default function RedesignedPricingPage() {
 
             <div className="mt-8 pt-6 border-t border-white/5">
               <button
-                onClick={handleGetStarted}
-                className="w-full py-3.5 rounded-[12px] bg-white/5 hover:bg-white/10 text-white text-xs font-semibold font-sora border border-white/10 transition text-center block shadow-sm"
+                onClick={() => {
+                  setSelectedCheckoutTier('STARTER');
+                  setIsCheckoutOpen(true);
+                }}
+                className="w-full py-3.5 rounded-[12px] bg-white/5 hover:bg-white/10 text-white text-xs font-semibold font-sora border border-white/10 transition text-center block shadow-sm cursor-pointer"
               >
-                {isLoggedIn ? 'Go to Dashboard' : 'Start 14-Day Free Trial'}
+                Subscribe to Starter Plan
               </button>
-              <p className="text-[10px] text-center text-slate-500 mt-2 font-mono">No credit card required</p>
+              <p className="text-[10px] text-center text-slate-500 mt-2 font-mono">14 days risk-free trial • UPI / Cards</p>
             </div>
           </div>
 
@@ -318,12 +324,15 @@ export default function RedesignedPricingPage() {
 
             <div className="mt-8 pt-6 border-t border-white/10">
               <button
-                onClick={handleGetStarted}
-                className="w-full py-3.5 rounded-[12px] bg-[#FF7A00] hover:bg-[#FF881A] text-white text-xs font-sora font-semibold transition text-center block shadow-lg shadow-[#FF7A00]/25 active:scale-95"
+                onClick={() => {
+                  setSelectedCheckoutTier('GROWTH');
+                  setIsCheckoutOpen(true);
+                }}
+                className="w-full py-3.5 rounded-[12px] bg-[#FF7A00] hover:bg-[#FF881A] text-white text-xs font-sora font-semibold transition text-center block shadow-lg shadow-[#FF7A00]/25 active:scale-95 cursor-pointer"
               >
-                {isLoggedIn ? 'Go to Dashboard' : 'Start 14-Day Free Trial'}
+                Upgrade to Growth (Full Autopilot)
               </button>
-              <p className="text-[10px] text-center text-emerald-400 mt-2 font-mono">14 days full access • Cancel anytime</p>
+              <p className="text-[10px] text-center text-emerald-400 mt-2 font-mono">Instant UPI Autopay / Cards • Cancel anytime</p>
             </div>
           </div>
 
@@ -385,14 +394,23 @@ export default function RedesignedPricingPage() {
               </div>
             </div>
 
-            <div className="mt-8 pt-6 border-t border-white/5">
+            <div className="mt-8 pt-6 border-t border-white/5 space-y-2">
+              <button
+                onClick={() => {
+                  setSelectedCheckoutTier('AGENCY');
+                  setIsCheckoutOpen(true);
+                }}
+                className="w-full py-3.5 rounded-[12px] bg-white/10 hover:bg-white/20 text-white text-xs font-semibold font-sora transition text-center block border border-white/20 cursor-pointer shadow-sm"
+              >
+                Activate Agency Autopilot
+              </button>
               <Link
                 href="/contact"
-                className="w-full py-3.5 rounded-[12px] bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold font-sora transition text-center block shadow-sm"
+                className="w-full py-2.5 rounded-[10px] bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white text-[11px] font-semibold transition text-center block"
               >
-                Contact Agency Sales
+                Or Contact Agency Sales
               </Link>
-              <p className="text-[10px] text-center text-slate-500 mt-2 font-mono">Custom client volume & volume billing</p>
+              <p className="text-[10px] text-center text-slate-500 mt-1 font-mono">10 Client Workspaces • Dedicated SLAs</p>
             </div>
           </div>
         </div>
@@ -763,7 +781,19 @@ export default function RedesignedPricingPage() {
         </div>
       </section>
 
-      {/* 9. Unified Global Footer */}
+      {/* 9. Secure Checkout & Subscription Modal */}
+      <SubscriptionCheckoutModal
+        isOpen={isCheckoutOpen}
+        onClose={() => setIsCheckoutOpen(false)}
+        initialTier={selectedCheckoutTier}
+        initialAnnual={annualBilling}
+        onSuccess={() => {
+          setIsCheckoutOpen(false);
+          window.location.href = '/dashboard';
+        }}
+      />
+
+      {/* 10. Unified Global Footer */}
       <Footer />
     </div>
   );
