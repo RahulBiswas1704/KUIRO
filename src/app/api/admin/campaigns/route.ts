@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, scheduledCampaigns, platformPosts, workspaces, brandProfiles } from '@/db';
 import { desc, eq } from 'drizzle-orm';
 import { inngest } from '@/lib/inngest/client';
+import { safeDispatchInngest } from '@/lib/inngest/dispatcher';
 import { verifyManagementAuth } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
@@ -127,20 +128,16 @@ export async function PATCH(req: NextRequest) {
       .where(eq(scheduledCampaigns.id, id))
       .returning();
 
-    // If approved or paused, trigger notification event to Inngest
+    // If approved or paused, trigger notification event to Inngest via Resilient Dispatcher
     if (status === 'APPROVED' || status === 'PAUSED') {
-      try {
-        await inngest.send({
-          name: status === 'APPROVED' ? 'kuiro/campaign.approved' : 'kuiro/campaign.paused',
-          data: {
-            campaignId: id,
-            action: status === 'APPROVED' ? 'FORCE_APPROVED' : 'EMERGENCY_PAUSE',
-            by: 'Admin Panel Operator',
-          },
-        });
-      } catch (ingErr) {
-        console.warn('[Admin Inngest Dispatch Fallback]:', ingErr);
-      }
+      await safeDispatchInngest({
+        name: status === 'APPROVED' ? 'kuiro/campaign.approved' : 'kuiro/campaign.paused',
+        data: {
+          campaignId: id,
+          action: status === 'APPROVED' ? 'FORCE_APPROVED' : 'EMERGENCY_PAUSE',
+          by: 'Admin Panel Operator',
+        },
+      });
     }
 
     return NextResponse.json({

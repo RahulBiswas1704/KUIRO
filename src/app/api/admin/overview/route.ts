@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, users, workspaces, brandProfiles, scheduledCampaigns, platformPosts, conversations, inboxMessages, culturalEventsCalendar, sessions } from '@/db';
 import { desc, sql as drizzleSql } from 'drizzle-orm';
 import { verifyManagementAuth } from '@/lib/adminAuth';
+import { checkStorageHealth } from '@/lib/storage/r2';
+import { getOutboxTelemetry } from '@/lib/inngest/dispatcher';
 
 export const dynamic = 'force-dynamic';
 
@@ -137,6 +139,11 @@ export async function GET(req: NextRequest) {
       })),
     ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 10);
 
+    const [storageHealth, outboxTelemetry] = await Promise.all([
+      checkStorageHealth(),
+      Promise.resolve(getOutboxTelemetry()),
+    ]);
+
     return NextResponse.json({
       success: true,
       metrics: {
@@ -167,12 +174,13 @@ export async function GET(req: NextRequest) {
           phoneId: process.env.WHATSAPP_PHONE_NUMBER_ID || '1528322460354543',
         },
         inngestEngine: {
-          status: process.env.INNGEST_EVENT_KEY ? 'OPERATIONAL' : 'KEY_MISSING',
-          scheduler: '48h Durable Loop Active',
+          status: outboxTelemetry.queueHealth === 'FALLBACK_ACTIVE' ? 'FALLBACK_ACTIVE' : process.env.INNGEST_EVENT_KEY ? 'OPERATIONAL' : 'LOCAL_OUTBOX',
+          scheduler: `48h Durable Loop • ${outboxTelemetry.totalDispatched} dispatched (${outboxTelemetry.pendingOutboxCount} queued)`,
         },
         cloudflareR2: {
-          status: process.env.R2_BUCKET_NAME ? 'OPERATIONAL' : 'FALLBACK_LOCAL',
-          bucket: process.env.R2_BUCKET_NAME || 'kuiro-media',
+          status: storageHealth.status === 'HEALTHY' ? 'OPERATIONAL' : storageHealth.status === 'DEGRADED' ? 'DEGRADED' : 'FALLBACK_LOCAL',
+          bucket: storageHealth.bucket || 'kuiro-media',
+          latencyMs: storageHealth.latencyMs,
         },
         resendEmail: {
           status: process.env.RESEND_API_KEY ? 'OPERATIONAL' : 'KEY_MISSING',

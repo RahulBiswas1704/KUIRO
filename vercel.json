@@ -2,9 +2,16 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
     {
-      "path": "/api/calendar/cron-trigger",
+      "path": "/api/calendar/cron-trigger?action=generate",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/calendar/cron-trigger?action=sweep",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/calendar/cron-trigger?action=housekeeping",
+      "schedule": "0 2 * * *"
     }
   ]
 }
-

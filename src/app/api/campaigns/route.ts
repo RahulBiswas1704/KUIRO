@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, workspaces, brandProfiles, scheduledCampaigns, platformPosts, users } from '@/db';
 import { eq, desc, and } from 'drizzle-orm';
 import { inngest } from '@/lib/inngest/client';
+import { safeDispatchInngest } from '@/lib/inngest/dispatcher';
 import { evaluateAndRefineCampaignCopy, evaluateCampaignWithCritic } from '@/lib/ai/critic';
 import { reviseCampaignSurgically } from '@/lib/campaigns/reviser';
 import { GeneratedAssetPayload } from '@/types';
@@ -682,21 +683,17 @@ export async function POST(req: NextRequest) {
       insertedPosts.push(created);
     }
 
-    // 5. Trigger Inngest Durable Workflow
-    try {
-      await inngest.send({
-        name: 'kuiro/campaign.initiate',
-        data: {
-          campaignId: newCamp.id,
-          workspaceId: ws.id,
-          publishAt: publishAt.toISOString(),
-          triggerType,
-          eventName: topic.trim(),
-        },
-      });
-    } catch (ingErr) {
-      console.warn('[Inngest Campaign Dispatch Fallback]:', ingErr);
-    }
+    // 5. Trigger Inngest Durable Workflow via Resilient Dispatcher
+    await safeDispatchInngest({
+      name: 'kuiro/campaign.initiate',
+      data: {
+        campaignId: newCamp.id,
+        workspaceId: ws.id,
+        publishAt: publishAt.toISOString(),
+        triggerType,
+        eventName: topic.trim(),
+      },
+    });
 
     return NextResponse.json({
       success: true,
@@ -843,19 +840,15 @@ export async function PATCH(req: NextRequest) {
         }
       }
 
-      // Trigger Inngest event
-      try {
-        await inngest.send({
-          name: 'kuiro/campaign.revise',
-          data: {
-            campaignId,
-            instruction: revisionPrompt,
-            revisionCount: nextRevisionCount,
-          },
-        });
-      } catch (inngErr) {
-        console.warn('[Inngest Revise Event Warning]:', inngErr);
-      }
+      // Trigger Inngest event via Resilient Dispatcher
+      await safeDispatchInngest({
+        name: 'kuiro/campaign.revise',
+        data: {
+          campaignId,
+          instruction: revisionPrompt,
+          revisionCount: nextRevisionCount,
+        },
+      });
 
       const revisedPosts = await database
         .select()
@@ -888,18 +881,14 @@ export async function PATCH(req: NextRequest) {
       .where(eq(scheduledCampaigns.id, campaignId))
       .returning();
 
-    // Trigger Inngest event so state machine unblocks
-    try {
-      await inngest.send({
-        name: 'whatsapp/admin.action',
-        data: {
-          campaignId,
-          action: status === 'APPROVED' ? 'APPROVE' : status === 'PAUSED' ? 'EMERGENCY_PAUSE' : 'SKIP',
-        },
-      });
-    } catch (inngErr) {
-      console.warn('[Inngest Admin Action Sync Warning]:', inngErr);
-    }
+    // Trigger Inngest event so state machine unblocks via Resilient Dispatcher
+    await safeDispatchInngest({
+      name: 'whatsapp/admin.action',
+      data: {
+        campaignId,
+        action: status === 'APPROVED' ? 'APPROVE' : status === 'PAUSED' ? 'EMERGENCY_PAUSE' : 'SKIP',
+      },
+    });
 
     return NextResponse.json({
       success: true,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { inngest } from '@/lib/inngest/client';
+import { safeDispatchInngest } from '@/lib/inngest/dispatcher';
 import { db, scheduledCampaigns, platformPosts, brandProfiles, conversations, inboxMessages, workspaces, socialConnections } from '@/db';
 import { eq, and, desc } from 'drizzle-orm';
 import { generateWithGemini, transcribeAudioWithGemini } from '@/lib/ai/gemini';
@@ -21,15 +22,10 @@ function normalizePhone(phone: string): string {
  *   - Audio / Voice notes: Multilingual voice feedback (Hindi, Bengali, English)
  */
 
-// Helper to safely dispatch to Inngest with graceful mock fallback
+// Helper to safely dispatch to Inngest via Resilient Outbox Dispatcher
 async function safeSendInngest(event: any) {
-  try {
-    return await inngest.send(event);
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.warn('[Inngest Dispatch Fallback]', msg);
-    return { ids: ['mock_inngest_event_id'] };
-  }
+  const res = await safeDispatchInngest(event);
+  return { ids: [res.eventId] };
 }
 
 // Helper to send a reply via WhatsApp Cloud API
