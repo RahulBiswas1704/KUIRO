@@ -62,6 +62,33 @@ interface ScheduledCampaign {
   posts: PlatformPost[];
 }
 
+const COMPOSER_PRESETS: Record<string, string[]> = {
+  FLASH_SALE: [
+    'Weekend Flash Sale: 30% Off Storewide for Next 48 Hours',
+    'Midnight Clearance: Final 25 Limited Edition Units at Special Pricing',
+    'Flash Promo: Free Premium Gift with Every Order Above ₹1,999',
+    'Urgent Weekend Special: Priority Client Slots with 20% Cashback',
+  ],
+  PRODUCT_DROP: [
+    'New Collection Drop: Handcrafted Pure Silk & Zari Weaves for Spring',
+    'Product Launch: Next-Gen Natural Formulation Crafted for Daily Wear',
+    'Introducing Our Private Advisory Studio: 1-on-1 Growth Consultations',
+    'Exclusive Menu Reveal: Chef Special Seasonal Artisanal Tasting Series',
+  ],
+  SEASONAL: [
+    'Diwali Gifting Guide: Bespoke Corporate & Family Gift Boxes',
+    'Holi Festival Color & Style Celebration: Modern Indian Festive Wear',
+    'Independence Day Pride Sale: Made In India Craftsmanship Spotlight',
+    'New Year New Horizons: Refresh Your Brand & Strategy for 2026',
+  ],
+  THOUGHT_LEADERSHIP: [
+    '3 Hard-Learned Lessons from 10 Years of Running an Independent Business',
+    'Why True Brand Authenticity Always Outperforms Discount Chasing',
+    'The Shift to Autonomous Workflows: How Small Teams Compete with Giants',
+    'Behind the Scenes: The Real Supply Chain and Craft of Made-in-India Goods',
+  ],
+};
+
 export default function DashboardPage() {
   const [campaigns, setCampaigns] = useState<ScheduledCampaign[]>([]);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
@@ -74,11 +101,19 @@ export default function DashboardPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'info' | 'error'>('success');
 
-  // Generator Modal state
+  // Generator / Instant Composer Modal state
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [customTopic, setCustomTopic] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [composerTriggerType, setComposerTriggerType] = useState<'FLASH_SALE' | 'PRODUCT_DROP' | 'SEASONAL' | 'THOUGHT_LEADERSHIP'>('FLASH_SALE');
+  const [selectedChannels, setSelectedChannels] = useState<{ [key: string]: boolean }>({
+    instagram: true,
+    linkedin: true,
+    x: true,
+    whatsapp: true,
+    email: true,
+  });
 
   // Countdown timer state
   const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number; isPassed: boolean }>({
@@ -222,23 +257,29 @@ export default function DashboardPage() {
     }
   };
 
-  // Handle Generate with AI
-  const handleGenerateCampaign = async (topicToUse?: string) => {
+  // Handle Generate with AI / Instant Composer
+  const handleGenerateCampaign = async (topicToUse?: string, triggerTypeToUse?: string) => {
     const topic = topicToUse || customTopic.trim();
     if (!topic) return;
+    const trigger = triggerTypeToUse || composerTriggerType;
 
     try {
       setIsGenerating(true);
       const res = await fetch('/api/campaigns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, triggerType: 'MANUAL' }),
+        body: JSON.stringify({
+          topic,
+          triggerType: trigger,
+          targetChannels: Object.keys(selectedChannels).filter((k) => selectedChannels[k]),
+        }),
       });
       const data = await res.json();
       if (data.success && data.campaign) {
         showToast(`AI Campaign generated for "${topic}"! Entered 48h Auto-Commit queue.`, 'success');
         setIsGeneratorOpen(false);
         setCustomTopic('');
+        setActiveTab('queue');
         await fetchCampaigns(true);
         setSelectedCampaignId(data.campaign.id);
       } else {
@@ -356,10 +397,10 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2.5 flex-wrap">
             <button
               onClick={() => setIsGeneratorOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] bg-[#FF7A00] text-white text-xs font-semibold hover:bg-[#E66E00] transition shadow-sm font-sora"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] bg-gradient-to-r from-[#FF7A00] to-[#E66E00] text-white text-xs font-semibold hover:opacity-95 transition shadow-sm font-sora shadow-orange-500/20"
             >
               <Sparkles size={15} />
-              <span>Generate AI Campaign</span>
+              <span>+ Instant Campaign Composer</span>
             </button>
             <Link
               href="/dashboard/simulator"
@@ -476,9 +517,9 @@ export default function DashboardPage() {
           </p>
           <button
             onClick={() => setIsGeneratorOpen(true)}
-            className="mt-4 px-4 py-2 bg-[#FF7A00] text-white rounded-[8px] text-xs font-semibold hover:bg-[#E66E00] transition"
+            className="mt-4 px-4 py-2 bg-gradient-to-r from-[#FF7A00] to-[#E66E00] text-white rounded-[8px] text-xs font-semibold hover:opacity-95 transition shadow-sm"
           >
-            Generate First Campaign
+            Open Instant Campaign Composer
           </button>
         </div>
       ) : (
@@ -626,7 +667,7 @@ export default function DashboardPage() {
                   onClick={() => handleExportCreativeKit(activeCampaign.id, activeCampaign.topicSummary)}
                   disabled={isExportingKit}
                   className="text-[#FF7A00] hover:text-[#E66E00] font-semibold text-[11px] flex items-center gap-1 transition disabled:opacity-50"
-                  title="Download offline clinic display visual & copy ZIP"
+                  title="Download ready-to-use brand asset visual & copy ZIP"
                 >
                   <Download size={12} />
                   <span>Download Assets (ZIP)</span>
@@ -641,7 +682,7 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-500" />
                     <span className="text-xs font-semibold text-[#0B0F14]">
-                      AI Multi-Channel Payloads (Gemini 3.5 Flash Lite)
+                      AI Multi-Channel Payloads (Gemini 2.5 Multi-Modal)
                     </span>
                   </div>
                   <span className="text-[11px] font-mono text-gray-500">
@@ -913,70 +954,176 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* AI Campaign Generator Modal */}
+      {/* Instant Campaign Composer Modal */}
       {isGeneratorOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white rounded-[16px] max-w-lg w-full p-6 space-y-4 shadow-xl border border-gray-100">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-orange-50 text-[#FF7A00] flex items-center justify-center">
-                  <Sparkles size={16} />
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn overflow-y-auto">
+          <div className="bg-white rounded-[18px] max-w-xl w-full p-6 space-y-5 shadow-2xl border border-gray-100 my-8">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3.5 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-[10px] bg-gradient-to-tr from-[#FF7A00] to-amber-500 text-white flex items-center justify-center shadow-sm">
+                  <Sparkles size={18} />
                 </div>
-                <h3 className="font-sora text-base font-bold text-[#0B0F14]">
-                  Generate Autonomous AI Campaign
-                </h3>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-sora text-base font-bold text-[#0B0F14]">
+                      Instant Campaign Composer
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full bg-orange-50 text-[#FF7A00] text-[10px] font-bold border border-orange-200 uppercase tracking-wide">
+                      Gemini 2.5 Multi-Modal
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-500">
+                    Draft, critique, and schedule an urgent broadcast or milestone across all channels in 30 seconds.
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setIsGeneratorOpen(false)}
-                className="text-gray-400 hover:text-gray-600 transition"
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-md transition"
               >
                 <CloseIcon size={18} />
               </button>
             </div>
 
-            <p className="text-xs text-gray-500">
-              Enter any promotional topic, festival, or service announcement. KUIRO uses your Brand Brain & Gemini 3.5 Flash Lite to synthesize complete multi-channel payloads.
-            </p>
+            {/* Step 1: Campaign Trigger / Objective */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider flex items-center justify-between">
+                <span>1. Select Broadcast Objective</span>
+                <span className="text-[10px] text-gray-400 lowercase font-normal">tailors tone & urgency</span>
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[
+                  { id: 'FLASH_SALE', label: 'Flash Sale', emoji: '⚡', desc: 'Urgent 24-48h push' },
+                  { id: 'PRODUCT_DROP', label: 'Product Drop', emoji: '🚀', desc: 'New launch announcement' },
+                  { id: 'SEASONAL', label: 'Festive / Event', emoji: '🪔', desc: 'Cultural & holiday radar' },
+                  { id: 'THOUGHT_LEADERSHIP', label: 'Founder Post', emoji: '🎯', desc: 'Insights & brand story' },
+                ].map((t) => {
+                  const isSelected = composerTriggerType === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setComposerTriggerType(t.id as any)}
+                      className={`p-2.5 rounded-[12px] border text-left transition flex flex-col justify-between ${
+                        isSelected
+                          ? 'border-[#FF7A00] bg-orange-50/60 shadow-sm'
+                          : 'border-gray-200 hover:border-gray-300 bg-white'
+                      }`}
+                    >
+                      <div className="text-base mb-1">{t.emoji}</div>
+                      <div>
+                        <p className={`text-xs font-bold leading-tight ${isSelected ? 'text-[#FF7A00]' : 'text-gray-800'}`}>
+                          {t.label}
+                        </p>
+                        <p className="text-[10px] text-gray-400 leading-tight mt-0.5">{t.desc}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-            {/* Quick Milestone Suggestions from Indian Calendar */}
+            {/* Step 2: Target Channels */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
+                  2. Target Channels
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const allSelected = Object.values(selectedChannels).every(Boolean);
+                    setSelectedChannels({
+                      instagram: !allSelected,
+                      linkedin: !allSelected,
+                      x: !allSelected,
+                      whatsapp: !allSelected,
+                      email: !allSelected,
+                    });
+                  }}
+                  className="text-[10px] text-[#FF7A00] font-semibold hover:underline"
+                >
+                  {Object.values(selectedChannels).every(Boolean) ? 'Deselect All' : 'Select All'}
+                </button>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                {[
+                  { key: 'instagram', label: 'Instagram', icon: Instagram, color: 'text-pink-600 bg-pink-50' },
+                  { key: 'linkedin', label: 'LinkedIn', icon: Linkedin, color: 'text-blue-600 bg-blue-50' },
+                  { key: 'x', label: 'X (Twitter)', icon: Twitter, color: 'text-sky-500 bg-sky-50' },
+                  { key: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, color: 'text-emerald-600 bg-emerald-50' },
+                  { key: 'email', label: 'Email ESP', icon: Mail, color: 'text-amber-600 bg-amber-50' },
+                ].map((ch) => {
+                  const isChecked = selectedChannels[ch.key];
+                  const Icon = ch.icon;
+                  return (
+                    <button
+                      key={ch.key}
+                      type="button"
+                      onClick={() => setSelectedChannels((prev) => ({ ...prev, [ch.key]: !prev[ch.key] }))}
+                      className={`p-2 rounded-[10px] border flex items-center gap-2 text-left transition ${
+                        isChecked
+                          ? 'border-gray-800 bg-gray-900 text-white shadow-sm'
+                          : 'border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100'
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${isChecked ? 'bg-white/10 text-white' : ch.color}`}>
+                        <Icon size={12} />
+                      </div>
+                      <span className="text-[11px] font-medium truncate">{ch.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Step 3: Quick Presets */}
             <div className="space-y-1.5">
               <label className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
-                Quick Milestone Presets:
+                3. Quick Topic Inspiration
               </label>
               <div className="flex flex-wrap gap-1.5">
-                {[
-                  'World Health Day Preventive Checkup',
-                  'Gudi Padwa Prosperity Smile Care',
-                  'Ramadan Fasting Wellness & Oral Care',
-                  'National Doctors Day Medical Excellence',
-                  'Monsoon Preventive Immunity Booster',
-                ].map((preset) => (
+                {(COMPOSER_PRESETS[composerTriggerType] || COMPOSER_PRESETS.FLASH_SALE).map((preset) => (
                   <button
                     key={preset}
                     type="button"
                     onClick={() => setCustomTopic(preset)}
-                    className="text-[11px] px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 hover:bg-orange-50 hover:text-[#FF7A00] hover:border-orange-200 border border-transparent transition"
+                    className="text-[11px] px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 hover:bg-orange-50 hover:text-[#FF7A00] hover:border-orange-200 border border-transparent transition text-left"
                   >
-                    {preset}
+                    + {preset}
                   </button>
                 ))}
               </div>
             </div>
 
+            {/* Step 4: Campaign Topic Textarea */}
             <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
-                Custom Campaign Topic:
+              <label className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider flex items-center justify-between">
+                <span>4. Campaign Details or Custom Topic</span>
+                <span className="text-[10px] text-gray-400 font-normal">
+                  {customTopic.length}/280 chars
+                </span>
               </label>
               <textarea
                 value={customTopic}
                 onChange={(e) => setCustomTopic(e.target.value)}
-                placeholder="e.g. Free Dental Screening Weekend for Senior Citizens with digital X-Rays..."
+                placeholder="e.g. Flash 48-Hour Sale: 30% off all artisan textiles and apparel with promo code KUIRO48..."
                 rows={3}
                 className="w-full text-xs p-3 rounded-[10px] border border-gray-200 focus:outline-none focus:border-[#FF7A00] transition"
               />
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2">
+            {/* Autopilot Safety Notice */}
+            <div className="p-3 rounded-[10px] bg-emerald-50/70 border border-emerald-200 text-emerald-900 text-[11px] flex items-start gap-2">
+              <ShieldCheck size={16} className="text-emerald-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-semibold">Autonomous Safety Guarantee:</span> Once synthesized, this campaign enters the 48-Hour Auto-Commit queue. WhatsApp notification will be dispatched to your admin phone for 1-click approval or voice edit before anything is posted.
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex items-center justify-between pt-2 border-t border-gray-100">
               <button
                 type="button"
                 onClick={() => setIsGeneratorOpen(false)}
@@ -988,18 +1135,18 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => handleGenerateCampaign()}
-                disabled={isGenerating || !customTopic.trim()}
-                className="px-4 py-2 bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-semibold rounded-[8px] transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                disabled={isGenerating || !customTopic.trim() || !Object.values(selectedChannels).some(Boolean)}
+                className="px-5 py-2.5 bg-gradient-to-r from-[#FF7A00] to-[#E66E00] hover:opacity-95 text-white text-xs font-semibold rounded-[10px] transition flex items-center gap-2 shadow-sm disabled:opacity-50 font-sora"
               >
                 {isGenerating ? (
                   <>
                     <Loader2 size={14} className="animate-spin" />
-                    <span>Synthesizing Payloads...</span>
+                    <span>Synthesizing Multi-Channel Kit...</span>
                   </>
                 ) : (
                   <>
                     <Sparkles size={14} />
-                    <span>Generate Campaign</span>
+                    <span>Synthesize & Enter Queue</span>
                   </>
                 )}
               </button>
@@ -1051,11 +1198,11 @@ export default function DashboardPage() {
               <span className="text-[10px] text-gray-400 font-mono">10:42 AM</span>
             </div>
             <p className="text-[11px] text-gray-600 line-clamp-2">
-              "Can I schedule a consultation for Invisalign clear aligners this Saturday?"
+              "Can I order 3 bespoke Banarasi silk dupattas from the new catalogue for immediate delivery?"
             </p>
             <div className="flex items-center gap-1.5 pt-1 text-[9px] font-mono">
               <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded font-bold">WhatsApp</span>
-              <span className="bg-orange-100 text-[#FF7A00] px-1.5 py-0.2 rounded font-bold">#ClearAligners</span>
+              <span className="bg-orange-100 text-[#FF7A00] px-1.5 py-0.2 rounded font-bold">#OrderInquiry</span>
             </div>
           </Link>
 
@@ -1068,14 +1215,14 @@ export default function DashboardPage() {
                 <Instagram size={13} className="text-pink-600" />
                 <span>Rohit Verma</span>
               </span>
-              <span className="text-[10px] text-rose-600 font-bold font-mono">URGENT</span>
+              <span className="text-[10px] text-rose-600 font-bold font-mono">NEW INQUIRY</span>
             </div>
             <p className="text-[11px] text-gray-600 line-clamp-2">
-              "Chipped my front tooth playing football an hour ago. Do you take emergency walk-ins?"
+              "Hey! We love your advisory masterclass. Do you have slots open for Q2 founder coaching?"
             </p>
             <div className="flex items-center gap-1.5 pt-1 text-[9px] font-mono">
               <span className="bg-pink-100 text-pink-800 px-1.5 py-0.2 rounded font-bold">Instagram DM</span>
-              <span className="bg-rose-100 text-rose-800 px-1.5 py-0.2 rounded font-bold">#Emergency</span>
+              <span className="bg-rose-100 text-rose-800 px-1.5 py-0.2 rounded font-bold">#GrowthAdvisory</span>
             </div>
           </Link>
 
@@ -1091,7 +1238,7 @@ export default function DashboardPage() {
               <span className="text-[10px] text-gray-400 font-mono">09:20 AM</span>
             </div>
             <p className="text-[11px] text-gray-600 line-clamp-2">
-              "Reviewed your corporate dental wellness proposal. Will discuss in committee."
+              "Reviewed your corporate proposal and wholesale terms. Let us finalize the contract on Monday."
             </p>
             <div className="flex items-center gap-1.5 pt-1 text-[9px] font-mono">
               <span className="bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded font-bold">Email</span>
@@ -1143,7 +1290,7 @@ export default function DashboardPage() {
               <div className="truncate">
                 <p className="text-xs font-semibold text-[#0B0F14]">Instagram Graph</p>
                 <p className="text-[10px] text-gray-500 truncate">
-                  {channels.find((c) => c.platform === 'instagram')?.handle || '@drsharma.dental'}
+                  {channels.find((c) => c.platform === 'instagram')?.handle || '@sharmahandlooms'}
                 </p>
               </div>
             </div>
@@ -1167,7 +1314,7 @@ export default function DashboardPage() {
               <div className="truncate">
                 <p className="text-xs font-semibold text-[#0B0F14]">LinkedIn Page</p>
                 <p className="text-[10px] text-gray-500 truncate">
-                  {channels.find((c) => c.platform === 'linkedin')?.handle || 'Dr. Sharma Clinics'}
+                  {channels.find((c) => c.platform === 'linkedin')?.handle || 'Sharma Heritage Studio & Retail'}
                 </p>
               </div>
             </div>
@@ -1191,7 +1338,7 @@ export default function DashboardPage() {
               <div className="truncate">
                 <p className="text-xs font-semibold text-[#0B0F14]">X (Twitter)</p>
                 <p className="text-[10px] text-gray-500 truncate">
-                  {channels.find((c) => c.platform === 'x')?.handle || '@sharmadental_in'}
+                  {channels.find((c) => c.platform === 'x')?.handle || '@sharmaretail_in'}
                 </p>
               </div>
             </div>

@@ -296,7 +296,7 @@ export async function GET(req: NextRequest) {
       [ws] = await database
         .insert(workspaces)
         .values({
-          name: 'Apex Diagnostic & Wellness Clinic',
+          name: 'Sharma Heritage Handlooms & Retail',
           ownerId: u.id,
           subscriptionTier: 'GROWTH',
           whatsappAdminPhone: '+919876543210',
@@ -319,12 +319,12 @@ export async function GET(req: NextRequest) {
         .where(eq(brandProfiles.workspaceId, ws.id));
 
       const businessName = ws.name;
-      const industry = bp?.industry || 'Healthcare & Preventive Diagnostics';
-      const tones = (bp?.toneOfVoice?.samplePhrases as string[]) || ['Empathetic', 'Clinical'];
-      const pillars = (bp?.contentPillars as any[])?.map((p) => p.name || p) || ['Preventive Care', 'Family Health'];
+      const industry = bp?.industry || 'Retail, Commerce & Creative Studio';
+      const tones = (bp?.toneOfVoice?.samplePhrases as string[]) || ['Culturally Warm', 'Authoritative', 'Modern Indian'];
+      const pillars = (bp?.contentPillars as any[])?.map((p) => p.name || p) || ['Artisan Heritage', 'Customer Stories', 'Festive Drops'];
       const negativeConstraints = (bp?.negativeConstraints as string[]) || ['No competitor mentions'];
 
-      const initialTopic = 'Holi Festive Smiles & Organic Color Dental Safety Guide';
+      const initialTopic = 'Festive Season Kickoff & Exclusive Member Appreciation';
       const generated = await generateCampaignCopy({
         topic: initialTopic,
         businessName,
@@ -481,7 +481,7 @@ export async function POST(req: NextRequest) {
       if (!u) {
         [u] = await database.insert(users).values({ name: 'KUIRO Administrator', email: 'admin@kuiro.in' }).returning();
       }
-      [ws] = await database.insert(workspaces).values({ name: 'Apex Clinic', ownerId: u.id }).returning();
+      [ws] = await database.insert(workspaces).values({ name: 'Sharma Heritage Handlooms & Retail', ownerId: u.id }).returning();
     }
 
     const [bp] = await database
@@ -490,9 +490,9 @@ export async function POST(req: NextRequest) {
       .where(eq(brandProfiles.workspaceId, ws.id));
 
     const businessName = ws.name;
-    const industry = bp?.industry || 'Healthcare & Preventive Diagnostics';
-    const tones = (bp?.toneOfVoice?.samplePhrases as string[]) || ['Empathetic', 'Clinical'];
-    const pillars = (bp?.contentPillars as any[])?.map((p) => p.name || p) || ['Preventive Care', 'Wellness Tips'];
+    const industry = bp?.industry || 'Retail, Commerce & Creative Studio';
+    const tones = (bp?.toneOfVoice?.samplePhrases as string[]) || ['Culturally Warm', 'Authoritative', 'Modern Indian'];
+    const pillars = (bp?.contentPillars as any[])?.map((p) => p.name || p) || ['Brand Quality', 'Client Stories', 'Exclusive Drops'];
     const negativeConstraints = (bp?.negativeConstraints as string[]) || ['No competitor mentions'];
 
     // 2. Generate multi-platform copy using Gemini
