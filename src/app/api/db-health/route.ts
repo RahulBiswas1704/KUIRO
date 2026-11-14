@@ -40,37 +40,13 @@ export async function GET() {
     `;
     tablesFound = tablesQuery.map((row: any) => row.table_name);
 
-    // 3. Test insert and select via Drizzle ORM if db is initialized
+    // 3. Test lightweight read connectivity via Drizzle ORM
     let drizzleTestResult: any = null;
     if (db) {
-      // Create or ensure a verification test user
-      const testEmail = 'verify-neon@kuiro.in';
-      let [testUser] = await db.select().from(users).where(drizzleSql`email = ${testEmail}`);
-      if (!testUser) {
-        [testUser] = await db.insert(users).values({
-          name: 'Neon E2E Verification Agent',
-          email: testEmail,
-          emailVerified: true,
-        }).returning();
-      }
-
-      // Create a test workspace for the user
-      const testWsName = `KUIRO Live Neon Test ${new Date().toISOString().slice(11, 19)}`;
-      const [testWs] = await db.insert(workspaces).values({
-        name: testWsName,
-        ownerId: testUser.id,
-        subscriptionTier: 'GROWTH',
-        whatsappAdminPhone: '+919999988888',
-      }).returning();
-
-      // Read back all workspaces for verification
-      const allWorkspaces = await db.select().from(workspaces);
-
+      const pingResult = await db.execute(drizzleSql`SELECT 1 as ok`);
       drizzleTestResult = {
-        drizzleConnected: true,
-        testUserId: testUser.id,
-        testWorkspaceCreated: testWs.name,
-        totalWorkspacesInNeon: allWorkspaces.length,
+        drizzleConnected: !!pingResult,
+        tablesCount: tablesFound.length,
       };
     }
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { extractBrandBrainFromUrl } from '@/lib/brand-brain/extractor';
 import { db, workspaces, brandProfiles, users } from '@/db';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { authorizeWorkspace } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
           await db
             .update(workspaces)
             .set({ name: extractionResult.detected.businessName })
-            .where(eq(workspaces.id, ws.id));
+            .where(and(eq(workspaces.id, ws.id), eq(workspaces.ownerId, auth.session!.user.id)));
         }
 
         const existing = await db

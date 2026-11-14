@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, conversations, inboxMessages, workspaces, scheduledCampaigns } from '@/db';
 import { desc, eq, and } from 'drizzle-orm';
 import { publishInboxEvent } from '@/lib/inbox/eventHub';
-import { getSessionFromRequest } from '@/lib/auth';
+import { authorizeWorkspace } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,12 +47,13 @@ const SIMULATION_PRESETS = [
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSessionFromRequest(req);
-    if (!session) {
-      return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
-    }
-
     const body = await req.json().catch(() => ({}));
+
+    // Authorize workspace access (Strict Multi-Tenant Isolation)
+    const auth = await authorizeWorkspace(req, body.workspaceId);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
 
     // Pick random preset or use user-provided payload
     const preset = SIMULATION_PRESETS[Math.floor(Math.random() * SIMULATION_PRESETS.length)];
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
     const city = body.city || preset.city;
 
     const database = db;
-    const targetWorkspaceId = session.workspace.id;
+    const targetWorkspaceId = auth.workspaceId!;
     let conversationId = `conv_sim_${Date.now()}`;
     let messageId = `msg_sim_${Date.now()}`;
 

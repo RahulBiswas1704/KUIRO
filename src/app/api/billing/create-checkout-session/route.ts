@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, workspaces, users } from '@/db';
-import { eq } from 'drizzle-orm';
-import { getSessionFromRequest } from '@/lib/auth';
+import { eq, and } from 'drizzle-orm';
+import { authorizeWorkspace } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 interface CheckoutRequestBody {
+  workspaceId?: string;
   tier: 'STARTER' | 'GROWTH' | 'AGENCY';
   billingCycle: 'monthly' | 'annual';
   paymentMethod: 'upi' | 'card' | 'international';
@@ -23,13 +24,13 @@ const TIER_PRICING = {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSessionFromRequest(req);
-    if (!session) {
-      return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
-    }
-
     const body: CheckoutRequestBody = await req.json();
-    const { tier, billingCycle, paymentMethod, upiVpa, gstin, businessName, gateway = 'razorpay' } = body;
+    const { tier, billingCycle, paymentMethod, upiVpa, gstin, businessName, gateway = 'razorpay', workspaceId: customWsId } = body;
+
+    const auth = await authorizeWorkspace(req, customWsId);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
 
     if (!tier || !TIER_PRICING[tier]) {
       return NextResponse.json({ error: 'Valid subscription tier is required.' }, { status: 400 });
@@ -46,18 +47,14 @@ export async function POST(req: NextRequest) {
     const invoiceNumber = `KUIRO/26-27/${Math.floor(1000 + Math.random() * 9000)}`;
 
     const database = db;
-    const wsId = session.workspace.id;
+    const wsId = auth.workspaceId!;
 
     if (database) {
-      const [ws] = await database.select().from(workspaces).where(eq(workspaces.id, wsId)).limit(1);
-
-      if (ws) {
-        // Upgrade workspace tier in Neon PostgreSQL
-        await database
-          .update(workspaces)
-          .set({ subscriptionTier: tier })
-          .where(eq(workspaces.id, ws.id));
-      }
+      // Upgrade workspace tier in Neon PostgreSQL with strict ownership predicate
+      await database
+        .update(workspaces)
+        .set({ subscriptionTier: tier })
+        .where(and(eq(workspaces.id, wsId), eq(workspaces.ownerId, auth.session!.user.id)));
     }
 
     // Dynamic UPI Payment Link (BHIM/PhonePe/GPay QR Compatible)

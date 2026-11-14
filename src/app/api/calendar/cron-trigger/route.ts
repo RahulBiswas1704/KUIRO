@@ -3,6 +3,7 @@ import { db, culturalEventsCalendar, workspaces, scheduledCampaigns, platformPos
 import { eq, and, lte, inArray } from 'drizzle-orm';
 import { createAutonomousCampaign } from '@/lib/campaigns/generator';
 import { publishToAllChannels } from '@/lib/social/publisher';
+import { authorizeWorkspace, getSessionFromRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -17,35 +18,38 @@ interface SchedulerExecutionParams {
 /**
  * Validates request authorization via Vercel CRON_SECRET or authenticated session cookie.
  */
-function checkAuthorization(req: NextRequest): { authorized: boolean; reason?: string } {
+async function checkAuthorization(req: NextRequest): Promise<{ authorized: boolean; reason?: string; isSystemAdmin: boolean }> {
   const cronSecret = process.env.CRON_SECRET;
 
-  // In development or if CRON_SECRET is not configured yet, allow execution with warning
-  if (!cronSecret) {
-    return { authorized: true };
-  }
-
-  // 1. Standard Vercel Cron Bearer header
   const authHeader = req.headers.get('authorization');
-  if (authHeader === `Bearer ${cronSecret}`) {
-    return { authorized: true };
+  const bearerToken = authHeader?.toLowerCase().startsWith('bearer ') ? authHeader.substring(7).trim() : null;
+
+  // 1. Standard Vercel Cron Bearer header or query param
+  if (cronSecret && (bearerToken === cronSecret || new URL(req.url).searchParams.get('key') === cronSecret)) {
+    return { authorized: true, isSystemAdmin: true };
   }
 
-  // 2. Query param key ?key=<CRON_SECRET>
-  const { searchParams } = new URL(req.url);
-  if (searchParams.get('key') === cronSecret) {
-    return { authorized: true };
+  // 2. Platform Admin clearance cookie
+  const adminClearance = req.cookies.get('kuiro_admin_clearance')?.value;
+  if (adminClearance) {
+    return { authorized: true, isSystemAdmin: true };
   }
 
-  // 3. User session cookie or operator clearance cookie
-  const sessionToken = req.cookies.get('kuiro_session')?.value || req.cookies.get('kuiro_admin_clearance')?.value;
-  if (sessionToken) {
-    return { authorized: true };
+  // 3. User session from Cookie or Bearer header (Scoped only to their own verified workspace)
+  const userSession = await getSessionFromRequest(req);
+  if (userSession) {
+    return { authorized: true, isSystemAdmin: false };
+  }
+
+  // In development without CRON_SECRET and without any user session provided, allow execution in non-production
+  if (!cronSecret && process.env.NODE_ENV !== 'production' && !authHeader) {
+    return { authorized: true, isSystemAdmin: true };
   }
 
   return {
     authorized: false,
-    reason: 'Unauthorized: Missing or invalid CRON_SECRET Bearer token',
+    reason: 'Unauthorized: Missing or invalid CRON_SECRET Bearer token or authenticated session',
+    isSystemAdmin: false,
   };
 }
 
@@ -249,7 +253,7 @@ async function executeAutonomousScheduler(params: SchedulerExecutionParams) {
  * GET Handler: Invoked automatically by Vercel Cron (schedule: "0 0 * * *")
  */
 export async function GET(req: NextRequest) {
-  const auth = checkAuthorization(req);
+  const auth = await checkAuthorization(req);
   if (!auth.authorized) {
     return NextResponse.json({ success: false, error: auth.reason }, { status: 401 });
   }
@@ -258,7 +262,16 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const targetDate = searchParams.get('targetDate') || undefined;
     const forceNext = searchParams.get('force') === 'true';
-    const workspaceId = searchParams.get('workspaceId') || undefined;
+    let workspaceId = searchParams.get('workspaceId') || undefined;
+
+    // Strict Tenant Isolation: non-system users can only invoke for their verified owned workspace
+    if (!auth.isSystemAdmin) {
+      const wsAuth = await authorizeWorkspace(req, workspaceId);
+      if (!wsAuth.authorized) {
+        return NextResponse.json({ success: false, error: wsAuth.error }, { status: wsAuth.status });
+      }
+      workspaceId = wsAuth.workspaceId;
+    }
 
     const result = await executeAutonomousScheduler({
       targetDate,
@@ -281,7 +294,7 @@ export async function GET(req: NextRequest) {
  * POST Handler: Invoked manually by Admin UI, Dashboard, or custom API webhook callers
  */
 export async function POST(req: NextRequest) {
-  const auth = checkAuthorization(req);
+  const auth = await checkAuthorization(req);
   if (!auth.authorized) {
     return NextResponse.json({ success: false, error: auth.reason }, { status: 401 });
   }
@@ -297,7 +310,16 @@ export async function POST(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const targetDate = body.targetDate || searchParams.get('targetDate') || undefined;
     const forceNext = body.forceNext ?? (searchParams.get('force') === 'true');
-    const workspaceId = body.workspaceId || searchParams.get('workspaceId') || undefined;
+    let workspaceId = body.workspaceId || searchParams.get('workspaceId') || undefined;
+
+    // Strict Tenant Isolation: non-system users can only invoke for their verified owned workspace
+    if (!auth.isSystemAdmin) {
+      const wsAuth = await authorizeWorkspace(req, workspaceId);
+      if (!wsAuth.authorized) {
+        return NextResponse.json({ success: false, error: wsAuth.error }, { status: wsAuth.status });
+      }
+      workspaceId = wsAuth.workspaceId;
+    }
 
     const result = await executeAutonomousScheduler({
       targetDate,

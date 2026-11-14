@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadToR2 } from '@/lib/storage/r2';
-import { getSessionFromRequest } from '@/lib/auth';
+import { authorizeWorkspace } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSessionFromRequest(req);
-    if (!session) {
-      return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
+    const formData = await req.formData();
+    const customWsId = formData.get('workspaceId') as string | null;
+
+    const auth = await authorizeWorkspace(req, customWsId);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
-    const formData = await req.formData();
     const file = formData.get('file') as File | null;
 
     if (!file) {
@@ -22,7 +24,7 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(bytes);
     const ext = file.name.split('.').pop() || 'png';
     const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const key = `logos/${Date.now()}-${cleanFileName}`;
+    const key = `logos/${auth.workspaceId}/${Date.now()}-${cleanFileName}`;
 
     const contentType = file.type || `image/${ext}`;
     const publicUrl = await uploadToR2(buffer, key, contentType);

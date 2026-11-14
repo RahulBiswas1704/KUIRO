@@ -208,9 +208,9 @@ export interface AuthorizationResult {
 }
 
 /**
- * Enforces API-level authentication and multi-tenant workspace authorization.
- * Verifies that the requester has an active, valid session AND that they have permission
- * to read/write to the requested workspace (preventing BOLA / IDOR attacks).
+ * Enforces API-level authentication and strict multi-tenant workspace isolation.
+ * Proves that the authenticated user strictly OWNS the target workspace in Neon PostgreSQL
+ * before granting any read or modification capabilities.
  */
 export async function authorizeWorkspace(
   req: NextRequest | Request,
@@ -225,45 +225,36 @@ export async function authorizeWorkspace(
     };
   }
 
-  const primaryWorkspaceId = session.workspace.id;
-
-  // If a specific workspace was requested and differs from the user's current session workspace
-  if (requestedWorkspaceId && requestedWorkspaceId !== primaryWorkspaceId) {
-    const database = db;
-    if (!database) {
-      return {
-        authorized: false,
-        error: 'Database connection unavailable for workspace authorization check.',
-        status: 503,
-      };
-    }
-
-    const [matchingWorkspace] = await database
-      .select()
-      .from(workspaces)
-      .where(and(eq(workspaces.id, requestedWorkspaceId), eq(workspaces.ownerId, session.user.id)))
-      .limit(1);
-
-    if (!matchingWorkspace) {
-      return {
-        authorized: false,
-        error: 'Forbidden: You do not have permission to access or modify this workspace.',
-        status: 403,
-      };
-    }
-
+  const database = db;
+  if (!database) {
     return {
-      authorized: true,
-      session,
-      workspaceId: matchingWorkspace.id,
-      status: 200,
+      authorized: false,
+      error: 'Database connection unavailable for workspace authorization check.',
+      status: 503,
+    };
+  }
+
+  const targetId = requestedWorkspaceId || session.workspace.id;
+
+  // STRICT TENANT ISOLATION: Prove that session.user.id is the actual verified owner of targetId
+  const [matchingWorkspace] = await database
+    .select()
+    .from(workspaces)
+    .where(and(eq(workspaces.id, targetId), eq(workspaces.ownerId, session.user.id)))
+    .limit(1);
+
+  if (!matchingWorkspace) {
+    return {
+      authorized: false,
+      error: 'Forbidden: Tenant isolation violation. You do not own or have permission to access or modify this workspace.',
+      status: 403,
     };
   }
 
   return {
     authorized: true,
     session,
-    workspaceId: primaryWorkspaceId,
+    workspaceId: matchingWorkspace.id,
     status: 200,
   };
 }

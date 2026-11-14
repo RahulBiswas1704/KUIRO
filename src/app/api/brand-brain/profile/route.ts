@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, workspaces, brandProfiles, users } from '@/db';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { getSessionFromRequest, authorizeWorkspace } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -192,7 +192,7 @@ export async function POST(req: NextRequest) {
     if (businessName && businessName !== ws.name) updateFields.name = businessName;
     if (whatsappAdminPhone) updateFields.whatsappAdminPhone = whatsappAdminPhone;
     if (Object.keys(updateFields).length > 0) {
-      await db.update(workspaces).set(updateFields).where(eq(workspaces.id, ws.id));
+      await db.update(workspaces).set(updateFields).where(and(eq(workspaces.id, ws.id), eq(workspaces.ownerId, auth.session!.user.id)));
     }
 
     // 2. Format & Sanitize JSON payloads
