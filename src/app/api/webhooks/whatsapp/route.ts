@@ -8,6 +8,12 @@ import { generateWithGemini, transcribeAudioWithGemini } from '@/lib/ai/gemini';
 import { reviseCampaignSurgically } from '@/lib/campaigns/reviser';
 import { whatsappClient } from '@/lib/whatsapp/client';
 import { publishInboxEvent } from '@/lib/inbox/eventHub';
+import {
+  verifyMetaWebhookChallenge,
+  verifyMetaSignature,
+  isDuplicateEvent,
+  validateMetaIdentifiers,
+} from '@/lib/whatsapp/webhookSecurity';
 
 function normalizePhone(phone: string): string {
   return phone.replace(/\D/g, '').slice(-10);
@@ -65,43 +71,65 @@ export async function GET(req: NextRequest) {
   const token = searchParams.get('hub.verify_token');
   const challenge = searchParams.get('hub.challenge');
 
-  const verifyToken =
-    process.env.META_WA_VERIFY_TOKEN ||
-    process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN ||
-    'kuiro_wa_verify_token_secure_123';
-
-  if (mode === 'subscribe' && token === verifyToken) {
-    console.log('[WhatsApp Webhook] Verification challenge passed successfully');
-    return new NextResponse(challenge, { status: 200 });
+  // Verify challenge parameters with constant-time equality check
+  const verification = verifyMetaWebhookChallenge(mode, token, challenge);
+  if (!verification.valid) {
+    return NextResponse.json(
+      { error: verification.error },
+      { status: verification.status }
+    );
   }
 
-  return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  // Meta strictly requires returning hub.challenge as plain text HTTP 200
+  return new Response(verification.challenge, {
+    status: 200,
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  });
 }
 
 export async function POST(req: NextRequest) {
   try {
+    // 1. Read raw request body BEFORE any JSON deserialization
     const rawBody = await req.text();
-    const appSecret = process.env.META_APP_SECRET || process.env.WHATSAPP_APP_SECRET;
+    const signature = req.headers.get('x-hub-signature-256');
 
-    if (appSecret) {
-      const signature = req.headers.get('x-hub-signature-256');
-      if (!signature) {
-        return NextResponse.json({ error: 'Missing x-hub-signature-256 header' }, { status: 401 });
-      }
-
-      const expected = 'sha256=' + crypto.createHmac('sha256', appSecret).update(rawBody).digest('hex');
-      const sigBuf = Buffer.from(signature);
-      const expBuf = Buffer.from(expected);
-      if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
-        return NextResponse.json({ error: 'Invalid x-hub-signature-256 signature' }, { status: 401 });
-      }
+    // 2. Cryptographic HMAC-SHA256 signature verification over exact raw bytes
+    const sigVerification = verifyMetaSignature(rawBody, signature);
+    if (!sigVerification.valid) {
+      return NextResponse.json(
+        { error: sigVerification.error },
+        { status: sigVerification.status }
+      );
     }
 
+    // 3. Parse JSON only after successful signature validation
     let body: any;
     try {
       body = JSON.parse(rawBody);
     } catch {
       return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+    }
+
+    // 4. Validate top-level Meta identifiers (whatsapp_business_account, entry array, WABA ID)
+    const idValidation = validateMetaIdentifiers(body);
+    if (!idValidation.valid) {
+      return NextResponse.json({ error: idValidation.error }, { status: 400 });
+    }
+
+    // 5. Idempotency & Replay Attack Defense (Deduplicate based on message/event ID)
+    const eventId = idValidation.eventId;
+    if (eventId && isDuplicateEvent(eventId)) {
+      console.log(
+        `[Meta Webhook Idempotency] Duplicate event '${eventId}' detected. Acknowledging with HTTP 200 without duplicate processing.`
+      );
+      return NextResponse.json(
+        {
+          status: 'acknowledged',
+          duplicate: true,
+          eventId,
+        },
+        { status: 200 }
+      );
     }
 
     const entry = body.entry?.[0];
