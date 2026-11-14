@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { inngest } from '@/lib/inngest/client';
 import { safeDispatchInngest } from '@/lib/inngest/dispatcher';
 import { db, scheduledCampaigns, platformPosts, brandProfiles, conversations, inboxMessages, workspaces, socialConnections } from '@/db';
@@ -79,7 +80,29 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const rawBody = await req.text();
+    const appSecret = process.env.META_APP_SECRET || process.env.WHATSAPP_APP_SECRET;
+
+    if (appSecret) {
+      const signature = req.headers.get('x-hub-signature-256');
+      if (!signature) {
+        return NextResponse.json({ error: 'Missing x-hub-signature-256 header' }, { status: 401 });
+      }
+
+      const expected = 'sha256=' + crypto.createHmac('sha256', appSecret).update(rawBody).digest('hex');
+      const sigBuf = Buffer.from(signature);
+      const expBuf = Buffer.from(expected);
+      if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+        return NextResponse.json({ error: 'Invalid x-hub-signature-256 signature' }, { status: 401 });
+      }
+    }
+
+    let body: any;
+    try {
+      body = JSON.parse(rawBody);
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+    }
 
     const entry = body.entry?.[0];
     const changes = entry?.changes?.[0];

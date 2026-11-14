@@ -7,6 +7,14 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
+    const session = await getSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Authentication required. Active session required.' },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(req.url);
     const regionFilter = searchParams.get('region');
     const industryFilter = searchParams.get('industry');

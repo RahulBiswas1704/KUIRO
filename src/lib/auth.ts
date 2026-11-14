@@ -471,6 +471,88 @@ export interface AuthorizationResult {
   status: number;
 }
 
+export interface WorkspaceMembership {
+  id: string;
+  workspaceId: string;
+  userId: string;
+  role: 'OWNER' | 'ADMIN' | 'MEMBER';
+  workspace: {
+    id: string;
+    name: string;
+    ownerId: string;
+    subscriptionTier: string;
+    whatsappAdminPhone?: string | null;
+  };
+}
+
+/**
+ * Finds workspace membership for a user.
+ * Proves that the user owns or is a verified member of the target workspace in Neon PostgreSQL.
+ */
+export async function findWorkspaceMembership(
+  userId: string,
+  workspaceId: string
+): Promise<WorkspaceMembership | null> {
+  const database = db;
+  if (!database || !userId || !workspaceId) return null;
+
+  try {
+    const [matchingWorkspace] = await database
+      .select()
+      .from(workspaces)
+      .where(and(eq(workspaces.id, workspaceId), eq(workspaces.ownerId, userId)))
+      .limit(1);
+
+    if (!matchingWorkspace) return null;
+
+    return {
+      id: `mem_${matchingWorkspace.id}_${userId}`,
+      workspaceId: matchingWorkspace.id,
+      userId,
+      role: 'OWNER',
+      workspace: matchingWorkspace,
+    };
+  } catch (err) {
+    console.error('[Auth] Failed to find workspace membership:', err);
+    return null;
+  }
+}
+
+/**
+ * Shared API session requirement helper.
+ * Throws an Error with 'UNAUTHENTICATED' if no valid session is present.
+ */
+export async function requireSession(req: NextRequest | Request): Promise<SessionData> {
+  const session = await getSessionFromRequest(req);
+  if (!session) {
+    throw new Error('UNAUTHENTICATED');
+  }
+  return session;
+}
+
+/**
+ * Shared API workspace access requirement helper.
+ * Throws an Error with 'UNAUTHENTICATED' or 'FORBIDDEN'.
+ */
+export async function requireWorkspaceAccess(
+  req: NextRequest | Request,
+  workspaceId?: string | null
+): Promise<{ session: SessionData; membership: WorkspaceMembership; workspaceId: string }> {
+  const session = await requireSession(req);
+  const targetId = workspaceId || session.workspace?.id;
+
+  if (!targetId) {
+    throw new Error('WORKSPACE_REQUIRED');
+  }
+
+  const membership = await findWorkspaceMembership(session.user.id, targetId);
+  if (!membership) {
+    throw new Error('FORBIDDEN');
+  }
+
+  return { session, membership, workspaceId: targetId };
+}
+
 /**
  * Enforces API-level authentication and strict multi-tenant workspace isolation.
  * Proves that the authenticated user strictly OWNS the target workspace in Neon PostgreSQL
@@ -489,25 +571,17 @@ export async function authorizeWorkspace(
     };
   }
 
-  const database = db;
-  if (!database) {
+  const targetId = requestedWorkspaceId || session.workspace?.id;
+  if (!targetId) {
     return {
       authorized: false,
-      error: 'Database connection unavailable for workspace authorization check.',
-      status: 503,
+      error: 'Workspace ID required.',
+      status: 400,
     };
   }
 
-  const targetId = requestedWorkspaceId || session.workspace.id;
-
-  // STRICT TENANT ISOLATION: Prove that session.user.id is the actual verified owner of targetId
-  const [matchingWorkspace] = await database
-    .select()
-    .from(workspaces)
-    .where(and(eq(workspaces.id, targetId), eq(workspaces.ownerId, session.user.id)))
-    .limit(1);
-
-  if (!matchingWorkspace) {
+  const membership = await findWorkspaceMembership(session.user.id, targetId);
+  if (!membership) {
     return {
       authorized: false,
       error: 'Forbidden: Tenant isolation violation. You do not own or have permission to access or modify this workspace.',
@@ -518,7 +592,7 @@ export async function authorizeWorkspace(
   return {
     authorized: true,
     session,
-    workspaceId: matchingWorkspace.id,
+    workspaceId: membership.workspaceId,
     status: 200,
   };
 }

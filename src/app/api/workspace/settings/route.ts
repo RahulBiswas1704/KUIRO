@@ -7,14 +7,21 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    const database = db;
+    // Authorize workspace access (Strict Multi-Tenant Isolation)
+    const { searchParams } = new URL(req.url);
+    const workspaceIdParam = searchParams.get('workspaceId');
+    const auth = await authorizeWorkspace(req, workspaceIdParam);
+    if (!auth.authorized) {
+      return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
+    }
 
+    const database = db;
     if (!database) {
       return NextResponse.json({
         success: true,
         source: 'mock',
         settings: {
-          id: 'ws_demo',
+          id: auth.workspaceId || 'ws_demo',
           name: 'Sharma Heritage Handlooms & Retail',
           industry: 'Retail, Apparel & Local Commerce',
           websiteUrl: 'https://sharmaheritage.in',
@@ -30,14 +37,6 @@ export async function GET(req: NextRequest) {
           ],
         },
       });
-    }
-
-    // Authorize workspace access (Strict Multi-Tenant Isolation)
-    const { searchParams } = new URL(req.url);
-    const workspaceIdParam = searchParams.get('workspaceId');
-    const auth = await authorizeWorkspace(req, workspaceIdParam);
-    if (!auth.authorized) {
-      return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
     }
 
     const wsId = auth.workspaceId!;
@@ -83,7 +82,23 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+
+    // Authorize workspace access (Strict Multi-Tenant Isolation)
+    const { searchParams } = new URL(req.url);
+    const workspaceIdParam = searchParams.get('workspaceId') || (body as any)?.workspaceId;
+    const auth = await authorizeWorkspace(req, workspaceIdParam);
+    if (!auth.authorized) {
+      return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
+    }
+
     const database = db;
+    if (!database) {
+      return NextResponse.json({
+        success: true,
+        source: 'mock_saved',
+        message: 'Workspace settings updated successfully (offline mode).',
+      });
+    }
 
     const {
       name,
@@ -96,22 +111,6 @@ export async function POST(req: NextRequest) {
       voiceLanguages = ['English', 'Hindi'],
       gstin = '',
     } = body;
-
-    if (!database) {
-      return NextResponse.json({
-        success: true,
-        source: 'mock_saved',
-        message: 'Workspace settings updated successfully (offline mode).',
-      });
-    }
-
-    // Authorize workspace access (Strict Multi-Tenant Isolation)
-    const { searchParams } = new URL(req.url);
-    const workspaceIdParam = searchParams.get('workspaceId') || (body as any)?.workspaceId;
-    const auth = await authorizeWorkspace(req, workspaceIdParam);
-    if (!auth.authorized) {
-      return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
-    }
 
     const wsId = auth.workspaceId!;
     const session = auth.session;
