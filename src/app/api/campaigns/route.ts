@@ -120,8 +120,8 @@ You MUST return ONLY a raw valid JSON object (no markdown, no backticks, no mark
               hashtags: Array.isArray(parsed.instagram?.hashtags)
                 ? parsed.instagram.hashtags
                 : typeof parsed.instagram?.hashtags === 'string'
-                ? parsed.instagram.hashtags.split(/\s+/).filter(Boolean)
-                : ['GrowYourBrand', 'QualityFirst', 'IndiaBusiness', 'CustomerFirst'],
+                  ? parsed.instagram.hashtags.split(/\s+/).filter(Boolean)
+                  : ['GrowYourBrand', 'QualityFirst', 'IndiaBusiness', 'CustomerFirst'],
             },
             linkedin: {
               hook: parsed.linkedin?.hook || '',
@@ -129,8 +129,8 @@ You MUST return ONLY a raw valid JSON object (no markdown, no backticks, no mark
               hashtags: Array.isArray(parsed.linkedin?.hashtags)
                 ? parsed.linkedin.hashtags
                 : typeof parsed.linkedin?.hashtags === 'string'
-                ? parsed.linkedin.hashtags.split(/\s+/).filter(Boolean)
-                : ['BusinessLeadership', 'Innovation', 'GrowthMindset'],
+                  ? parsed.linkedin.hashtags.split(/\s+/).filter(Boolean)
+                  : ['BusinessLeadership', 'Innovation', 'GrowthMindset'],
             },
             x: {
               caption: parsed.x?.caption || '',

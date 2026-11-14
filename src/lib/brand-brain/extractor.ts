@@ -1,4 +1,5 @@
 import { BrandProfileInput } from './schemas';
+import { safeFetchWebsite, sanitizeHtmlContent, validateUrlForSSRF } from '@/lib/security/safeFetch';
 
 export interface SamplePreviewPost {
   id: string;
@@ -46,124 +47,81 @@ interface ScrapedMetadata {
 }
 
 /**
- * Safely fetches and extracts metadata, theme colors, icons, and text from a website.
+ * Safely fetches and extracts metadata, theme colors, icons, and text from a website,
+ * protected by KUIRO SSRF Guardrails.
  */
 async function scrapeWebsiteMetadata(rawUrl: string): Promise<ScrapedMetadata> {
-  let target = rawUrl.trim();
-  if (!target.startsWith('http://') && !target.startsWith('https://')) {
-    target = `https://${target}`;
+  // 1. Initial SSRF validation - strictly throws on unsafe URLs or prohibited schemes
+  const validation = validateUrlForSSRF(rawUrl);
+  if (!validation.valid || !validation.url) {
+    throw new Error(validation.error || 'Invalid or unsafe URL');
   }
 
-  let title = '';
-  let description = '';
-  let siteName = '';
-  let ogImage: string | null = null;
-  let favicon: string | null = null;
-  let themeColor: string | null = null;
-  let detectedFont: string | null = null;
-  let textSnippet = '';
+  const target = validation.url.href;
 
   try {
-    const res = await fetch(target, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9,hi;q=0.8',
-      },
-      signal: AbortSignal.timeout(5000),
-    });
+    const { html, finalUrl } = await safeFetchWebsite(target);
+    const sanitized = sanitizeHtmlContent(html);
 
-    if (res.ok) {
-      const html = await res.text();
-
-      // 1. Extract <title>
-      const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-      if (titleMatch) title = titleMatch[1].trim().replace(/\s+/g, ' ');
-
-      // 2. Extract meta descriptions
-      const descMatch =
-        html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i) ||
-        html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']description["']/i) ||
-        html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i);
-      if (descMatch) description = descMatch[1].trim().replace(/\s+/g, ' ');
-
-      // 3. Extract og:site_name & og:title
-      const siteNameMatch = html.match(
-        /<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']+)["']/i
-      );
-      if (siteNameMatch) siteName = siteNameMatch[1].trim();
-
-      // 4. Extract og:image
-      const ogImgMatch = html.match(
-        /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i
-      );
-      if (ogImgMatch) {
-        try {
-          ogImage = new URL(ogImgMatch[1], target).href;
-        } catch {
-          ogImage = ogImgMatch[1];
-        }
+    let ogImage: string | null = null;
+    if (sanitized.ogImage) {
+      try {
+        ogImage = new URL(sanitized.ogImage, finalUrl).href;
+      } catch {
+        ogImage = sanitized.ogImage;
       }
-
-      // 5. Extract favicon / apple-touch-icon
-      const iconMatch =
-        html.match(/<link[^>]+rel=["'](?:apple-touch-icon|shortcut icon|icon)["'][^>]+href=["']([^"']+)["']/i) ||
-        html.match(/<link[^>]+href=["']([^"']+)["'][^>]+rel=["'](?:apple-touch-icon|shortcut icon|icon)["']/i);
-      if (iconMatch) {
-        try {
-          favicon = new URL(iconMatch[1], target).href;
-        } catch {
-          favicon = iconMatch[1];
-        }
-      }
-
-      // 6. Extract theme-color hex
-      const themeMatch = html.match(
-        /<meta[^>]+name=["']theme-color["'][^>]+content=["']([^"']+)["']/i
-      );
-      if (themeMatch && /^#[0-9A-Fa-f]{6}$/.test(themeMatch[1].trim())) {
-        themeColor = themeMatch[1].trim();
-      }
-
-      // 7. Detect Google Fonts
-      if (html.includes('family=Sora')) detectedFont = 'Sora';
-      else if (html.includes('family=Poppins')) detectedFont = 'Poppins';
-      else if (html.includes('family=Playfair+Display')) detectedFont = 'Playfair Display';
-      else if (html.includes('family=Inter')) detectedFont = 'Inter';
-
-      // 8. Extract clean body headings and paragraphs (strip scripts, styles, svg)
-      const cleanHtml = html
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ')
-        .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ')
-        .replace(/<svg\b[^<]*(?:(?!<\/svg>)<[^<]*)*<\/svg>/gi, ' ')
-        .replace(/<nav\b[^<]*(?:(?!<\/nav>)<[^<]*)*<\/nav>/gi, ' ')
-        .replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, ' ');
-
-      const headingsAndParas: string[] = [];
-      const matches = cleanHtml.matchAll(/<(?:h1|h2|h3|p)[^>]*>([^<]{10,200})<\/(?:h1|h2|h3|p)>/gi);
-      for (const m of matches) {
-        const text = m[1].replace(/&[a-z]+;/gi, ' ').trim();
-        if (text.length > 15) headingsAndParas.push(text);
-        if (headingsAndParas.length >= 10) break;
-      }
-      textSnippet = headingsAndParas.join(' | ').slice(0, 1500);
     }
-  } catch {
-    // If external site blocks or is unreachable, proceed gracefully with URL cues
-  }
 
-  return {
-    url: target,
-    title,
-    description,
-    siteName,
-    ogImage,
-    favicon,
-    themeColor,
-    detectedFont,
-    textSnippet,
-  };
+    let favicon: string | null = null;
+    if (sanitized.favicon) {
+      try {
+        favicon = new URL(sanitized.favicon, finalUrl).href;
+      } catch {
+        favicon = sanitized.favicon;
+      }
+    }
+
+    return {
+      url: finalUrl,
+      title: sanitized.title,
+      description: sanitized.description,
+      siteName: sanitized.siteName,
+      ogImage,
+      favicon,
+      themeColor: sanitized.themeColor,
+      detectedFont: sanitized.detectedFont,
+      textSnippet: sanitized.cleanText,
+    };
+  } catch (err: any) {
+    // Re-throw any SSRF security or policy violations immediately
+    if (
+      err.message?.includes('SSRF_BLOCKED') ||
+      err.message?.includes('Prohibited') ||
+      err.message?.includes('credentials') ||
+      err.message?.includes('prohibited') ||
+      err.message?.includes('private') ||
+      err.message?.includes('loopback') ||
+      err.message?.includes('exceeds maximum permitted limit') ||
+      err.message?.includes('exceeded maximum size limit') ||
+      err.message?.includes('Too many redirects') ||
+      err.message?.includes('Unsupported content type')
+    ) {
+      throw err;
+    }
+
+    // For benign network/DNS timeouts on legitimate public domains, proceed with domain inference
+    return {
+      url: target,
+      title: '',
+      description: '',
+      siteName: '',
+      ogImage: null,
+      favicon: null,
+      themeColor: null,
+      detectedFont: null,
+      textSnippet: '',
+    };
+  }
 }
 
 /**
