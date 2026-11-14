@@ -3,6 +3,7 @@ import { db, conversations, inboxMessages } from '@/db';
 import { eq } from 'drizzle-orm';
 import { sendAutonomousEmailNewsletter } from '@/lib/email/publisher';
 import { getSessionFromRequest } from '@/lib/auth';
+import { publishInboxEvent } from '@/lib/inbox/eventHub';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +12,7 @@ export async function POST(req: NextRequest) {
     const session = await getSessionFromRequest(req);
     const body = await req.json();
     const { conversationId, content, isInternalNote = false } = body;
-    const senderName = body.senderName || session?.user.name || 'Dr. Rajesh Sharma';
+    const senderName = body.senderName || session?.user.name || 'Rajesh Sharma';
 
     if (!conversationId || !content?.trim()) {
       return NextResponse.json({ error: 'conversationId and content are required' }, { status: 400 });
@@ -19,16 +20,36 @@ export async function POST(req: NextRequest) {
 
     const database = db;
     if (!database) {
+      const mockMsg = {
+        id: `msg_mock_${Date.now()}`,
+        conversationId,
+        channel: 'whatsapp' as const,
+        sender: 'agent' as const,
+        senderName,
+        content: content.trim(),
+        isInternalNote,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        status: 'sent' as const,
+      };
+
+      publishInboxEvent({
+        type: 'new_message',
+        conversationId,
+        data: {
+          message: mockMsg,
+          conversation: {
+            id: conversationId,
+            lastMessage: isInternalNote ? `[Internal Note]: ${content.trim()}` : content.trim(),
+            lastMessageTime: 'Just now',
+            unreadCount: 0,
+          },
+        },
+      });
+
       return NextResponse.json({
         success: true,
         source: 'mock',
-        message: {
-          id: `msg_mock_${Date.now()}`,
-          conversationId,
-          content,
-          isInternalNote,
-          timestamp: new Date().toISOString(),
-        },
+        message: mockMsg,
       });
     }
 
@@ -48,7 +69,7 @@ export async function POST(req: NextRequest) {
       .values({
         conversationId: conv.id,
         channel: conv.channel,
-        senderType: isInternalNote ? 'AGENT' : 'AGENT',
+        senderType: 'AGENT',
         senderName,
         content: content.trim(),
         isInternalNote,
@@ -66,6 +87,34 @@ export async function POST(req: NextRequest) {
         updatedAt: new Date(),
       })
       .where(eq(conversations.id, conv.id));
+
+    // 3b. Broadcast Realtime SSE Event
+    const dispatchedMsg = {
+      id: newMsg.id,
+      conversationId: conv.id,
+      channel: conv.channel,
+      sender: 'agent' as const,
+      senderName,
+      content: content.trim(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isInternalNote,
+      status: 'sent' as const,
+    };
+
+    publishInboxEvent({
+      type: 'new_message',
+      workspaceId: conv.workspaceId,
+      conversationId: conv.id,
+      data: {
+        message: dispatchedMsg,
+        conversation: {
+          id: conv.id,
+          lastMessage: isInternalNote ? `[Internal Note]: ${content.trim()}` : content.trim(),
+          lastMessageTime: 'Just now',
+          unreadCount: 0,
+        },
+      },
+    });
 
     // 4. Outbound Real Delivery (if not internal note)
     let outboundDispatch: any = null;

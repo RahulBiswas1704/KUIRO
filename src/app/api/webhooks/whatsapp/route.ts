@@ -3,6 +3,7 @@ import { inngest } from '@/lib/inngest/client';
 import { db, scheduledCampaigns, conversations, inboxMessages, workspaces } from '@/db';
 import { eq, and, desc } from 'drizzle-orm';
 import { generateWithGemini } from '@/lib/ai/gemini';
+import { publishInboxEvent } from '@/lib/inbox/eventHub';
 
 /**
  * Meta WhatsApp Cloud API Webhook Handler
@@ -272,7 +273,7 @@ export async function POST(req: NextRequest) {
 
           if (conv) {
             // Insert incoming message
-            await db.insert(inboxMessages).values({
+            const [newWaMsg] = await db.insert(inboxMessages).values({
               conversationId: conv.id,
               channel: 'whatsapp',
               senderType: 'CUSTOMER',
@@ -280,6 +281,36 @@ export async function POST(req: NextRequest) {
               content: messageContent,
               isInternalNote: false,
               aiGenerated: false,
+            }).returning();
+
+            // Broadcast real-time SSE event to connected inbox agents
+            publishInboxEvent({
+              type: 'new_message',
+              workspaceId: targetWs.id,
+              conversationId: conv.id,
+              data: {
+                message: {
+                  id: newWaMsg?.id || `wa_${Date.now()}`,
+                  conversationId: conv.id,
+                  channel: 'whatsapp',
+                  sender: 'customer',
+                  senderName: contactName,
+                  content: messageContent,
+                  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                  status: 'delivered',
+                  isInternalNote: false,
+                },
+                conversation: {
+                  id: conv.id,
+                  customerName: contactName,
+                  customerHandle: senderPhone,
+                  channel: 'whatsapp',
+                  lastMessage: messageContent,
+                  lastMessageTime: 'Just now',
+                  unreadCount: (conv.unreadCount || 0) + 1,
+                  status: 'open',
+                },
+              },
             });
           }
         }
