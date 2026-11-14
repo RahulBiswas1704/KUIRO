@@ -7,6 +7,7 @@ import { authorizeWorkspace, getSessionFromRequest } from '@/lib/auth';
 import { verifyManagementAuth, timingSafeCompare, BANNED_SECRETS } from '@/lib/adminAuth';
 import { retryOutboxEvents } from '@/lib/inngest/dispatcher';
 import { updateSchedulerTelemetry } from '@/lib/scheduler/telemetry';
+import { refreshExpiringTokens } from '@/lib/social/tokenRefresh';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -244,14 +245,11 @@ async function executeAutonomousScheduler(params: SchedulerExecutionParams) {
       // 1. Retry queued Inngest Outbox events
       outboxRetryResult = await retryOutboxEvents();
 
-      // 2. Token Health Scan
-      const connections = await database.select().from(socialConnections);
-      const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 3600 * 1000);
-      for (const conn of connections) {
-        if (conn.tokenExpiresAt && new Date(conn.tokenExpiresAt) <= sevenDaysFromNow) {
-          tokenHealthWarnings++;
-          console.warn(`[Housekeeping Alert] Token for workspace ${conn.workspaceId} on ${conn.platform} expires soon (${conn.tokenExpiresAt})`);
-        }
+      // 2. Token Health Scan & Automated Proactive Refresh
+      const refreshSummary = await refreshExpiringTokens({ thresholdDays: 7 });
+      tokenHealthWarnings = refreshSummary.failed;
+      if (refreshSummary.refreshed > 0) {
+        console.log(`[Token Vault Housekeeping] Proactively refreshed ${refreshSummary.refreshed} social tokens.`);
       }
     } catch (housekeepingErr) {
       console.warn('[Housekeeping Non-Fatal Error]:', housekeepingErr);
