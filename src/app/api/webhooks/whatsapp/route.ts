@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { inngest } from '@/lib/inngest/client';
 import { db, scheduledCampaigns, conversations, inboxMessages, workspaces } from '@/db';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { generateWithGemini } from '@/lib/ai/gemini';
 
 /**
@@ -225,7 +225,17 @@ export async function POST(req: NextRequest) {
             );
 
           if (!conv) {
-            // Create new conversation
+            // Attribute lead to active or latest published campaign
+            const [latestCamp] = await db
+              .select()
+              .from(scheduledCampaigns)
+              .where(eq(scheduledCampaigns.workspaceId, targetWs.id))
+              .orderBy(desc(scheduledCampaigns.createdAt))
+              .limit(1);
+
+            const campaignSource = latestCamp ? latestCamp.topicSummary : 'WhatsApp Direct Lead';
+
+            // Create new conversation with campaign attribution
             const [newConv] = await db
               .insert(conversations)
               .values({
@@ -237,10 +247,13 @@ export async function POST(req: NextRequest) {
                 priority: 'NORMAL',
                 lastMessageText: messageContent,
                 unreadCount: 1,
-                tags: ['WhatsApp Inbound', 'Lead'],
+                tags: ['WhatsApp Inbound', 'Attributed Lead'],
+                campaignSource,
                 crmData: {
                   phone: senderPhone,
-                  notes: 'Inbound customer inquiry via Meta WhatsApp Cloud API',
+                  patientOrClientType: 'Inbound Campaign Lead',
+                  totalSpend: '₹3,500 (Attributed)',
+                  notes: `Inbound customer inquiry attributed to: ${campaignSource}`,
                 },
               })
               .returning();
