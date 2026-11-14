@@ -14,8 +14,10 @@ import {
   CheckCircle2,
   Loader2,
   Database,
-  RefreshCw
+  RefreshCw,
+  Plus
 } from 'lucide-react';
+import CustomMilestoneModal from '@/components/calendar/CustomMilestoneModal';
 
 interface CulturalEvent {
   id: string;
@@ -27,6 +29,7 @@ interface CulturalEvent {
   targetIndustries: string[];
   status: 'QUEUED' | 'UPCOMING' | 'TRIGGERED';
   promptContext: string;
+  isCustomMilestone?: boolean;
 }
 
 export default function CalendarPage() {
@@ -39,6 +42,13 @@ export default function CalendarPage() {
   const [totalInDb, setTotalInDb] = useState<number>(35);
   const [isScanningRadar, setIsScanningRadar] = useState(false);
   const [generatingEventId, setGeneratingEventId] = useState<string | null>(null);
+  const [isMilestoneModalOpen, setIsMilestoneModalOpen] = useState(false);
+
+  const handleEventCreated = (newEvent: any) => {
+    setEvents((prev) => [newEvent, ...prev]);
+    setTotalInDb((prev) => prev + 1);
+    setTestRunNotice(`🎉 Milestone "${newEvent.eventName}" successfully saved & queued for 48h autonomous campaign generation!`);
+  };
 
   const fetchEvents = () => {
     setIsLoading(true);
@@ -149,7 +159,14 @@ export default function CalendarPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <button
+            onClick={() => setIsMilestoneModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[10px] bg-[#0B0F14] hover:bg-gray-800 text-white text-xs font-semibold transition shadow-xs whitespace-nowrap active:scale-95"
+          >
+            <Plus size={14} className="text-[#FF7A00]" />
+            <span>Create Milestone / Flash Sale</span>
+          </button>
           <button
             onClick={handleScanRadar}
             disabled={isScanningRadar}
@@ -289,24 +306,32 @@ export default function CalendarPage() {
               <div>
                 {/* Status Header */}
                 <div className="flex items-center justify-between mb-2">
-                  <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      event.status === 'TRIGGERED'
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                        : event.status === 'QUEUED'
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : 'bg-gray-100 text-gray-600'
-                    }`}
-                  >
-                    {event.status === 'TRIGGERED' && 'TRIGGERED TODAY'}
-                    {event.status === 'QUEUED' && 'AUTO_QUEUED (48h)'}
-                    {event.status === 'UPCOMING' &&
-                      (event.daysRemaining > 0
-                        ? `In ${event.daysRemaining} Days`
-                        : event.daysRemaining === 0
-                        ? 'Today'
-                        : `${Math.abs(event.daysRemaining)} Days Ago`)}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {event.isCustomMilestone && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-linear-to-r from-orange-500 to-rose-500 text-white flex items-center gap-1 shadow-2xs">
+                        <Flame size={10} />
+                        <span>CUSTOM MILESTONE</span>
+                      </span>
+                    )}
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        event.status === 'TRIGGERED'
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : event.status === 'QUEUED'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {event.status === 'TRIGGERED' && 'TRIGGERED TODAY'}
+                      {event.status === 'QUEUED' && 'AUTO_QUEUED (48h)'}
+                      {event.status === 'UPCOMING' &&
+                        (event.daysRemaining > 0
+                          ? `In ${event.daysRemaining} Days`
+                          : event.daysRemaining === 0
+                          ? 'Today'
+                          : `${Math.abs(event.daysRemaining)} Days Ago`)}
+                    </span>
+                  </div>
                   <span className="text-xs text-gray-400 font-mono flex items-center gap-1">
                     <Clock size={12} />
                     <span>{event.date}</span>
@@ -374,6 +399,13 @@ export default function CalendarPage() {
           ))}
         </div>
       )}
+
+      {/* Custom Milestone & Flash Sale Builder Modal */}
+      <CustomMilestoneModal
+        isOpen={isMilestoneModalOpen}
+        onClose={() => setIsMilestoneModalOpen(false)}
+        onEventCreated={handleEventCreated}
+      />
     </div>
   );
 }
