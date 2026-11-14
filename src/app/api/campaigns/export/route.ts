@@ -133,7 +133,7 @@ export async function GET(req: NextRequest) {
       month: 'long',
       day: 'numeric',
     })}  
-**Compliance Standard:** NMC Ethical Teleconsultation & Advertising Guardrails Applied  
+**Compliance Standard:** Ethical Advertising Guardrails & Brand Guidelines Applied  
 
 ---
 
@@ -237,15 +237,15 @@ Brand: ${brandName}
 Generated On: ${new Date().toISOString()}
 ================================================================================
 
-QUICK INSTRUCTIONS FOR FRONT-DESK STAFF & CLINIC MANAGERS:
+QUICK INSTRUCTIONS FOR YOUR TEAM, FRONT-DESK & OPERATIONS:
 
-1. RECEPTION TV & WAITING LOUNGE DISPLAY:
+1. IN-STORE, RECEPTION & OFFICE TV DISPLAYS:
    - Use the file in "visuals/1_instagram_feed_4x5.webp" or "visuals/2_whatsapp_broadcast_1x1.webp".
-   - Load onto a USB stick or cast directly to your waiting area Smart TV.
-   - Designed with high-contrast text and emergency contact numbers clearly visible from 15 feet away.
+   - Load onto a USB stick or cast directly to your retail store, waiting area, or office Smart TV.
+   - Designed with high-contrast text and verified brand identity clearly visible from across the room.
 
 2. WHATSAPP BROADCAST & STATUS:
-   - Share "visuals/2_whatsapp_broadcast_1x1.webp" directly to your clinic WhatsApp Business status.
+   - Share "visuals/2_whatsapp_broadcast_1x1.webp" directly to your WhatsApp Business status or broadcast list.
    - Copy the broadcast caption from "copy/CAPTIONS_AND_HASHTAGS.md" (Section 4).
 
 3. SOCIAL MEDIA CHANNELS (MANUAL BACKUP):
@@ -253,7 +253,7 @@ QUICK INSTRUCTIONS FOR FRONT-DESK STAFF & CLINIC MANAGERS:
    - If manual posting is required, copy the captions from "copy/CAPTIONS_AND_HASHTAGS.md".
 
 4. EMAIL NEWSLETTER:
-   - Open "copy/EMAIL_NEWSLETTER.html" in any browser, or copy the source code into Mailchimp, Resend, or your clinic CRM.
+   - Open "copy/EMAIL_NEWSLETTER.html" in any browser, or copy the source code into Mailchimp, Resend, or your CRM.
 
 Need assistance? Contact KUIRO Support at support@kuiro.in
 ================================================================================`;
@@ -276,7 +276,7 @@ Need assistance? Contact KUIRO Support at support@kuiro.in
         'copy/CAPTIONS_AND_HASHTAGS.md',
         'copy/EMAIL_NEWSLETTER.html',
         'CAMPAIGN_SUMMARY.json',
-        'README_FOR_CLINIC_STAFF.txt',
+        'README_FOR_TEAM_AND_STAFF.txt',
       ],
     };
 
@@ -292,7 +292,7 @@ Need assistance? Contact KUIRO Support at support@kuiro.in
     copyFolder?.file('EMAIL_NEWSLETTER.html', emailHtml);
 
     zip.file('CAMPAIGN_SUMMARY.json', JSON.stringify(metadata, null, 2));
-    zip.file('README_FOR_CLINIC_STAFF.txt', staffInstructions);
+    zip.file('README_FOR_TEAM_AND_STAFF.txt', staffInstructions);
 
     const zipBuffer = await zip.generateAsync({
       type: 'nodebuffer',

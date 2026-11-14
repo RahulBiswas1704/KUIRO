@@ -2,16 +2,18 @@
 
 import React, { useState } from 'react';
 import {
-  Stethoscope,
-  UtensilsCrossed,
   ShoppingBag,
+  User,
   Building2,
+  Stethoscope,
+  Briefcase,
   CheckCircle2,
   ArrowRight,
   Sparkles,
   TrendingUp,
   Clock,
-  ShieldCheck
+  ShieldCheck,
+  UtensilsCrossed
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -35,80 +37,102 @@ interface VerticalCase {
 
 const verticals: VerticalCase[] = [
   {
-    id: 'healthcare',
-    name: 'Clinics & Healthcare',
-    icon: Stethoscope,
-    badge: 'Doctors, Dentists & Diagnostics',
-    clientName: 'Dr. Sharma Dental Care & Implant Center',
-    location: 'Kolkata & Delhi NCR',
-    headline: 'Zero missed health days, zero compliance violations',
-    problem: 'Founders spend 10+ hours a day with patients; social media was erratic, missing World Health Day and local festivals.',
-    solution: 'KUIRO trained on clinic brochures, medical ethics guardrails (no 100% cure claims), and automated festive oral safety campaigns.',
-    results: [
-      { label: 'Weekly Hours Saved', value: '6.5 hrs' },
-      { label: 'New Patient Inquiries', value: '+44%' },
-      { label: 'Festival Campaigns', value: '100% On-Time' },
-      { label: 'Approval Speed', value: '1-Tap WhatsApp' },
-    ],
-    samplePost: {
-      event: 'Holi 2026 (Regional Health)',
-      caption: 'Celebrate Holi with vibrant colors, not stained smiles! 🎨 Before stepping out, apply protective lip care and stay hydrated.',
-      format: '1:1 Satori High-DPI Feed + WhatsApp Broadcast',
-    },
-  },
-  {
-    id: 'fnb',
-    name: 'F&B, Cafes & Cloud Kitchens',
-    icon: UtensilsCrossed,
-    badge: 'Specialty Cafes & Restaurants',
-    clientName: 'Kolkata Chai Co. & Artisanal Roasters',
-    location: 'Park Street & Bangalore',
-    headline: 'Festive footfalls up without paying $2,000/mo agency retainers',
-    problem: 'Seasonal monsoon specials, Durga Puja rush, and Poila Boishakh sweet pairings needed weekly fresh visual designs and local Bengali copy.',
-    solution: 'KUIRO activates regional prompts for Bengali festivals, generating warm amber graphics and high-engagement reels copy.',
+    id: 'smb-retail',
+    name: 'Small & Medium Businesses (SMBs)',
+    icon: ShoppingBag,
+    badge: 'Retail, Boutiques, Cafes & Local Stores',
+    clientName: 'Kolkata Chai Co. & Artisanal Goods',
+    location: 'Kolkata & Bangalore',
+    headline: 'Consistent footfall and festive sales without $2,000/mo agency retainers',
+    problem: 'Seasonal monsoon specials, Durga Puja rushes, and Poila Boishakh launches needed weekly graphics, local language copy, and customer WhatsApp broadcasts.',
+    solution: 'KUIRO plans 365 days of cultural and seasonal buying cycles, generating warm high-DPI graphics and WhatsApp broadcast cards with zero manual designer delays.',
     results: [
       { label: 'Marketing Costs', value: '-82%' },
-      { label: 'Weekend Table Bookings', value: '+38%' },
+      { label: 'Festive Store Footfall', value: '+38%' },
       { label: 'Festival Lead Time', value: '48h Prior' },
-      { label: 'Revision Time', value: '< 15 seconds' },
+      { label: 'WhatsApp Revisions', value: '< 15 seconds' },
     ],
     samplePost: {
       event: 'Poila Boishakh (Bengali New Year)',
-      caption: 'Shubho Noboborsho! 🌿 Celebrate fresh beginnings with our signature saffron elaichi brew and mishti pairings.',
-      format: '4:5 Instagram Carousel + Story',
+      caption: 'Shubho Noboborsho! 🌿 Celebrate fresh beginnings with our signature saffron elaichi brew and festive gift pairings.',
+      format: '1:1 Feed Post + WhatsApp Broadcast Card',
     },
   },
   {
-    id: 'retail',
-    name: 'D2C Brands & Retailers',
-    icon: ShoppingBag,
-    badge: 'Fashion, Jewelry & Organic Products',
-    clientName: 'Veda Organics Ayurveda',
-    location: 'Mumbai & Jaipur',
-    headline: 'Product launches synchronized with regional auspicious muhurats',
-    problem: 'Pushing seasonal Ayurvedic skincare during Diwali, Dhanteras, and Karwa Chauth required coordination across 4 social channels and WhatsApp broadcast lists.',
-    solution: 'KUIRO plans 365 days of cultural buying cycles, scheduling posts with link-surcharge avoidance on X and instant WhatsApp broadcast utility cards.',
+    id: 'personal-brands',
+    name: 'Personal Brands & Creators',
+    icon: User,
+    badge: 'Coaches, Consultants, Executives & Authors',
+    clientName: 'Vikram Malhotra • Growth Advisory',
+    location: 'Mumbai & Remote',
+    headline: 'Executive LinkedIn & Twitter presence on autopilot while serving clients',
+    problem: 'Solopreneurs and consultants spend all their energy working for clients. Consistent thought leadership writing and carousel design fell behind every week.',
+    solution: 'KUIRO indexes their core philosophy and frameworks, generating multi-slide carousels and X threads with link-surcharge avoidance built in.',
     results: [
-      { label: 'Festive Revenue', value: '2.4x' },
-      { label: 'ROAS Improvement', value: '+28%' },
-      { label: 'Channels Synced', value: '4 of 4' },
-      { label: 'AI Critic Pass', value: '98.6%' },
+      { label: 'Weekly Hours Saved', value: '8.5 hrs' },
+      { label: 'LinkedIn Inbound Leads', value: '+62%' },
+      { label: 'Reach Protection', value: 'First-Reply Links' },
+      { label: 'Tone Consistency', value: '100% On-Brand' },
     ],
     samplePost: {
-      event: 'Diwali & Dhanteras Festival',
-      caption: 'Light up your inner glow this Diwali! 🪔 Pure herbal kumkumadi formulations crafted for festive celebrations.',
-      format: '1:1 Visual + First Reply Link on X',
+      event: 'Weekly Growth Playbook',
+      caption: 'Why high-ticket consultants lose organic reach: Outbound URLs in main posts trigger an algorithm penalty. Here is the zero-link framework:',
+      format: '4:5 LinkedIn Carousel + First-Reply Link on X',
+    },
+  },
+  {
+    id: 'founders-b2b',
+    name: 'Startups & Professional Services',
+    icon: Briefcase,
+    badge: 'Tech Founders, Legal, Finance & Consultancies',
+    clientName: 'GrowthCraft Software & B2B Solutions',
+    location: 'Bengaluru & Hyderabad',
+    headline: 'Zero dashboard fatigue: multi-channel announcements from WhatsApp',
+    problem: 'Founders cannot context-switch into complex social scheduling tools. Product updates and industry milestone commentary were missed regularly.',
+    solution: 'KUIRO delivers prepared announcements directly to the founder’s WhatsApp 48 hours ahead. One tap approves or a quick voice note refines the angle.',
+    results: [
+      { label: 'Dashboard Logins Needed', value: '0 Logins' },
+      { label: 'Pipeline Attributed', value: '₹1.85 Lakh/mo' },
+      { label: 'Approval Speed', value: '1-Tap WhatsApp' },
+      { label: 'Organic Impressions', value: '3.4x Growth' },
+    ],
+    samplePost: {
+      event: 'Quarterly Industry Milestone',
+      caption: 'Building sustainable unit economics in 2026 requires replacing bloated agency retainers with autonomous AI infrastructure.',
+      format: 'Multi-Channel Synchronized Broadcast',
+    },
+  },
+  {
+    id: 'healthcare-wellness',
+    name: 'Practices, Clinics & Wellness',
+    icon: Stethoscope,
+    badge: 'Doctors, Aesthetic Centers & Studios',
+    clientName: 'Apex Healthcare & Aesthetic Center',
+    location: 'Delhi NCR & Kolkata',
+    headline: 'Zero missed awareness days with strict ethical and regulatory standards',
+    problem: 'Practitioners spend all day with patients. Social media was erratic, missing World Health Day, local festivals, and seasonal health awareness.',
+    solution: 'KUIRO trained on verified credentials, medical ethics guardrails (no false cure claims), and automated festive educational campaigns.',
+    results: [
+      { label: 'Weekly Hours Saved', value: '7.0 hrs' },
+      { label: 'New Client Inquiries', value: '+44%' },
+      { label: 'Cultural Holidays', value: '100% On-Time' },
+      { label: 'Compliance Pass', value: '99.8%' },
+    ],
+    samplePost: {
+      event: 'Holi 2026 (Preventive Care)',
+      caption: 'Celebrate festive colors with preventive care! Simple tips to protect your skin and health before stepping out.',
+      format: '1:1 Visual + Reception Display Card',
     },
   },
   {
     id: 'agencies',
-    name: 'Marketing Agencies',
+    name: 'Marketing Agencies & Operators',
     icon: Building2,
-    badge: 'Multi-Tenant Agency Operators',
+    badge: 'Multi-Client Agency Teams',
     clientName: 'Nexus Growth Digital Agency',
-    location: 'Gurugram & Hyderabad',
+    location: 'Gurugram & Pune',
     headline: 'Scale from 5 to 50 clients without hiring extra graphic designers',
-    problem: 'Account managers were drowning in manual client approvals, revisions over Slack, and resizing Canva templates for 20+ Indian brands.',
+    problem: 'Account managers were drowning in manual client approvals, Slack feedback ping-pong, and resizing Canva templates for 20+ brands.',
     solution: 'Each client gets an isolated Brand Brain workspace and automated 48-hour WhatsApp approval loop. Client founders approve on WhatsApp directly.',
     results: [
       { label: 'Clients Handled', value: '35+' },
@@ -119,7 +143,7 @@ const verticals: VerticalCase[] = [
     samplePost: {
       event: 'Multi-Client Cultural Pipeline',
       caption: 'Automated 48h approval workflows running concurrently across 35 workspaces with whitelabel utility templates.',
-      format: 'Isolated Workspace Multi-Tenant',
+      format: 'Isolated Multi-Tenant Workspace',
     },
   },
 ];
@@ -133,13 +157,13 @@ export default function SmbVerticalUseCases() {
       <div className="text-center mb-12">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF7A00]/10 border border-[#FF7A00]/30 text-[#FF7A00] text-xs font-semibold mb-3">
           <Sparkles className="h-3.5 w-3.5" />
-          Engineered for Indian Businesses
+          <span>Built for Businesses, Creators & Individuals</span>
         </div>
         <h2 className="text-3xl sm:text-4xl font-sora font-bold text-white tracking-tight">
-          How Different Industries Run on Autopilot
+          How Different Ventures Run on Autopilot
         </h2>
         <p className="text-slate-400 text-xs sm:text-sm max-w-2xl mx-auto mt-2 font-inter">
-          From single-location dental clinics to high-growth D2C brands and multi-client agencies—see real use cases and business outcomes.
+          From retail stores and solopreneurs to personal brands, clinics, and digital agencies—see real use cases and business outcomes.
         </p>
       </div>
 
@@ -180,85 +204,68 @@ export default function SmbVerticalUseCases() {
               <h3 className="font-sora text-xl sm:text-2xl font-bold text-white leading-snug">
                 {activeVertical.headline}
               </h3>
-              <p className="text-xs text-gray-400 mt-1 font-mono font-medium">
-                Client Profile: {activeVertical.clientName}
-              </p>
+              <p className="text-xs text-slate-400 font-mono mt-1">Client: {activeVertical.clientName}</p>
             </div>
 
-            <div className="space-y-3 text-xs text-gray-300 leading-relaxed font-inter">
-              <div className="p-3.5 rounded-[10px] bg-[#111620] border border-white/5 space-y-1">
-                <span className="text-[10px] uppercase font-bold text-rose-400 font-mono">
-                  The Problem Before KUIRO
-                </span>
-                <p className="text-gray-300">{activeVertical.problem}</p>
+            <div className="space-y-3 text-xs sm:text-sm">
+              <div className="p-3.5 rounded-[10px] bg-red-950/20 border border-red-900/30">
+                <p className="text-red-300 font-semibold mb-1 text-[11px] uppercase tracking-wider font-mono">
+                  The Problem
+                </p>
+                <p className="text-slate-300 font-inter text-xs leading-relaxed">{activeVertical.problem}</p>
               </div>
 
-              <div className="p-3.5 rounded-[10px] bg-emerald-950/30 border border-emerald-800/40 space-y-1">
-                <span className="text-[10px] uppercase font-bold text-emerald-400 font-mono">
-                  The Autopilot Solution
-                </span>
-                <p className="text-gray-200">{activeVertical.solution}</p>
+              <div className="p-3.5 rounded-[10px] bg-emerald-950/20 border border-emerald-900/30">
+                <p className="text-emerald-300 font-semibold mb-1 text-[11px] uppercase tracking-wider font-mono">
+                  The KUIRO Autopilot Solution
+                </p>
+                <p className="text-slate-300 font-inter text-xs leading-relaxed">{activeVertical.solution}</p>
               </div>
             </div>
 
-            {/* Results Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+            {/* Metrics Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
               {activeVertical.results.map((r, i) => (
-                <div key={i} className="p-3 rounded-[10px] bg-[#161D28] border border-white/5 text-center">
-                  <div className="font-sora text-lg sm:text-xl font-bold text-white font-mono">
-                    {r.value}
-                  </div>
-                  <div className="text-[10px] text-gray-400 mt-0.5 leading-tight">
-                    {r.label}
-                  </div>
+                <div key={i} className="p-3 rounded-[10px] bg-white/[0.03] border border-white/10">
+                  <p className="text-lg font-bold font-sora text-emerald-400">{r.value}</p>
+                  <p className="text-[10px] text-slate-400 font-mono mt-0.5">{r.label}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Right Preview Card (5 cols) */}
-          <div className="lg:col-span-5 flex flex-col items-center">
-            <div className="w-full max-w-sm rounded-[14px] bg-[#111620] border border-white/10 p-4 space-y-3 text-left">
-              <div className="flex items-center justify-between text-xs pb-2 border-b border-white/10">
-                <span className="font-bold text-[#FF7A00] text-[11px] uppercase font-mono">
-                  {activeVertical.samplePost.event}
-                </span>
-                <span className="text-[9px] text-gray-400 bg-white/5 px-2 py-0.5 rounded font-mono">
-                  AI Synthesized
-                </span>
-              </div>
+          {/* Right Preview (5 cols) */}
+          <div className="lg:col-span-5 bg-[#111620] rounded-[14px] p-5 border border-white/10 space-y-4 text-left">
+            <div className="flex items-center justify-between pb-2 border-b border-white/10">
+              <span className="text-xs font-bold text-white font-sora">Sample Automated Output</span>
+              <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded">
+                Verified Satori Composite
+              </span>
+            </div>
 
-              <div className="aspect-[4/3] rounded-[10px] bg-gradient-to-br from-[#0B0F14] via-[#1E2530] to-[#0B0F14] p-4 flex flex-col justify-between border border-white/10 text-white relative">
-                <div className="flex items-center justify-between text-[9px] text-gray-400">
-                  <span className="font-bold text-[#FF7A00]">{activeVertical.clientName}</span>
-                  <ShieldCheck size={14} className="text-emerald-400" />
-                </div>
-                <div className="my-auto space-y-1">
-                  <h4 className="font-sora text-sm font-bold leading-tight">
-                    {activeVertical.samplePost.event}
-                  </h4>
-                  <p className="text-[10px] text-gray-300 line-clamp-2">
-                    {activeVertical.samplePost.caption}
-                  </p>
-                </div>
-                <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[8px] text-gray-500 font-mono">
-                  <span>Contact Sheet Preview</span>
-                  <span>48h Passive OK</span>
-                </div>
+            <div className="p-4 rounded-[10px] bg-[#070B14] border border-white/10 space-y-3">
+              <div className="flex items-center justify-between text-[10px] text-[#FF7A00] font-mono">
+                <span>{activeVertical.samplePost.event}</span>
+                <span>{activeVertical.samplePost.format}</span>
               </div>
-
-              <div className="text-[11px] text-gray-400 leading-snug">
-                <span className="text-gray-200 font-semibold">Channel Payload: </span>
-                {activeVertical.samplePost.format}
+              <p className="text-xs text-slate-200 leading-relaxed font-inter italic">
+                "{activeVertical.samplePost.caption}"
+              </p>
+              <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                <span>Auto-Commit: T-48h Active</span>
+                <span className="text-emerald-400">Zero Link Penalty Pass</span>
               </div>
+            </div>
 
+            <div className="pt-2 flex items-center justify-between">
               <Link
-                href="/dashboard/simulator"
-                className="mt-2 w-full py-2 rounded-[8px] bg-white text-[#0B0F14] hover:bg-gray-100 text-xs font-semibold flex items-center justify-center gap-1.5 transition text-center"
+                href="/get-started"
+                className="inline-flex items-center gap-1.5 text-xs text-[#FF7A00] font-semibold hover:text-[#FF881A] transition"
               >
-                <span>Simulate This in WhatsApp</span>
+                <span>Automate your venture now</span>
                 <ArrowRight size={13} />
               </Link>
+              <span className="text-[11px] text-slate-500 font-mono">14-Day Free Trial</span>
             </div>
           </div>
         </div>
@@ -266,4 +273,3 @@ export default function SmbVerticalUseCases() {
     </section>
   );
 }
-

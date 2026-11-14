@@ -12,6 +12,7 @@ import {
   FloatingEmailNewsletterCard
 } from '@/components/marketing/HeroMockups';
 import InteractiveFestivalGenerator from '@/components/marketing/InteractiveFestivalGenerator';
+import SmbVerticalUseCases from '@/components/marketing/SmbVerticalUseCases';
 import WorkflowTimeline from '@/components/marketing/WorkflowTimeline';
 import {
   CheckCircle2,
@@ -55,6 +56,7 @@ import {
   Stethoscope,
   UtensilsCrossed,
   ShoppingBag,
+  Briefcase,
   HelpCircle,
   PhoneCall,
   Download,
@@ -70,13 +72,13 @@ export default function RedesignedHomePage() {
   const { isLoggedIn, handleGetStarted } = useAuth();
 
   // 1. Hero Brand Brain Scanner State
-  const [websiteUrl, setWebsiteUrl] = useState('https://drsharmadental.in');
+  const [websiteUrl, setWebsiteUrl] = useState('https://kolkatachai.co');
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractedSuccess, setExtractedSuccess] = useState(false);
   const [extractionStep, setExtractionStep] = useState(0);
 
   // 2. Interactive Product Showcase Tab State
-  const [showcaseTab, setShowcaseTab] = useState<'omni' | 'whatsapp' | 'roi' | 'export'>('roi');
+  const [showcaseTab, setShowcaseTab] = useState<'roi' | 'export' | 'whatsapp' | 'omni'>('roi');
 
   // 3. WhatsApp 48-Hour Approval Simulator State
   const [approvalStatus, setApprovalStatus] = useState<'AUTO_QUEUED' | 'APPROVED' | 'REVISED'>('AUTO_QUEUED');
@@ -87,8 +89,8 @@ export default function RedesignedHomePage() {
   const [isExportingZip, setIsExportingZip] = useState(false);
   const [zipExported, setZipExported] = useState(false);
 
-  // 5. Multi-Tenant Persona Simulator State
-  const [activePersona, setActivePersona] = useState<'dental' | 'derma' | 'yoga'>('dental');
+  // 5. Multi-Tenant Persona Simulator State (Universal: Retail SMB, Personal Brand, Professional, Lifestyle)
+  const [activePersona, setActivePersona] = useState<'smb' | 'creator' | 'practice' | 'lifestyle'>('smb');
 
   // 6. Interactive Retainer ROI Calculator State
   const [monthlySpend, setMonthlySpend] = useState<number>(45000);
@@ -137,44 +139,57 @@ export default function RedesignedHomePage() {
   const monthlySavings = Math.max(0, monthlySpend - kuiroMonthlyCost);
   const annualSavings = monthlySavings * 12;
 
-  // Persona Data Profiles
+  // Persona Data Profiles (Representing Small Business, Personal Brand, Practice, Lifestyle)
   const personas = {
-    dental: {
-      name: 'Dr. Rajesh Sharma',
-      clinic: 'Apex Dental & Implant Center',
-      city: 'Kolkata, WB',
-      niche: 'Healthcare & Dental',
-      specialties: 'Invisalign • Dental Implants • Smile Design',
+    smb: {
+      name: 'Rohan Banerjee',
+      brand: 'Kolkata Chai Co. & Artisanal Goods',
+      city: 'Park Street, Kolkata',
+      niche: 'Small & Medium Business (Retail / D2C)',
+      offerings: 'Artisanal Teas • Festive Gift Hampers • In-Store Experiences',
       colors: ['#FF7A00', '#0B0F14'],
-      sampleCampaign: 'Diwali Festive Smiles & Painless Implants',
+      sampleCampaign: 'Poila Boishakh Saffron Elaichi Tea Launch',
+      attributedLeads: 48,
+      attributedPipeline: '₹1,48,500',
+      indicQuote: 'শুভ নববর্ষ ও উৎসবের আনন্দ!',
+      script: 'Bengali Script'
+    },
+    creator: {
+      name: 'Vikram Malhotra',
+      brand: 'Vikram Malhotra • Growth Advisory',
+      city: 'Mumbai & Remote',
+      niche: 'Personal Brand, Creator & Consultant',
+      offerings: 'Executive Advisory • B2B Growth Strategy • Keynotes',
+      colors: ['#3B82F6', '#0F172A'],
+      sampleCampaign: 'Why Solopreneurs Lose 60% Reach to Link-Penalties',
+      attributedLeads: 34,
+      attributedPipeline: '₹1,95,000',
+      indicQuote: 'ज्ञानं परमं बलम्',
+      script: 'Devanagari / English'
+    },
+    practice: {
+      name: 'Dr. Rajesh Sharma',
+      brand: 'Apex Healthcare & Dental Center',
+      city: 'Kolkata & Delhi NCR',
+      niche: 'Healthcare Practice & Professional Services',
+      offerings: 'Preventive Healthcare • Clear Aligners • Consultations',
+      colors: ['#10B981', '#064E3B'],
+      sampleCampaign: 'Diwali Festive Care & Family Health Awareness',
       attributedLeads: 42,
       attributedPipeline: '₹1,40,000',
-      indicQuote: 'শুভ দীপাবলি ও সুন্দর হাসি!',
-      script: 'Bengali / Devanagari'
+      indicQuote: 'शुभ दीपावली एवं स्वस्थ जीवन!',
+      script: 'Devanagari Script'
     },
-    derma: {
-      name: 'Dr. Priyadarshini Sengupta',
-      clinic: 'Sengupta Aesthetic & Skin Clinic',
-      city: 'Salt Lake, Kolkata',
-      niche: 'Cosmetology & Dermatology',
-      specialties: 'HydraFacials • Laser Rejuvenation • Anti-Pigmentation',
-      colors: ['#EC4899', '#0F172A'],
-      sampleCampaign: 'Durga Puja Bridal Glow Masterclass',
-      attributedLeads: 38,
-      attributedPipeline: '₹1,14,000',
-      indicQuote: 'উৎসবের আলোয় উজ্জ্বল ত্বক!',
-      script: 'Bengali Typography'
-    },
-    yoga: {
-      name: 'Aarav Mehta',
-      clinic: 'Mehta Yoga & Holistic Wellness',
+    lifestyle: {
+      name: 'Ananya Mehta',
+      brand: 'Mehta Wellness & Yoga Studio',
       city: 'Bandra, Mumbai',
-      niche: 'Fitness & Corporate Wellness',
-      specialties: 'Sound Bath Therapy • Corporate Mindfulness • Hatha Yoga',
-      colors: ['#10B981', '#064E3B'],
-      sampleCampaign: 'International Yoga Day Corporate Retreat',
+      niche: 'Fitness, Studios & Lifestyle Brands',
+      offerings: 'Sound Bath Therapy • Corporate Mindfulness • Weekend Retreats',
+      colors: ['#EC4899', '#18181B'],
+      sampleCampaign: 'International Yoga Day Corporate Mindfulness Pack',
       attributedLeads: 29,
-      attributedPipeline: '₹95,000',
+      attributedPipeline: '₹92,000',
       indicQuote: 'योगः कर्मसु कौशलम्',
       script: 'Devanagari / English'
     }
@@ -183,28 +198,28 @@ export default function RedesignedHomePage() {
   // FAQ List
   const faqs = [
     {
-      q: 'Do I really never have to log into a marketing dashboard?',
-      a: 'Zero mandatory dashboard logins. 48 hours before any festival, health milestone, or clinic campaign, KUIRO generates your complete multi-channel graphics and delivers an interactive contact sheet directly to your WhatsApp. One tap approves, voice notes revise, or doing nothing auto-commits at scheduled peak times.',
+      q: 'Who is KUIRO built for?',
+      a: 'KUIRO is designed for everyone who needs consistent, professional marketing without the cost or hassle of an agency: small and medium businesses (SMBs), local retail stores, personal brands, creators, freelancers, startup founders, consultants, and professional practices. Whether you are an individual consultant building an audience on LinkedIn or a multi-location business driving footfall and orders, KUIRO runs your marketing on autopilot.',
     },
     {
-      q: 'How does the new Campaign ROI & Inbound Lead Attribution work?',
-      a: 'Every campaign links to your clinic’s verified WhatsApp Cloud API number with unique tracking tags and UTM parameters. When a patient clicks "Book Consultation" or messages your clinic from an Instagram ad or WhatsApp status, KUIRO automatically tags the lead, logs their treatment interest (e.g. Invisalign ₹1,40,000 or Laser Facial ₹12,000), and displays your net return on investment in real time.',
+      q: 'Do I really never have to log into a marketing dashboard?',
+      a: 'Zero mandatory dashboard logins. 48 hours before any festival, business milestone, or campaign date, KUIRO generates your complete multi-channel visual assets and delivers an interactive preview directly to your WhatsApp. One tap approves, voice notes revise, or doing nothing auto-commits at scheduled peak times.',
+    },
+    {
+      q: 'How does Campaign ROI & Customer Lead Attribution work?',
+      a: 'Every campaign links to your verified WhatsApp number or booking URL with tracking tags and UTM parameters. When a customer or client messages your business from an Instagram post, LinkedIn carousel, or WhatsApp status, KUIRO automatically tags the lead, logs their inquiry or order interest, and attributes net revenue directly to the campaign in real time.',
     },
     {
       q: 'What is included in the 1-Click Creative Kit Asset Exporter?',
-      a: 'When you click "Export Creative Kit" (or via API), KUIRO compiles a ready-to-use ZIP bundle containing: 1) High-DPI 4:5 visual (1080x1350) for Instagram and reception TV displays, 2) 1:1 WhatsApp Broadcast and status card (1080x1080), 3) LinkedIn thought leadership post, 4) Responsive HTML email newsletter, 5) Captions & hashtags markdown file, and 6) Staff front-desk instructions (README_FOR_CLINIC_STAFF.txt).',
+      a: 'When you click "Export Creative Kit" (or via API), KUIRO compiles a ready-to-use ZIP bundle containing: 1) High-DPI 4:5 visual (1080x1350) for in-store TV screens and Instagram feed, 2) 1:1 Square card (1080x1080) for WhatsApp status and LinkedIn, 3) Verified social post copy and hashtags, 4) Responsive HTML email newsletter, and 5) Team/Staff instructions (README_FOR_TEAM_AND_STAFF.txt).',
     },
     {
-      q: 'How does KUIRO comply with Medical and NMC Advertising Regulations?',
-      a: 'KUIRO is designed specifically for healthcare practitioners and ethical SMBs. It strictly respects National Medical Commission (NMC) guidelines: all generated content focuses on patient education, preventive health awareness, and verified factual credentials, eliminating sensational claims, misleading discounts, or non-compliant before-and-after guarantees.',
-    },
-    {
-      q: 'Can KUIRO handle regional Indian languages with proper typography?',
-      a: 'Yes! Unlike generic AI image generators that produce broken, scrambled Indian text, KUIRO uses a specialized layout compositor with pre-shaped Google Noto Sans fonts for Devanagari (Hindi, Marathi), Bengali, Tamil, Telugu, and Kannada, rendering crisp festive greetings like "শুভ নববর্ষ" or "शुभ दीपावली" with perfect ligature shaping.',
+      q: 'Can KUIRO handle regional Indian languages with authentic typography?',
+      a: 'Yes! Unlike generic AI image generators that produce scrambled or broken Indian text, KUIRO uses a specialized layout compositor with pre-shaped Google Noto Sans fonts for Devanagari (Hindi, Marathi), Bengali, Tamil, Telugu, and Kannada, rendering crisp festive greetings like "শুভ নববর্ষ" or "शुभ दीपावली" with perfect ligatures.',
     },
     {
       q: 'What is the Zero-Link Surcharge Guard on X / Twitter?',
-      a: 'X (Twitter) v2 charges elevated API fees and algorithmically suppresses posts containing external destination links by up to 40%. KUIRO automatically posts your high-DPI image and headline first, then instantly attaches your booking link in the first reply thread—saving $0.200 per tweet while maximizing organic engagement.',
+      a: 'X (Twitter) v2 charges elevated API fees and algorithmically suppresses posts containing external outbound links by up to 40%. KUIRO automatically posts your high-DPI image and value hook first, then instantly attaches your destination link in the verified first reply—saving $0.200 per tweet while maximizing organic engagement.',
     },
   ];
 
@@ -214,7 +229,7 @@ export default function RedesignedHomePage() {
       <AnnouncementBar
         badge="Autonomous 2.0"
         tagline="Create / Approve / Grow."
-        subtitle="— Campaign ROI & 1-Click Creative Kit Exporter Now Live."
+        subtitle="— For SMBs, Personal Brands, Creators, Founders & Individuals."
       />
 
       {/* 2. Unified Sticky Navbar */}
@@ -233,10 +248,10 @@ export default function RedesignedHomePage() {
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FF7A00]/10 border border-[#FF7A00]/30 text-[#FF7A00] text-xs font-semibold tracking-wide shadow-sm shadow-[#FF7A00]/5">
               <Sparkles size={14} className="animate-spin text-[#FF7A00]" />
               <span className="font-mono uppercase tracking-wider text-[11px]">
-                Autonomous Marketing OS • 365 Cultural Radar + ROI Attribution
+                Autonomous Marketing OS • 365 Regional Radar + ROI Attribution
               </span>
               <span className="w-1 h-1 rounded-full bg-[#FF7A00]" />
-              <span className="text-slate-300 font-normal">For Indian Clinics & SMBs</span>
+              <span className="text-slate-300 font-normal">For SMBs, Creators, Founders & Individuals</span>
             </div>
 
             {/* Main Sora Headline */}
@@ -249,7 +264,7 @@ export default function RedesignedHomePage() {
 
             {/* Value Proposition */}
             <p className="text-base sm:text-lg text-slate-300 font-inter max-w-3xl mx-auto leading-relaxed">
-              KUIRO turns WhatsApp into your marketing command center. We index your Brand Brain in vector memory, monitor 100+ cultural moments across 28 states, composite studio graphics, auto-commit at peak hours, and attribute real inbound clinical revenue.
+              KUIRO turns WhatsApp into your marketing command center. Whether you run a retail store, personal brand, high-growth startup, consultancy, clinic, or individual venture, KUIRO indexes your Brand Brain in vector memory, monitors 100+ cultural moments across 28 states, composites studio graphics, auto-commits at peak hours, and attributes real customer revenue.
             </p>
 
             {/* Primary Action Buttons */}
@@ -314,7 +329,7 @@ export default function RedesignedHomePage() {
                     type="url"
                     value={websiteUrl}
                     onChange={(e) => setWebsiteUrl(e.target.value)}
-                    placeholder="Enter your clinic or business website (e.g. drsharmadental.in)"
+                    placeholder="Enter your website, store, or social link (e.g. kolkatachai.co or yourbrand.in)"
                     className="w-full pl-10 pr-4 py-3 rounded-[10px] bg-white/[0.04] border border-white/10 text-white placeholder-slate-500 text-xs sm:text-sm focus:outline-none focus:border-[#FF7A00] transition"
                   />
                 </div>
@@ -343,8 +358,8 @@ export default function RedesignedHomePage() {
                   <div className="flex items-center justify-between text-xs text-slate-300 font-mono">
                     <span className="flex items-center gap-2 text-[#FF7A00]">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#FF7A00] animate-ping" />
-                      {extractionStep === 1 && 'Ingesting doctor credentials & clinical specializations...'}
-                      {extractionStep === 2 && 'Detecting official hex codes & verified SVG logo...'}
+                      {extractionStep === 1 && 'Ingesting brand identity, core offerings & audience values...'}
+                      {extractionStep === 2 && 'Detecting official brand hex colors & verified logo...'}
                       {extractionStep === 3 && 'Generating Neon pgvector tenant & 365-day calendar...'}
                     </span>
                     <span>Step {extractionStep}/3</span>
@@ -367,13 +382,13 @@ export default function RedesignedHomePage() {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-white">Dr. Sharma Dental & Aesthetic Center</span>
+                        <span className="text-xs font-bold text-white">Kolkata Chai Co. & Artisanal Goods</span>
                         <span className="text-[10px] font-mono bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full">
-                          pgvector ID: #DS-8842
+                          pgvector ID: #KC-8842
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-300">
-                        Extracted: BDS, MDS Orthodontics • Colors: #FF7A00, #0B0F14 • Ready for 365-Day Autopilot
+                        Extracted: Retail SMB • Colors: #FF7A00, #0B0F14 • Ready for 365-Day Autopilot
                       </p>
                     </div>
                   </div>
@@ -402,11 +417,11 @@ export default function RedesignedHomePage() {
             <h2 className="font-sora text-3xl sm:text-5xl font-bold text-white tracking-tight">
               One Closed Loop. <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF7A00] via-emerald-400 to-sky-400">
-                From Studio Broadcast to Patient Revenue.
+                From Studio Broadcast to Customer Revenue.
               </span>
             </h2>
             <p className="text-sm text-slate-300 font-inter">
-              Explore our four core production engines: Omni-Channel Publishing, the 48-Hour WhatsApp Review Loop, Live Campaign ROI Attribution, and the 1-Click Creative Kit Exporter.
+              Explore our four core production engines: Live Campaign ROI Attribution, the 1-Click Creative Kit Exporter, the 48-Hour WhatsApp Review Loop, and Omni-Channel Publishing.
             </p>
 
             {/* 4 Showcase Tabs */}
@@ -468,20 +483,20 @@ export default function RedesignedHomePage() {
                 <div className="lg:col-span-5 space-y-4">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-bold">
                     <TrendingUp size={14} />
-                    <span>Live Attributed Treatment Revenue</span>
+                    <span>Live Attributed Revenue & Inbound Leads</span>
                   </div>
                   <h3 className="font-sora text-2xl sm:text-3xl font-bold text-white leading-tight">
                     Don’t just track likes. <br />
-                    <span className="text-emerald-400">Track actual clinical pipeline.</span>
+                    <span className="text-emerald-400">Track actual customer pipeline.</span>
                   </h3>
                   <p className="text-xs sm:text-sm text-slate-300 font-inter leading-relaxed">
-                    When prospective patients message your clinic via WhatsApp or click on Instagram ads, KUIRO attributes their booked treatments directly to the underlying campaign. Real-time net ROI calculation shows founders exactly which festival or health day generated revenue.
+                    When prospective buyers or clients message your business via WhatsApp or click on social posts, KUIRO attributes their inquiries and orders directly to the underlying campaign. Real-time net ROI calculation shows founders exactly which festival, offer, or announcement generated revenue.
                   </p>
                   
                   <div className="space-y-2.5 text-xs text-slate-200">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />
-                      <span>WhatsApp Cloud API webhook auto-parses inbound lead symptoms</span>
+                      <span>WhatsApp Cloud API webhook auto-parses inbound lead intent and inquiries</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />
@@ -489,7 +504,7 @@ export default function RedesignedHomePage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />
-                      <span>Exports full CSV and treatment logs for clinic front-desk follow-up</span>
+                      <span>Exports full CSV and customer inquiry logs for immediate team follow-up</span>
                     </div>
                   </div>
 
@@ -510,24 +525,24 @@ export default function RedesignedHomePage() {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div className="p-3 rounded-[10px] bg-white/[0.03] border border-white/10">
                       <span className="text-[10px] font-mono text-slate-400 uppercase block">Attributed Pipeline</span>
-                      <span className="text-lg font-bold font-sora text-white">₹1,03,500</span>
+                      <span className="text-lg font-bold font-sora text-white">₹1,48,500</span>
                       <span className="text-[9px] text-emerald-400 flex items-center gap-1 font-mono">
-                        <TrendingUp size={10} /> +38% MoM
+                        <TrendingUp size={10} /> +42% MoM
                       </span>
                     </div>
                     <div className="p-3 rounded-[10px] bg-white/[0.03] border border-white/10">
                       <span className="text-[10px] font-mono text-slate-400 uppercase block">Net Closed</span>
-                      <span className="text-lg font-bold font-sora text-emerald-400">₹78,000</span>
-                      <span className="text-[9px] text-slate-400 font-mono">5 Commenced</span>
+                      <span className="text-lg font-bold font-sora text-emerald-400">₹94,000</span>
+                      <span className="text-[9px] text-slate-400 font-mono">7 Confirmed</span>
                     </div>
                     <div className="p-3 rounded-[10px] bg-white/[0.03] border border-white/10">
-                      <span className="text-[10px] font-mono text-slate-400 uppercase block">Inbound Leads</span>
-                      <span className="text-lg font-bold font-sora text-white">42</span>
-                      <span className="text-[9px] text-emerald-400 font-mono">31 WhatsApp</span>
+                      <span className="text-[10px] font-mono text-slate-400 uppercase block">Customer Leads</span>
+                      <span className="text-lg font-bold font-sora text-white">48</span>
+                      <span className="text-[9px] text-emerald-400 font-mono">36 WhatsApp</span>
                     </div>
                     <div className="p-3 rounded-[10px] bg-white/[0.03] border border-white/10">
                       <span className="text-[10px] font-mono text-slate-400 uppercase block">Net Blended ROI</span>
-                      <span className="text-lg font-bold font-sora text-[#FF7A00]">42.8x</span>
+                      <span className="text-lg font-bold font-sora text-[#FF7A00]">53.0x</span>
                       <span className="text-[9px] text-slate-400 font-mono">vs ₹2,799 fee</span>
                     </div>
                   </div>
@@ -537,7 +552,7 @@ export default function RedesignedHomePage() {
                     <div className="flex items-center justify-between text-xs pb-1 border-b border-white/10">
                       <span className="font-bold text-white font-sora flex items-center gap-1.5">
                         <Smartphone size={14} className="text-emerald-400" />
-                        Live WhatsApp Lead Conversions
+                        Live Inbound Customer Inquiries
                       </span>
                       <span className="text-[10px] font-mono text-slate-400">Auto-Attributed</span>
                     </div>
@@ -551,11 +566,11 @@ export default function RedesignedHomePage() {
                               WhatsApp Status
                             </span>
                           </div>
-                          <p className="text-[10px] text-slate-400">Invisalign Clear Aligners • Diwali Promo</p>
+                          <p className="text-[10px] text-slate-400">Corporate Festive Gift Hampers (30 Units)</p>
                         </div>
                         <div className="text-right">
-                          <span className="text-xs font-bold text-emerald-400 font-mono">₹1,40,000</span>
-                          <span className="text-[9px] text-slate-500 block">Consult Scheduled</span>
+                          <span className="text-xs font-bold text-emerald-400 font-mono">₹45,000</span>
+                          <span className="text-[9px] text-emerald-400 block font-semibold">Order Confirmed</span>
                         </div>
                       </div>
 
@@ -567,11 +582,11 @@ export default function RedesignedHomePage() {
                               Instagram Ad
                             </span>
                           </div>
-                          <p className="text-[10px] text-slate-400">Teeth Whitening & Clean • Festive Offer</p>
+                          <p className="text-[10px] text-slate-400">Artisanal Tea Sampler Box & Subscription</p>
                         </div>
                         <div className="text-right">
-                          <span className="text-xs font-bold text-emerald-400 font-mono">₹18,000</span>
-                          <span className="text-[9px] text-emerald-400 block font-semibold">Treatment Commenced</span>
+                          <span className="text-xs font-bold text-emerald-400 font-mono">₹18,500</span>
+                          <span className="text-[9px] text-emerald-400 block font-semibold">Paid & Dispatched</span>
                         </div>
                       </div>
 
@@ -580,14 +595,14 @@ export default function RedesignedHomePage() {
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-white">Pooja Sengupta</span>
                             <span className="text-[9px] font-mono bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded">
-                              Email Newsletter
+                              LinkedIn Carousel
                             </span>
                           </div>
-                          <p className="text-[10px] text-slate-400">Porcelain Veneers (4 Units)</p>
+                          <p className="text-[10px] text-slate-400">Growth Advisory Quarterly Retainer</p>
                         </div>
                         <div className="text-right">
-                          <span className="text-xs font-bold text-emerald-400 font-mono">₹45,000</span>
-                          <span className="text-[9px] text-slate-500 block">In Discussion</span>
+                          <span className="text-xs font-bold text-emerald-400 font-mono">₹85,000</span>
+                          <span className="text-[9px] text-slate-500 block">Proposal In Review</span>
                         </div>
                       </div>
                     </div>
@@ -595,10 +610,10 @@ export default function RedesignedHomePage() {
 
                   {/* Channel Breakdown */}
                   <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-400 font-mono">
-                    <span>WhatsApp 48%</span>
-                    <span>Instagram 32%</span>
-                    <span>Email 14%</span>
-                    <span>LinkedIn 6%</span>
+                    <span>WhatsApp 46%</span>
+                    <span>Instagram 34%</span>
+                    <span>LinkedIn 14%</span>
+                    <span>Email 6%</span>
                   </div>
                 </div>
               </div>
@@ -616,16 +631,16 @@ export default function RedesignedHomePage() {
                   </div>
                   <h3 className="font-sora text-2xl sm:text-3xl font-bold text-white leading-tight">
                     Beyond Social Media. <br />
-                    <span className="text-[#FF7A00]">Your Reception TV & Front Desk.</span>
+                    <span className="text-[#FF7A00]">In-Store Displays & Staff Handouts.</span>
                   </h3>
                   <p className="text-xs sm:text-sm text-slate-300 font-inter leading-relaxed">
-                    Doctors and brick-and-mortar founders don't just market online—they need assets for their waiting room TV displays, front-desk staff printouts, WhatsApp status updates, and email blasts. KUIRO packages everything into a standardized ZIP file in 1 second.
+                    Founders and brick-and-mortar businesses don't just market online—they need high-contrast visuals for in-store TV screens, front-desk staff printouts, WhatsApp status updates, and email blasts. KUIRO packages everything into a standardized ZIP file in 1 second.
                   </p>
 
                   <div className="space-y-2 text-xs text-slate-300">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 size={15} className="text-[#FF7A00] shrink-0" />
-                      <span><strong>High-DPI 4:5 Visual (1080x1350)</strong> for Instagram & Waiting Room TV</span>
+                      <span><strong>High-DPI 4:5 Visual (1080x1350)</strong> for in-store display TV & Instagram</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <CheckCircle2 size={15} className="text-[#FF7A00] shrink-0" />
@@ -637,7 +652,7 @@ export default function RedesignedHomePage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <CheckCircle2 size={15} className="text-[#FF7A00] shrink-0" />
-                      <span><strong>README_FOR_CLINIC_STAFF.txt</strong> with front-desk talking points</span>
+                      <span><strong>README_FOR_TEAM_AND_STAFF.txt</strong> with talking points and hashtags</span>
                     </div>
                   </div>
 
@@ -683,7 +698,7 @@ export default function RedesignedHomePage() {
                         </div>
                         <div>
                           <p className="font-semibold text-white">01_VISUAL_4x5_HIGH_DPI.png</p>
-                          <p className="text-[10px] text-slate-400">1080 x 1350 • Clinic Reception TV & Instagram Feed</p>
+                          <p className="text-[10px] text-slate-400">1080 x 1350 • In-Store TV Displays & Instagram Feed</p>
                         </div>
                       </div>
                       <span className="text-[10px] font-mono text-emerald-400">1.84 MB</span>
@@ -721,8 +736,8 @@ export default function RedesignedHomePage() {
                           TXT
                         </div>
                         <div>
-                          <p className="font-semibold text-white">06_README_FOR_CLINIC_STAFF.txt</p>
-                          <p className="text-[10px] text-slate-400">Reception SOP, Patient Inbound Script & Hashtags</p>
+                          <p className="font-semibold text-white">06_README_FOR_TEAM_AND_STAFF.txt</p>
+                          <p className="text-[10px] text-slate-400">In-Store SOP, Talking Points & Verified Hashtags</p>
                         </div>
                       </div>
                       <span className="text-[10px] font-mono text-emerald-400">4.8 KB</span>
@@ -774,24 +789,24 @@ export default function RedesignedHomePage() {
                   <div className="bg-[#0B141A] p-3 rounded-[16px] border border-white/5 space-y-3 text-xs text-left">
                     <div className="bg-[#1F2C34] p-3 rounded-[12px] rounded-tl-none text-slate-200 space-y-2 border border-white/5">
                       <div className="flex items-center justify-between text-[10px] text-[#FF7A00] font-mono">
-                        <span>CAMPAIGN #2026-DIWALI</span>
+                        <span>CAMPAIGN #2026-FESTIVAL</span>
                         <span>T-48H DISPATCH</span>
                       </div>
                       <p className="text-[11px] leading-relaxed">
-                        Namaste <strong>Dr. Sharma</strong>! 🙏 <br />
-                        Your clinic’s Diwali Festive Smiles campaign is ready across Instagram, LinkedIn, X, and Email.
+                        Namaste <strong>Rohan</strong>! 🙏 <br />
+                        Your brand’s Festive Special campaign is ready across Instagram, LinkedIn, X, and Email.
                       </p>
 
                       <div className="p-2 rounded-[8px] bg-black/40 border border-white/10 space-y-1.5">
                         <div className="aspect-[4/3] rounded bg-gradient-to-br from-[#1A1208] via-[#2A1D0E] to-[#1A1208] p-2.5 flex flex-col justify-between border border-[#FF7A00]/20">
                           <div className="flex items-center justify-between">
-                            <span className="text-[9px] font-bold text-[#FF7A00]">DIWALI SPECIAL</span>
+                            <span className="text-[9px] font-bold text-[#FF7A00]">FESTIVAL SPECIAL</span>
                             <span className="text-[8px] font-mono text-slate-400">1080x1350 High-DPI</span>
                           </div>
                           <p className="text-[11px] font-bold text-white">
-                            "Light Up Smiles, Not Just Diyas ✨"
+                            "Celebrate Fresh Beginnings With Artisanal Blends ✨"
                           </p>
-                          <span className="text-[9px] text-slate-400">Dr. Sharma Dental • BDS, MDS</span>
+                          <span className="text-[9px] text-slate-400">Kolkata Chai Co. • Park Street</span>
                         </div>
                         <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
                           <span>Auto-commit in:</span>
@@ -833,7 +848,7 @@ export default function RedesignedHomePage() {
                           <span className="text-[9px] font-mono text-emerald-200">0:04</span>
                         </div>
                         <p className="text-[10px] text-emerald-100 italic">
-                          "Doctor credentials bold karo aur clinic helpline number add karo."
+                          "Headline thoda bold karo aur festive discount code add karo."
                         </p>
                       </div>
                     )}
@@ -850,7 +865,7 @@ export default function RedesignedHomePage() {
                   Review and approve from the app you check 50 times a day.
                 </h3>
                 <p className="text-sm text-slate-300 font-inter leading-relaxed">
-                  Indian doctors and founders don't want to log into bloated marketing tools. KUIRO turns WhatsApp into your command center. Send a Hindi voice note in the car between appointments, and Gemini updates the studio composite in 12 seconds.
+                  Founders, creators, and business owners don't want to log into bloated marketing tools. KUIRO turns WhatsApp into your command center. Send a voice note in the car between meetings, and Gemini updates the studio composite in 12 seconds.
                 </p>
                 <div className="space-y-2.5 text-xs text-slate-200">
                   <div className="flex items-center gap-2">
@@ -899,7 +914,7 @@ export default function RedesignedHomePage() {
         </div>
       </section>
 
-      {/* 5. Multi-Tenant Persona Simulator (Healthcare, Aesthetic Dermatology, Holistic Wellness) */}
+      {/* 5. Multi-Tenant Persona Simulator (Small Business, Personal Brand, Practice, Lifestyle) */}
       <section className="py-20 border-t border-white/[0.08] relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-10">
           <div className="max-w-3xl mx-auto space-y-3">
@@ -908,43 +923,53 @@ export default function RedesignedHomePage() {
               <span>Multi-Tenant Persona Simulator</span>
             </div>
             <h2 className="font-sora text-3xl sm:text-5xl font-bold text-white tracking-tight">
-              Built for India’s Speciality Verticals
+              Built for Every Business & Personal Brand
             </h2>
             <p className="text-sm text-slate-300 font-inter">
-              See how KUIRO customizes cultural moments, verified clinical credentials, and regional Indic scripts for different business types.
+              See how KUIRO customizes cultural moments, brand tone of voice, and regional Indic scripts across different industries and individual creators.
             </p>
 
             {/* Persona Switcher Buttons */}
             <div className="pt-3 flex items-center justify-center gap-3 flex-wrap">
               <button
-                onClick={() => setActivePersona('dental')}
+                onClick={() => setActivePersona('smb')}
                 className={`px-4 py-2 rounded-[10px] text-xs font-sora font-semibold transition border ${
-                  activePersona === 'dental'
+                  activePersona === 'smb'
                     ? 'bg-[#FF7A00] text-white border-[#FF7A00] shadow-md shadow-[#FF7A00]/25'
                     : 'bg-[#0B0F14] text-slate-300 border-white/10 hover:border-white/20'
                 }`}
               >
-                1. Dr. Sharma (Dental & Healthcare)
+                1. Small Business (Retail & D2C)
               </button>
               <button
-                onClick={() => setActivePersona('derma')}
+                onClick={() => setActivePersona('creator')}
                 className={`px-4 py-2 rounded-[10px] text-xs font-sora font-semibold transition border ${
-                  activePersona === 'derma'
-                    ? 'bg-pink-600 text-white border-pink-500 shadow-md shadow-pink-600/25'
+                  activePersona === 'creator'
+                    ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-600/25'
                     : 'bg-[#0B0F14] text-slate-300 border-white/10 hover:border-white/20'
                 }`}
               >
-                2. Dr. Sengupta (Aesthetic Dermatology)
+                2. Personal Brand & Creator
               </button>
               <button
-                onClick={() => setActivePersona('yoga')}
+                onClick={() => setActivePersona('practice')}
                 className={`px-4 py-2 rounded-[10px] text-xs font-sora font-semibold transition border ${
-                  activePersona === 'yoga'
+                  activePersona === 'practice'
                     ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-600/25'
                     : 'bg-[#0B0F14] text-slate-300 border-white/10 hover:border-white/20'
                 }`}
               >
-                3. Mehta Yoga (Holistic & Wellness)
+                3. Professional Practice & Clinics
+              </button>
+              <button
+                onClick={() => setActivePersona('lifestyle')}
+                className={`px-4 py-2 rounded-[10px] text-xs font-sora font-semibold transition border ${
+                  activePersona === 'lifestyle'
+                    ? 'bg-pink-600 text-white border-pink-500 shadow-md shadow-pink-600/25'
+                    : 'bg-[#0B0F14] text-slate-300 border-white/10 hover:border-white/20'
+                }`}
+              >
+                4. Studios & Lifestyle
               </button>
             </div>
           </div>
@@ -961,9 +986,9 @@ export default function RedesignedHomePage() {
                     {personas[activePersona].name.split(' ').map((n) => n[0]).join('')}
                   </div>
                   <div>
-                    <h3 className="font-sora text-lg font-bold text-white">{personas[activePersona].name}</h3>
+                    <h3 className="font-sora text-lg font-bold text-white">{personas[activePersona].brand}</h3>
                     <p className="text-xs text-slate-400 font-mono">
-                      {personas[activePersona].clinic} • {personas[activePersona].city}
+                      Lead: {personas[activePersona].name} • {personas[activePersona].city}
                     </p>
                   </div>
                 </div>
@@ -971,9 +996,9 @@ export default function RedesignedHomePage() {
                 <div className="space-y-2 text-xs">
                   <div className="p-2.5 rounded-[8px] bg-white/[0.03] border border-white/5 space-y-1">
                     <span className="text-[10px] font-mono text-slate-400 uppercase font-bold block">
-                      Indexed Clinical Services:
+                      Indexed Core Offerings:
                     </span>
-                    <p className="text-slate-200">{personas[activePersona].specialties}</p>
+                    <p className="text-slate-200">{personas[activePersona].offerings}</p>
                   </div>
 
                   <div className="p-2.5 rounded-[8px] bg-white/[0.03] border border-white/5 space-y-1">
@@ -1037,7 +1062,7 @@ export default function RedesignedHomePage() {
                 Persistent Brand Brain
               </h3>
               <p className="text-xs text-slate-400 font-inter leading-relaxed">
-                Stores your clinical credentials, doctor degrees (BDS, MDS, MD), verified colors, pricing, and ethical guidelines in isolated Neon pgvector memory. Zero hallucinations or repeated prompts.
+                Stores your unique product catalog, certifications, verified brand colors, pricing, and tone of voice in isolated Neon pgvector memory. Zero hallucinations or repeated prompts.
               </p>
             </div>
 
@@ -1048,7 +1073,7 @@ export default function RedesignedHomePage() {
               </div>
               <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">Moat 02</span>
               <h3 className="font-sora text-base font-bold text-white group-hover:text-emerald-400 transition">
-                365 Cultural Radar (Cron)
+                365 Regional Radar (Cron)
               </h3>
               <p className="text-xs text-slate-400 font-inter leading-relaxed">
                 Autonomous daily Vercel Cron (0 0 * * *) scans 100+ Indian regional festivals across 28 states at T-48h, dispatches previews to WhatsApp, and triggers fail-safe publishing at T-0h.
@@ -1079,7 +1104,7 @@ export default function RedesignedHomePage() {
                 WhatsApp "Silence = Consent"
               </h3>
               <p className="text-xs text-slate-400 font-inter leading-relaxed">
-                If a busy surgeon or founder is with patients and takes zero action during the 48-hour preview window, KUIRO automatically commits and publishes on schedule. You never miss a holiday.
+                If a busy founder or creator is in meetings and takes zero action during the 48-hour preview window, KUIRO automatically commits and publishes on schedule. You never miss a key date.
               </p>
             </div>
 
@@ -1104,27 +1129,32 @@ export default function RedesignedHomePage() {
               </div>
               <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">Moat 06</span>
               <h3 className="font-sora text-base font-bold text-white group-hover:text-purple-400 transition">
-                End-to-End Clinical ROI
+                End-to-End Campaign ROI
               </h3>
               <p className="text-xs text-slate-400 font-inter leading-relaxed">
-                Inbound WhatsApp inquiries are attributed directly to treatments (Clear Aligners, Dental Implants, Lasers), proving tangible ₹1,03,500+ pipeline value rather than vanity metrics.
+                Inbound WhatsApp inquiries are attributed directly to purchases, bookings, or consulting retainers, proving tangible ₹1,48,500+ pipeline value rather than vanity metrics.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 7. Deterministic Workflow Timeline (The 48-Hour Protocol) */}
+      {/* 7. Industry Verticals Tailored for Everyone */}
+      <section className="py-20 border-t border-white/[0.08] bg-[#060a12]/70 relative">
+        <SmbVerticalUseCases />
+      </section>
+
+      {/* 8. Deterministic Workflow Timeline (The 48-Hour Protocol) */}
       <section id="workflow" className="py-20 border-t border-white/[0.08] relative overflow-hidden">
         <WorkflowTimeline />
       </section>
 
-      {/* 8. Interactive Satori Festival Generator (Live in Browser) */}
+      {/* 9. Interactive Satori Festival Generator (Live in Browser) */}
       <section id="visual-generator" className="py-20 border-t border-white/[0.08] bg-[#060a12]/70 relative">
         <InteractiveFestivalGenerator />
       </section>
 
-      {/* 9. Interactive Retainer ROI Savings Calculator */}
+      {/* 10. Interactive Retainer ROI Savings Calculator */}
       <section className="py-20 border-t border-white/[0.08] relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="p-8 sm:p-12 rounded-[20px] bg-gradient-to-br from-[#0B0F14] via-[#121720] to-[#0B0F14] border border-white/15 relative shadow-2xl">
@@ -1222,19 +1252,19 @@ export default function RedesignedHomePage() {
         </div>
       </section>
 
-      {/* 10. Social Proof & Verified Testimonials */}
+      {/* 11. Social Proof & Verified Testimonials */}
       <section className="py-20 border-t border-white/[0.08] bg-[#060a12]/70 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
               <Star size={14} className="fill-emerald-400" />
-              <span>Verified Doctors & Founders</span>
+              <span>Verified Founders, Creators & SMBs</span>
             </div>
             <h2 className="font-sora text-3xl sm:text-5xl font-bold text-white tracking-tight">
-              Trusted by 450+ Indian Businesses
+              Trusted by 450+ Indian Businesses & Creators
             </h2>
             <p className="text-sm text-slate-300 font-inter">
-              See what clinic owners and SMB founders have to say about replacing agency retainers.
+              See what retail owners, personal brands, and agency founders have to say.
             </p>
           </div>
 
@@ -1246,15 +1276,15 @@ export default function RedesignedHomePage() {
                 ))}
               </div>
               <p className="text-xs text-slate-300 font-inter leading-relaxed">
-                "As an orthodontist, I cannot spend hours approving Canva templates or arguing with freelance copywriters. KUIRO sends me a WhatsApp message 48 hours before every festival. I send a voice note between surgeries, and it publishes flawlessly with my verified degrees."
+                "Our specialty roastery runs seasonal monsoon brews and Durga Puja menus. KUIRO's regional cultural radar creates authentic Bengali copy that our customers actually share. Our weekend table reservations jumped 38% without paying a designer."
               </p>
               <div className="pt-2 border-t border-white/5 flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-[#FF7A00]/20 text-[#FF7A00] font-bold text-xs flex items-center justify-center font-sora">
-                  RS
+                  KC
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-white font-sora">Dr. Rajesh Sharma</h4>
-                  <p className="text-[10px] text-slate-400 font-mono">Apex Dental & Implant Center • Kolkata</p>
+                  <h4 className="text-xs font-bold text-white font-sora">Kolkata Chai Co.</h4>
+                  <p className="text-[10px] text-slate-400 font-mono">Specialty Cafes & Retail • Park Street</p>
                 </div>
               </div>
             </div>
@@ -1266,30 +1296,30 @@ export default function RedesignedHomePage() {
                 ))}
               </div>
               <p className="text-xs text-slate-300 font-inter leading-relaxed">
-                "The new Campaign ROI dashboard changed how we look at social media. We can see exactly which WhatsApp status or Instagram post resulted in an Invisalign booking. Last month alone, KUIRO brought in ₹1.4 Lakh in attributed clinical pipeline."
-              </p>
-              <div className="pt-2 border-t border-white/5 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-xs flex items-center justify-center font-sora">
-                  PS
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-white font-sora">Dr. Priyadarshini Sengupta</h4>
-                  <p className="text-[10px] text-slate-400 font-mono">Sengupta Aesthetic & Skin Clinic • Salt Lake</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 rounded-[16px] bg-[#0B0F14] border border-white/10 space-y-4 text-left">
-              <div className="flex items-center gap-1 text-amber-400">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} size={14} className="fill-amber-400" />
-                ))}
-              </div>
-              <p className="text-xs text-slate-300 font-inter leading-relaxed">
-                "We manage 18 SMB clients across Delhi and Mumbai. The 1-Click Creative Kit exporter allows us to deliver clinic reception TV graphics, WhatsApp status cards, and email newsletters to clients in seconds without hiring extra graphic designers."
+                "As an independent consultant, I need to stay top-of-mind on LinkedIn every week. KUIRO prepares thought-leadership carousels 48 hours ahead. I send a quick Hindi or English voice note to refine the angle, and it publishes flawlessly with first-reply link placement."
               </p>
               <div className="pt-2 border-t border-white/5 flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-blue-500/20 text-blue-400 font-bold text-xs flex items-center justify-center font-sora">
+                  VM
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-white font-sora">Vikram Malhotra</h4>
+                  <p className="text-[10px] text-slate-400 font-mono">Executive Growth Advisory • Mumbai</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 rounded-[16px] bg-[#0B0F14] border border-white/10 space-y-4 text-left">
+              <div className="flex items-center gap-1 text-amber-400">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} size={14} className="fill-amber-400" />
+                ))}
+              </div>
+              <p className="text-xs text-slate-300 font-inter leading-relaxed">
+                "We manage 18 SMB clients across Delhi and Mumbai. The 1-Click Creative Kit exporter allows us to deliver in-store displays, WhatsApp status cards, and email newsletters to clients in seconds without hiring extra graphic designers."
+              </p>
+              <div className="pt-2 border-t border-white/5 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-xs flex items-center justify-center font-sora">
                   AS
                 </div>
                 <div>
@@ -1302,7 +1332,7 @@ export default function RedesignedHomePage() {
         </div>
       </section>
 
-      {/* 11. Transparent Pricing Grid */}
+      {/* 12. Transparent Pricing Grid */}
       <section id="pricing" className="py-20 border-t border-white/[0.08] relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-12">
           <div className="max-w-3xl mx-auto space-y-3">
@@ -1310,7 +1340,7 @@ export default function RedesignedHomePage() {
               Transparent Pricing
             </span>
             <h2 className="text-3xl sm:text-5xl font-sora font-bold text-white tracking-tight">
-              Predictable Pricing. No Agency Games.
+              Predictable Pricing. Zero Agency Games.
             </h2>
             <p className="text-slate-400 text-xs sm:text-sm font-inter">
               All plans include a 14-day risk-free trial. Upgrade, downgrade, or cancel anytime.
@@ -1322,7 +1352,7 @@ export default function RedesignedHomePage() {
             <div className="p-6 rounded-[16px] bg-[#0B0F14] border border-white/10 space-y-5">
               <div>
                 <h3 className="font-sora text-lg font-bold text-white">Starter</h3>
-                <p className="text-xs text-slate-400 font-inter">For solo practitioners and single clinics.</p>
+                <p className="text-xs text-slate-400 font-inter">For solopreneurs, creators, consultants & solo shops.</p>
               </div>
               <div className="flex items-baseline gap-1">
                 <span className="text-3xl font-bold font-sora text-white">₹1,199</span>
@@ -1357,7 +1387,7 @@ export default function RedesignedHomePage() {
             {/* Growth (Featured) */}
             <div className="p-6 rounded-[16px] bg-gradient-to-b from-[#141A24] to-[#0B0F14] border-2 border-[#FF7A00] space-y-5 relative shadow-xl shadow-[#FF7A00]/10">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#FF7A00] text-white text-[10px] font-bold font-mono uppercase px-3 py-0.5 rounded-full">
-                Most Popular for Clinics
+                Most Popular
               </div>
               <div>
                 <h3 className="font-sora text-lg font-bold text-white">Growth Autopilot</h3>
@@ -1401,11 +1431,11 @@ export default function RedesignedHomePage() {
               </button>
             </div>
 
-            {/* Agency / Clinic Chain */}
+            {/* Agency / Multi-Brand */}
             <div className="p-6 rounded-[16px] bg-[#0B0F14] border border-white/10 space-y-5">
               <div>
-                <h3 className="font-sora text-lg font-bold text-white">Agency / Multi-Clinic</h3>
-                <p className="text-xs text-slate-400 font-inter">For multi-location clinic chains and digital agencies.</p>
+                <h3 className="font-sora text-lg font-bold text-white">Agency / Multi-Brand</h3>
+                <p className="text-xs text-slate-400 font-inter">For multi-brand operators, agencies, and chains.</p>
               </div>
               <div className="flex items-baseline gap-1">
                 <span className="text-3xl font-bold font-sora text-white">₹11,999</span>
@@ -1426,7 +1456,7 @@ export default function RedesignedHomePage() {
                 </li>
                 <li className="flex items-center gap-2">
                   <Check size={14} className="text-emerald-400 shrink-0" />
-                  <span>Custom Webhooks & Front-Desk CRM Sync</span>
+                  <span>Custom Webhooks & Team CRM Sync</span>
                 </li>
               </ul>
               <button
@@ -1440,7 +1470,7 @@ export default function RedesignedHomePage() {
         </div>
       </section>
 
-      {/* 12. Frequently Asked Questions Accordion */}
+      {/* 13. Frequently Asked Questions Accordion */}
       <section className="py-20 border-t border-white/[0.08] bg-[#060a12]/70 relative">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-left">
           <div className="text-center mb-12 space-y-2">
@@ -1488,7 +1518,7 @@ export default function RedesignedHomePage() {
         </div>
       </section>
 
-      {/* 13. Bottom High-Impact CTA Banner */}
+      {/* 14. Bottom High-Impact CTA Banner */}
       <section className="py-20 border-t border-white/[0.08] relative overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-[#FF7A00]/15 blur-[150px] rounded-full pointer-events-none -z-10" />
 
@@ -1496,12 +1526,12 @@ export default function RedesignedHomePage() {
           <h2 className="font-sora text-3xl sm:text-5xl font-bold text-white tracking-tight leading-tight">
             Stop babysitting marketing retainers. <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF7A00] via-[#FFA34D] to-emerald-400">
-              Put your business marketing on autopilot.
+              Put your marketing on autopilot.
             </span>
           </h2>
 
           <p className="text-sm sm:text-base text-slate-300 font-inter max-w-2xl mx-auto leading-relaxed">
-            Join hundreds of forward-thinking Indian founders, doctors, and multi-location clinic owners. Set up your Brand Brain in 60 seconds with zero credit card required.
+            Join hundreds of forward-thinking Indian founders, creators, retail brands, and operators. Set up your Brand Brain in 60 seconds with zero credit card required.
           </p>
 
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -1529,7 +1559,7 @@ export default function RedesignedHomePage() {
         </div>
       </section>
 
-      {/* 14. Unified Global Footer */}
+      {/* 15. Unified Global Footer */}
       <Footer />
     </div>
   );
