@@ -732,6 +732,17 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
     }
 
+    // POLICY ENFORCEMENT: Email verification required before approving/publishing campaigns
+    if (status === 'APPROVED' && !session.user.emailVerified) {
+      return NextResponse.json(
+        {
+          error: 'Email verification required. Please verify your business email before approving and publishing campaigns.',
+          code: 'EMAIL_VERIFICATION_REQUIRED',
+        },
+        { status: 403 }
+      );
+    }
+
     const [campRecord] = await database
       .select()
       .from(scheduledCampaigns)

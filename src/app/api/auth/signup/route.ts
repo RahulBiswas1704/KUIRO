@@ -5,6 +5,7 @@ import {
   hashPassword,
   validatePasswordStrength,
   createDatabaseSession,
+  createVerificationToken,
   SESSION_COOKIE_NAME,
   SESSION_MAX_AGE_DAYS,
 } from '@/lib/auth';
@@ -128,7 +129,10 @@ export async function POST(req: NextRequest) {
       providerId: 'credentials',
     });
 
-    // 7. Create Persistent Database Session
+    // 7. Generate Initial Email Verification OTP Token
+    await createVerificationToken(cleanEmail, 'EMAIL_VERIFICATION', 15);
+
+    // 8. Create Persistent Database Session
     const ipAddress = req.headers.get('x-forwarded-for') || undefined;
     const userAgent = req.headers.get('user-agent') || undefined;
     const { token, expiresAt } = await createDatabaseSession(newUser.id, {

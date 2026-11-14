@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { NextRequest } from 'next/server';
-import { db, users, workspaces, sessions, accounts, brandProfiles } from '@/db';
-import { eq, and, gt } from 'drizzle-orm';
+import { db, users, workspaces, sessions, accounts, brandProfiles, verificationTokens } from '@/db';
+import { eq, and, gt, desc } from 'drizzle-orm';
 
 export const SESSION_COOKIE_NAME = 'kuiro_session';
 export const SESSION_MAX_AGE_DAYS = 30;
@@ -25,40 +25,302 @@ export interface SessionData {
   expiresAt: Date;
 }
 
-/**
- * Hash a plain text password with a unique salt using scrypt
- */
-export function hashPassword(password: string): string {
-  const salt = crypto.randomBytes(16).toString('hex');
-  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
-  return `${salt}:${hash}`;
+// ============================================================================
+// RATE LIMITING & THROTTLING (Brute-Force Attack Prevention)
+// ============================================================================
+interface RateLimitEntry {
+  attempts: number;
+  firstAttemptAt: number;
+  blockedUntil?: number;
 }
 
-/**
- * Validates minimum password strength
- */
-export function validatePasswordStrength(password: string): { valid: boolean; error?: string } {
-  if (!password || typeof password !== 'string') {
-    return { valid: false, error: 'Password is required.' };
+const loginAttempts = new Map<string, RateLimitEntry>();
+const MAX_LOGIN_ATTEMPTS = 5;
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const BLOCK_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
+export function checkLoginRateLimit(identifier: string, ip?: string): { allowed: boolean; retryAfterSeconds?: number } {
+  const now = Date.now();
+  const keys = [identifier.trim().toLowerCase()];
+  if (ip && ip !== 'unknown') keys.push(`ip:${ip}`);
+
+  for (const key of keys) {
+    const entry = loginAttempts.get(key);
+    if (!entry) continue;
+
+    // Check if currently blocked
+    if (entry.blockedUntil && entry.blockedUntil > now) {
+      const retryAfterSeconds = Math.ceil((entry.blockedUntil - now) / 1000);
+      return { allowed: false, retryAfterSeconds };
+    }
+
+    // Reset window if expired
+    if (now - entry.firstAttemptAt > RATE_LIMIT_WINDOW_MS) {
+      loginAttempts.delete(key);
+    }
   }
-  if (password.length < 8) {
+
+  return { allowed: true };
+}
+
+export function recordFailedLoginAttempt(identifier: string, ip?: string): void {
+  const now = Date.now();
+  const keys = [identifier.trim().toLowerCase()];
+  if (ip && ip !== 'unknown') keys.push(`ip:${ip}`);
+
+  for (const key of keys) {
+    const entry = loginAttempts.get(key);
+    if (!entry || now - entry.firstAttemptAt > RATE_LIMIT_WINDOW_MS) {
+      loginAttempts.set(key, { attempts: 1, firstAttemptAt: now });
+    } else {
+      entry.attempts += 1;
+      if (entry.attempts >= MAX_LOGIN_ATTEMPTS) {
+        entry.blockedUntil = now + BLOCK_DURATION_MS;
+      }
+    }
+  }
+}
+
+export function clearFailedLoginAttempts(identifier: string, ip?: string): void {
+  loginAttempts.delete(identifier.trim().toLowerCase());
+  if (ip && ip !== 'unknown') loginAttempts.delete(`ip:${ip}`);
+}
+
+// ============================================================================
+// PASSWORD SECURITY & CRYPTOGRAPHY
+// ============================================================================
+
+/**
+ * Validates password strength policy:
+ * - Must be non-empty string.
+ * - Minimum 8 characters, maximum 128 characters.
+ */
+export function validatePasswordStrength(password: unknown): { valid: boolean; error?: string } {
+  if (!password || typeof password !== 'string') {
+    return { valid: false, error: 'Password is required to authenticate.' };
+  }
+  const trimmed = password.trim();
+  if (trimmed.length < 8) {
     return { valid: false, error: 'Password must be at least 8 characters in length.' };
+  }
+  if (trimmed.length > 128) {
+    return { valid: false, error: 'Password cannot exceed 128 characters in length.' };
   }
   return { valid: true };
 }
 
 /**
- * Verify a plain text password against stored salt:hash
+ * Hash a plain text password with a unique salt using scrypt (N: 16384, r: 8, p: 1)
+ */
+export function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(password, salt, 64, { N: 16384, r: 8, p: 1 }).toString('hex');
+  return `scrypt:${salt}:${hash}`;
+}
+
+/**
+ * Verify a plain text password against stored hash using constant-time comparison
  */
 export function verifyPassword(password: string, storedHash: string): boolean {
   try {
-    if (!storedHash || !storedHash.includes(':')) return false;
-    const [salt, key] = storedHash.split(':');
+    if (!storedHash || typeof storedHash !== 'string') return false;
+
+    let salt: string;
+    let key: string;
+
+    const parts = storedHash.split(':');
+    if (parts.length === 3 && parts[0] === 'scrypt') {
+      salt = parts[1];
+      key = parts[2];
+    } else if (parts.length === 2) {
+      salt = parts[0];
+      key = parts[1];
+    } else {
+      return false;
+    }
+
     const keyBuffer = Buffer.from(key, 'hex');
-    const derivedKey = crypto.scryptSync(password, salt, 64);
+    const derivedKey = crypto.scryptSync(password, salt, 64, { N: 16384, r: 8, p: 1 });
+    if (keyBuffer.length !== derivedKey.length) return false;
     return crypto.timingSafeEqual(keyBuffer, derivedKey);
   } catch {
     return false;
+  }
+}
+
+// ============================================================================
+// VERIFICATION TOKENS & TIME-LIMITED OTP ENGINE
+// ============================================================================
+interface MemoryToken {
+  id: string;
+  identifier: string;
+  tokenHash: string;
+  type: 'EMAIL_VERIFICATION' | 'PASSWORD_RESET' | 'MAGIC_LINK';
+  expiresAt: Date;
+  usedAt: Date | null;
+}
+
+const memoryVerificationTokens = new Map<string, MemoryToken>();
+
+export function hashToken(token: string): string {
+  return crypto.createHash('sha256').update(token.trim()).digest('hex');
+}
+
+export function generateNumericOtp(length = 6): string {
+  const min = Math.pow(10, length - 1);
+  const max = Math.pow(10, length) - 1;
+  return crypto.randomInt(min, max + 1).toString();
+}
+
+/**
+ * Issues a cryptographically random, time-limited OTP (10 minutes)
+ */
+export async function createVerificationToken(
+  identifier: string,
+  type: 'EMAIL_VERIFICATION' | 'PASSWORD_RESET' | 'MAGIC_LINK',
+  expiryMinutes = 10
+): Promise<{ rawToken: string; expiresAt: Date }> {
+  const cleanIdentifier = identifier.trim().toLowerCase();
+  const rawToken = generateNumericOtp(6);
+  const tokenHash = hashToken(rawToken);
+  const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
+  const tokenId = `vt_${crypto.randomUUID()}`;
+
+  const database = db;
+  if (database) {
+    try {
+      await database.insert(verificationTokens).values({
+        id: tokenId,
+        identifier: cleanIdentifier,
+        token: tokenHash,
+        type,
+        expiresAt,
+        usedAt: null,
+      });
+    } catch (dbErr) {
+      console.warn('[VerificationTokens] DB insert fallback to memory cache:', dbErr);
+    }
+  }
+
+  // Resilient memory cache
+  memoryVerificationTokens.set(`${cleanIdentifier}:${type}`, {
+    id: tokenId,
+    identifier: cleanIdentifier,
+    tokenHash,
+    type,
+    expiresAt,
+    usedAt: null,
+  });
+
+  return { rawToken, expiresAt };
+}
+
+/**
+ * Validates and consumes an OTP:
+ * - Rejects expired OTP
+ * - Rejects reused OTP (single-use constraint)
+ * - Compares hash in constant time
+ */
+export async function verifyAndConsumeToken(
+  identifier: string,
+  rawToken: string,
+  type: 'EMAIL_VERIFICATION' | 'PASSWORD_RESET' | 'MAGIC_LINK'
+): Promise<{ valid: boolean; error?: string }> {
+  if (!rawToken || !identifier) {
+    return { valid: false, error: 'Verification code and email are required.' };
+  }
+
+  const cleanIdentifier = identifier.trim().toLowerCase();
+  const submittedHash = hashToken(rawToken);
+  const database = db;
+  const now = new Date();
+
+  // 1. Try Database First
+  if (database) {
+    try {
+      const [tokenRecord] = await database
+        .select()
+        .from(verificationTokens)
+        .where(
+          and(
+            eq(verificationTokens.identifier, cleanIdentifier),
+            eq(verificationTokens.type, type)
+          )
+        )
+        .orderBy(desc(verificationTokens.createdAt))
+        .limit(1);
+
+      if (tokenRecord) {
+        // Reused OTP -> Rejected
+        if (tokenRecord.usedAt !== null) {
+          return { valid: false, error: 'This verification code has already been used. Please request a new code.' };
+        }
+
+        // Expired OTP -> Rejected
+        if (tokenRecord.expiresAt < now) {
+          return { valid: false, error: 'Verification code has expired. Please request a new code.' };
+        }
+
+        // Constant time comparison of hashes
+        const storedHashBuf = Buffer.from(tokenRecord.token, 'hex');
+        const submittedHashBuf = Buffer.from(submittedHash, 'hex');
+        const isMatch = storedHashBuf.length === submittedHashBuf.length && crypto.timingSafeEqual(storedHashBuf, submittedHashBuf);
+
+        if (!isMatch) {
+          return { valid: false, error: 'Invalid verification code.' };
+        }
+
+        // Mark consumed immediately
+        await database
+          .update(verificationTokens)
+          .set({ usedAt: now })
+          .where(eq(verificationTokens.id, tokenRecord.id));
+
+        return { valid: true };
+      }
+    } catch (dbErr) {
+      console.warn('[VerificationTokens] DB query fallback to memory cache:', dbErr);
+    }
+  }
+
+  // 2. Fallback to resilient in-memory token registry
+  const memToken = memoryVerificationTokens.get(`${cleanIdentifier}:${type}`);
+  if (!memToken) {
+    return { valid: false, error: 'Invalid verification code or no active code found.' };
+  }
+
+  if (memToken.usedAt !== null) {
+    return { valid: false, error: 'This verification code has already been used. Please request a new code.' };
+  }
+
+  if (memToken.expiresAt < now) {
+    return { valid: false, error: 'Verification code has expired. Please request a new code.' };
+  }
+
+  const storedBuf = Buffer.from(memToken.tokenHash, 'hex');
+  const submittedBuf = Buffer.from(submittedHash, 'hex');
+  const isMatch = storedBuf.length === submittedBuf.length && crypto.timingSafeEqual(storedBuf, submittedBuf);
+
+  if (!isMatch) {
+    return { valid: false, error: 'Invalid verification code.' };
+  }
+
+  memToken.usedAt = now;
+  return { valid: true };
+}
+
+/**
+ * Revokes all active database sessions for a given user (called upon password reset)
+ */
+export async function revokeAllUserSessions(userId: string): Promise<number> {
+  const database = db;
+  if (!database || !userId) return 0;
+  try {
+    await database.delete(sessions).where(eq(sessions.userId, userId));
+    return 1;
+  } catch (err) {
+    console.error('[Auth] Failed to revoke user sessions:', err);
+    return 0;
   }
 }
 
