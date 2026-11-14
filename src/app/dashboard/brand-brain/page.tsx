@@ -18,6 +18,7 @@ import {
   Check,
   Loader2
 } from 'lucide-react';
+import BrandStudioCanvas from '@/components/dashboard/BrandStudioCanvas';
 
 export default function BrandBrainPage() {
   const [url, setUrl] = useState('https://mybrand.in');
@@ -268,7 +269,7 @@ export default function BrandBrainPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto font-inter">
+    <div className="space-y-6 max-w-7xl mx-auto font-inter">
       {/* Toast Alert */}
       {savedSuccess && (
         <div className="p-3.5 rounded-[12px] bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
@@ -385,8 +386,11 @@ export default function BrandBrainPage() {
         )}
       </div>
 
-      {/* Main Settings Sections */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Main Interactive Studio Workspace: Tokens on Left, Live Canvas on Right */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+        {/* Left Column (7 Cols on xl): Visual Tokens, Voice, Pillars & Negative Guardrails */}
+        <div className="xl:col-span-7 space-y-6">
+          <div className="grid grid-cols-1 gap-6">
         {/* Visual Identity & Colors */}
         <div className="bg-white rounded-[14px] border border-[#E5E7EB] p-5 space-y-4">
           <div className="flex items-center gap-2 border-b border-[#E5E7EB] pb-2">
@@ -693,7 +697,24 @@ export default function BrandBrainPage() {
             </button>
           </div>
         </div>
+        </div>
       </div>
+
+      {/* Right Column (5 Cols on xl): Sticky Live Brand Studio Canvas */}
+      <div className="xl:col-span-5 xl:sticky xl:top-6 space-y-4">
+        <BrandStudioCanvas
+          businessName={businessName}
+          industry={industry}
+          primaryColor={primaryColor}
+          secondaryColor={secondaryColor}
+          fontFamily={fontFamily}
+          logoUrl={logoUrl}
+          tones={tones}
+          pillars={pillars}
+          negativeConstraints={negativeConstraints}
+        />
+      </div>
+    </div>
     </div>
   );
 }

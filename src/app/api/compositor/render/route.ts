@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
       type = 'single', 
       headline, 
       subheadline, 
-      brandName = 'Apex Clinic', 
+      brandName = 'Sharma Heritage Retail & Studio', 
       primaryColor,
       cards,
       phone,
