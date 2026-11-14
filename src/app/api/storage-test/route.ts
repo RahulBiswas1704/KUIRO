@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadToR2, getStorageProvider, getPresignedDownloadUrl } from '@/lib/storage/r2';
+import { uploadToR2, getStorageProvider, getPresignedDownloadUrl, checkStorageHealth } from '@/lib/storage/r2';
 import { getSessionFromRequest } from '@/lib/auth';
 import { verifyManagementAuth } from '@/lib/adminAuth';
 
@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
 
   const startTime = Date.now();
   const provider = getStorageProvider();
+  const health = await checkStorageHealth();
 
   try {
     // Generate a lightweight test PNG (1x1 transparent or test SVG converted)
@@ -43,6 +44,7 @@ export async function GET(req: NextRequest) {
       testKey,
       publicUrl,
       presignedUrl,
+      health,
       durationMs,
       timestamp: new Date().toISOString(),
     });
@@ -51,6 +53,7 @@ export async function GET(req: NextRequest) {
       {
         success: false,
         provider,
+        health,
         error: error.message || String(error),
         durationMs: Date.now() - startTime,
       },

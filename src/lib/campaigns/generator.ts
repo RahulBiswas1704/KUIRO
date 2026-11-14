@@ -1,6 +1,7 @@
 import { db, workspaces, brandProfiles, scheduledCampaigns, platformPosts, users } from '@/db';
 import { eq } from 'drizzle-orm';
 import { inngest } from '@/lib/inngest/client';
+import { safeDispatchInngest } from '@/lib/inngest/dispatcher';
 import { evaluateAndRefineCampaignCopy } from '@/lib/ai/critic';
 import { GeneratedAssetPayload } from '@/types';
 
@@ -422,21 +423,17 @@ export async function createAutonomousCampaign(params: {
     insertedPosts.push(created);
   }
 
-  // 5. Dispatch Inngest Event
-  try {
-    await inngest.send({
-      name: 'kuiro/campaign.initiate',
-      data: {
-        campaignId: campaign.id,
-        workspaceId: ws.id,
-        publishAt: publishAt.toISOString(),
-        triggerType,
-        eventName: topic.trim(),
-      },
-    });
-  } catch (inngErr) {
-    console.warn('[Inngest Dispatch Warning]:', inngErr);
-  }
+  // 5. Dispatch Durable Event via Resilient Outbox Dispatcher
+  await safeDispatchInngest({
+    name: 'kuiro/campaign.initiate',
+    data: {
+      campaignId: campaign.id,
+      workspaceId: ws.id,
+      publishAt: publishAt.toISOString(),
+      triggerType,
+      eventName: topic.trim(),
+    },
+  });
 
   return {
     campaign,
