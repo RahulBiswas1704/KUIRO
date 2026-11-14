@@ -4,7 +4,7 @@ import { GeneratedAssetPayload } from '@/types';
 
 export interface PostToRevise {
   id?: string;
-  platform: 'instagram' | 'linkedin' | 'x' | 'whatsapp' | 'email';
+  platform: 'facebook' | 'instagram' | 'linkedin' | 'x' | 'whatsapp' | 'email';
   caption: string;
   firstComment?: string;
   subject?: string;
@@ -23,7 +23,7 @@ export interface SurgicalRevisionParams {
 }
 
 export interface RevisedPostOutput {
-  platform: 'instagram' | 'linkedin' | 'x' | 'whatsapp' | 'email';
+  platform: 'facebook' | 'instagram' | 'linkedin' | 'x' | 'whatsapp' | 'email';
   caption: string;
   firstComment?: string;
   subject?: string;
@@ -51,10 +51,14 @@ function applyHeuristicSurgicalRevision(
 
   const wantsFestive = /\b(festive|utsav|puja|tyohar|celebrat|diwali|eid|christmas|parv)\b/i.test(pLower);
   const wantsRemovePricing = /\b(pricing mat|price mat|no price|remove price|daam|rate mat|paisa mat|cost)\b/i.test(pLower);
-  const wantsShorter = /\b(short|chota|crisp|punchy|brief|less text|kam karo)\b/i.test(pLower);
+  const wantsRemoveDiscount = /\b(discount|chhut|offer|sale|rebate|cut|percentage off|deal|discount reference)\b/i.test(pLower);
+  const wantsPremium = /\b(premium|luxury|sophisticated|royal|exclusive|rich|high[- ]end|shandar|heritage|bespoke)\b/i.test(pLower);
+  const wantsShorter = /\b(short|shorter|chota|crisp|punchy|brief|less text|kam karo|concise)\b/i.test(pLower);
   const wantsWhatsAppBooking = /\b(whatsapp|book|call|phone|contact|number|bhejo|reply)\b/i.test(pLower);
 
   if (wantsRemovePricing) summaryParts.push('Removed direct pricing references');
+  if (wantsRemoveDiscount) summaryParts.push('Removed discount & promotional sale references');
+  if (wantsPremium) summaryParts.push('Elevated tone to bespoke luxury & refined craftsmanship');
   if (wantsFestive) summaryParts.push('Enhanced festive celebratory warmth & emojis');
   if (wantsShorter) summaryParts.push('Condensed copy for mobile punchiness');
   if (wantsWhatsAppBooking) summaryParts.push('Strengthened direct WhatsApp booking CTA');
@@ -74,9 +78,24 @@ function applyHeuristicSurgicalRevision(
       cap = cap.replace(/\b(Rs\.?|INR)\s*\d+/gi, 'exclusive pricing');
     }
 
+    // Remove discount mentions if requested
+    if (wantsRemoveDiscount) {
+      cap = cap.replace(/\b\d+%\s*(off|discount)\b/gi, 'curated selection');
+      cap = cap.replace(/\b(flat\s*\d+%|special discount|discounted price|seasonal discount)\b/gi, 'exclusive showcase');
+      cap = cap.replace(/\b(huge discount|mega discount|discount voucher)\b/gi, 'bespoke collection');
+    }
+
+    // Elevate tone to premium luxury
+    if (wantsPremium) {
+      cap = cap.replace(/\b(affordable|cheap|budget-friendly|low cost)\b/gi, 'masterfully crafted');
+      cap = cap.replace(/\b(buy now|shop today)\b/gi, 'experience bespoke excellence');
+      if (!cap.includes('bespoke') && !cap.includes('craftsmanship') && !cap.includes('refined')) {
+        cap = cap.replace(/\b(At\s+[A-Za-z0-9\s]+,)/i, '$1 renowned for timeless elegance and artisanal perfection,');
+      }
+    }
+
     // Enhance festive warmth
     if (wantsFestive && !cap.includes('✨') && !cap.includes('🎉')) {
-      const firstLine = cap.split('\n')[0] || '';
       cap = `✨ Celebrate the festive spirit with ${businessName}! 🛍️\n\n` + cap;
       if (subj) {
         subj = `✨ Festive Celebrations at ${businessName}: Special Previews Inside`;
@@ -84,9 +103,14 @@ function applyHeuristicSurgicalRevision(
     }
 
     // Condensed punchy copy
-    if (wantsShorter && post.platform === 'x') {
-      if (cap.length > 180) {
+    if (wantsShorter) {
+      if (post.platform === 'x' && cap.length > 180) {
         cap = cap.substring(0, 175) + '... ✨';
+      } else {
+        const lines = cap.split('\n').filter(Boolean);
+        if (lines.length > 3) {
+          cap = lines.slice(0, 2).join('\n\n') + `\n\n📍 Visit ${businessName} or contact us directly to explore.`;
+        }
       }
     }
 
@@ -94,7 +118,7 @@ function applyHeuristicSurgicalRevision(
     if (wantsWhatsAppBooking && !/reply|whatsapp|book/i.test(cap)) {
       if (post.platform === 'whatsapp') {
         cap += `\n\n📲 Reply BOOK to reserve your appointment or slot now!`;
-      } else if (post.platform === 'instagram') {
+      } else if (post.platform === 'instagram' || post.platform === 'facebook') {
         cap += `\n\n📲 WhatsApp us or DM to explore the collection!`;
       }
     }
@@ -178,6 +202,11 @@ Return a raw JSON object only (no markdown, no backticks):
 {
   "summary": "1-2 sentence executive explanation in English of what was surgically modified",
   "posts": [
+    {
+      "platform": "facebook",
+      "caption": "Surgically revised Facebook post caption",
+      "firstComment": "revised hashtags if updated"
+    },
     {
       "platform": "instagram",
       "caption": "Surgically revised Instagram caption",

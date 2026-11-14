@@ -239,6 +239,29 @@ export const platformPosts = pgTable('platform_posts', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// 7b. Campaign Revisions History & Spoken Audit Log
+export const campaignRevisions = pgTable('campaign_revisions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  campaignId: uuid('campaign_id').references(() => scheduledCampaigns.id, { onDelete: 'cascade' }).notNull(),
+  revisionNumber: integer('revision_number').notNull(),
+  instruction: text('instruction').notNull(),
+  transcript: text('transcript'),
+  languageDetected: text('language_detected'),
+  audioMediaId: text('audio_media_id'),
+  requestedBy: text('requested_by').notNull(), // Phone number or user ID
+  requesterName: text('requester_name'),
+  snapshotPosts: jsonb('snapshot_posts').$type<Array<{
+    platform: string;
+    caption: string;
+    firstComment?: string;
+    subject?: string;
+    mediaUrls?: string[];
+    aiCriticScore?: number;
+  }>>().notNull(),
+  revisionSummary: text('revision_summary').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 // 8. Unified Multi-Channel Customer Inbox & Conversations Hub
 export const conversations = pgTable('conversations', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -355,6 +378,11 @@ export const inboxMessageRelations = relations(inboxMessages, ({ one }) => ({
 export const campaignRelations = relations(scheduledCampaigns, ({ one, many }) => ({
   workspace: one(workspaces, { fields: [scheduledCampaigns.workspaceId], references: [workspaces.id] }),
   posts: many(platformPosts),
+  revisions: many(campaignRevisions),
+}));
+
+export const campaignRevisionRelations = relations(campaignRevisions, ({ one }) => ({
+  campaign: one(scheduledCampaigns, { fields: [campaignRevisions.campaignId], references: [scheduledCampaigns.id] }),
 }));
 
 export const postRelations = relations(platformPosts, ({ one }) => ({

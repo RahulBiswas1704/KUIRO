@@ -14,6 +14,11 @@ import {
   isDuplicateEvent,
   validateMetaIdentifiers,
 } from '@/lib/whatsapp/webhookSecurity';
+import {
+  downloadWhatsAppAudio,
+  transcribeWhatsAppAudio,
+  processWhatsAppVoiceRevision,
+} from '@/lib/whatsapp/voiceProcessor';
 
 function normalizePhone(phone: string): string {
   return phone.replace(/\D/g, '').slice(-10);
@@ -256,43 +261,47 @@ export async function POST(req: NextRequest) {
     // 2. Extract Message Content (Text or Audio / Voice)
     let messageContent = '';
     let isVoice = false;
+    let voiceMediaId: string | undefined;
+    let voiceTranscript: string | undefined;
+    let voiceLanguage: string | undefined;
+    let voiceAudioBuffer: Buffer | undefined;
+    let voiceMimeType: string = message.audio?.mime_type || message.voice?.mime_type || 'audio/ogg';
 
     if (messageType === 'text') {
       messageContent = message.text?.body || '';
     } else if (messageType === 'audio' || messageType === 'voice') {
       isVoice = true;
-      const mediaId = message.audio?.id || message.voice?.id;
+      voiceMediaId = message.audio?.id || message.voice?.id;
       const inlineData = message.audio?.data || message.voice?.data;
       const transcriptGiven = message.audio?.transcript || message.voice?.transcript;
 
       if (inlineData) {
+        voiceAudioBuffer = typeof inlineData === 'string' ? Buffer.from(inlineData, 'base64') : Buffer.from(inlineData);
+      } else if (voiceMediaId) {
         try {
-          const trans = await transcribeAudioWithGemini(inlineData, message.audio?.mime_type || 'audio/ogg');
-          messageContent = trans.transcript ? `[Voice Note: ${trans.transcript}]` : `[Voice Note received: ID ${mediaId || 'audio'}]`;
-        } catch (transErr) {
-          messageContent = `[Voice Note received: ID ${mediaId || 'audio'}]`;
+          const download = await downloadWhatsAppAudio(voiceMediaId);
+          voiceAudioBuffer = download.buffer;
+          voiceMimeType = download.mimeType;
+        } catch (dlErr: any) {
+          console.warn('[WhatsApp Audio Download Warning]:', dlErr.message);
         }
-      } else if (transcriptGiven) {
+      }
+
+      if (transcriptGiven) {
+        voiceTranscript = transcriptGiven;
+        voiceLanguage = 'auto';
         messageContent = `[Voice Note: ${transcriptGiven}]`;
-      } else if (mediaId && process.env.WHATSAPP_ACCESS_TOKEN && !process.env.WHATSAPP_ACCESS_TOKEN.startsWith('mock')) {
-        try {
-          const mediaUrl = await whatsappClient.getMediaUrl(mediaId);
-          if (mediaUrl && !mediaUrl.includes('mock-media')) {
-            const audioRes = await fetch(mediaUrl, {
-              headers: { Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}` },
-            });
-            const audioBuffer = Buffer.from(await audioRes.arrayBuffer());
-            const trans = await transcribeAudioWithGemini(audioBuffer, message.audio?.mime_type || 'audio/ogg');
-            messageContent = `[Voice Note: ${trans.transcript}]`;
-          } else {
-            messageContent = `[Voice Note received: ID ${mediaId}]`;
-          }
-        } catch (mediaErr) {
-          console.warn('[WhatsApp Audio Media Retrieval Warning]:', mediaErr);
-          messageContent = `[Voice Note received: ID ${mediaId}]`;
+      } else if (voiceAudioBuffer) {
+        const transResult = await transcribeWhatsAppAudio(voiceAudioBuffer, voiceMimeType);
+        if (transResult.success && transResult.transcript) {
+          voiceTranscript = transResult.transcript;
+          voiceLanguage = transResult.languageDetected;
+          messageContent = `[Voice Note (${voiceLanguage}): "${voiceTranscript}"]`;
+        } else {
+          messageContent = `[Voice Note received: ID ${voiceMediaId || 'audio'}]`;
         }
       } else {
-        messageContent = `[Voice Note received: ID ${mediaId || 'audio'}]`;
+        messageContent = `[Voice Note received: ID ${voiceMediaId || 'audio'}]`;
       }
     } else {
       messageContent = `[Received ${messageType} attachment]`;
@@ -453,89 +462,62 @@ export async function POST(req: NextRequest) {
               }
 
               // Otherwise treat as Surgical Voice / Text Revision
-              if (pendingCamp.revisionCount < 2) {
-                const existingPosts = await db
-                  .select()
-                  .from(platformPosts)
-                  .where(eq(platformPosts.campaignId, pendingCamp.id));
+              const revisionResult = await processWhatsAppVoiceRevision({
+                workspaceId: targetWs.id,
+                senderPhone,
+                requesterName: contactName,
+                mediaId: voiceMediaId,
+                audioBuffer: voiceAudioBuffer,
+                mimeType: voiceMimeType,
+                transcriptOverride: voiceTranscript || cleanContent,
+              });
 
-                const [bp] = await db
-                  .select()
-                  .from(brandProfiles)
-                  .where(eq(brandProfiles.workspaceId, targetWs.id));
+              if (revisionResult.status === 'SECURITY_REJECTED') {
+                await sendWhatsAppReply(senderPhone, revisionResult.replyMessage);
+                return NextResponse.json({
+                  status: 'security_violation_rejected',
+                  error: revisionResult.error,
+                  replyMessage: revisionResult.replyMessage,
+                }, { status: 403 });
+              }
 
-                const revisionResult = await reviseCampaignSurgically({
-                  posts: existingPosts.map((p) => ({
-                    id: p.id,
-                    platform: p.platform as any,
-                    caption: p.captionText,
-                    firstComment: p.firstCommentText || undefined,
-                    subject: p.emailSubject || undefined,
-                    mediaUrls: p.mediaUrls,
-                    aspectRatio: p.aspectRatio,
-                  })),
-                  revisionPrompt: cleanContent,
-                  businessName: targetWs.name,
-                  industry: bp?.industry || 'General Commerce & Services',
-                  tones: (bp?.toneOfVoice?.samplePhrases as string[]) || ['Culturally Warm', 'Authoritative'],
-                  pillars: (bp?.contentPillars as any[])?.map((p) => p.name || p) || ['Core Offerings'],
-                  negativeConstraints: (bp?.negativeConstraints as string[]) || [],
-                });
+              if (revisionResult.status === 'AUDIO_INVALID' || revisionResult.status === 'TRANSCRIPTION_FAILED') {
+                await sendWhatsAppReply(senderPhone, revisionResult.replyMessage);
+                return NextResponse.json({
+                  status: revisionResult.status.toLowerCase(),
+                  error: revisionResult.error,
+                  replyMessage: revisionResult.replyMessage,
+                }, { status: 400 });
+              }
 
-                const nextRevCount = pendingCamp.revisionCount + 1;
-                await db
-                  .update(scheduledCampaigns)
-                  .set({
-                    revisionCount: nextRevCount,
-                    status: 'AUTO_QUEUED',
-                  })
-                  .where(eq(scheduledCampaigns.id, pendingCamp.id));
+              if (revisionResult.status === 'MAX_REVISIONS_EXCEEDED') {
+                await sendWhatsAppReply(senderPhone, revisionResult.replyMessage);
+                return NextResponse.json({
+                  status: 'admin_max_revisions_reached',
+                  campaignId: pendingCamp.id,
+                  replyMessage: revisionResult.replyMessage,
+                }, { status: 200 });
+              }
 
-                for (const rev of revisionResult.revisedPosts) {
-                  const match = existingPosts.find((p) => p.platform === rev.platform);
-                  if (match) {
-                    await db
-                      .update(platformPosts)
-                      .set({
-                        captionText: rev.caption,
-                        firstCommentText: rev.firstComment !== undefined ? rev.firstComment : match.firstCommentText,
-                        emailSubject: rev.subject !== undefined ? rev.subject : match.emailSubject,
-                        emailHtml: rev.platform === 'email' ? rev.caption : match.emailHtml,
-                        aiCriticScore: rev.aiCriticScore,
-                      })
-                      .where(eq(platformPosts.id, match.id));
-                  }
-                }
-
+              if (revisionResult.status === 'REVISION_APPLIED') {
                 await safeSendInngest({
                   name: 'whatsapp/admin.action',
                   data: {
                     action: 'EDIT',
-                    instruction: cleanContent,
+                    instruction: revisionResult.transcript,
                     campaignId: pendingCamp.id,
                   },
                 });
 
-                await sendWhatsAppReply(
-                  senderPhone,
-                  `🎨 *Surgical Voice Revision Applied (${nextRevCount}/2)*\n\n${revisionResult.revisionSummary}\n\n*Composite Quality Score:* ${revisionResult.compositeCriticScore}/100\n\nPreview updated in dashboard! Reply *APPROVE* or send another voice note if you need further adjustments.`
-                );
+                await sendWhatsAppReply(senderPhone, revisionResult.replyMessage);
 
                 return NextResponse.json({
                   status: 'admin_campaign_revised',
                   campaignId: pendingCamp.id,
                   revisionSummary: revisionResult.revisionSummary,
                   criticScore: revisionResult.compositeCriticScore,
-                }, { status: 200 });
-              } else {
-                await sendWhatsAppReply(
-                  senderPhone,
-                  `⚠️ *Maximum Revisions Reached*\n\nYou have used your 2 free revisions for campaign "${pendingCamp.topicSummary}". Please reply *APPROVE* to publish or *PAUSE* to cancel.`
-                );
-
-                return NextResponse.json({
-                  status: 'admin_max_revisions_reached',
-                  campaignId: pendingCamp.id,
+                  transcript: revisionResult.transcript,
+                  languageDetected: revisionResult.languageDetected,
                 }, { status: 200 });
               }
             }
