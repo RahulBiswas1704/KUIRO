@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { AnnouncementBar, Navbar, Footer } from '@/components/layout';
 import SubscriptionCheckoutModal, { PlanTier } from '@/components/billing/SubscriptionCheckoutModal';
+import CampaignRoiCalculator from '@/components/marketing/CampaignRoiCalculator';
 import {
   CheckCircle2,
   Sparkles,
@@ -42,26 +43,13 @@ import {
 export default function RedesignedPricingPage() {
   const { isLoggedIn, handleGetStarted } = useAuth();
   const [annualBilling, setAnnualBilling] = useState(true);
-  const [currentAgencySpend, setCurrentAgencySpend] = useState(45000); // INR per month
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [selectedCheckoutTier, setSelectedCheckoutTier] = useState<PlanTier>('GROWTH');
 
-  // Pricing Matrix calculations
   const starterPrice = annualBilling ? 999 : 1199;
   const growthPrice = annualBilling ? 2299 : 2799;
   const agencyPrice = annualBilling ? 9999 : 11999;
-
-  const calculateSavings = () => {
-    const kuiroMonthlyCost = growthPrice;
-    const monthlySavings = Math.max(0, currentAgencySpend - kuiroMonthlyCost);
-    const annualSavings = monthlySavings * 12;
-    const percentSavings = Math.round((monthlySavings / currentAgencySpend) * 100);
-    const roiMultiplier = (currentAgencySpend / kuiroMonthlyCost).toFixed(1);
-    return { monthlySavings, annualSavings, percentSavings, roiMultiplier };
-  };
-
-  const { monthlySavings, annualSavings, percentSavings, roiMultiplier } = calculateSavings();
 
   const faqs = [
     {
@@ -416,101 +404,9 @@ export default function RedesignedPricingPage() {
         </div>
       </section>
 
-      {/* 5. Interactive Retainer ROI Savings Calculator */}
+      {/* 5. Interactive Dual-Engine Campaign ROI & Revenue Attribution Calculator */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
-        <div className="p-5 sm:p-8 md:p-12 rounded-[20px] bg-gradient-to-br from-[#0B0F14] via-[#121720] to-[#0B0F14] border border-white/15 relative shadow-2xl">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            <div className="lg:col-span-7 space-y-5 text-left">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF7A00]/15 text-[#FF7A00] text-xs font-semibold">
-                <Calculator size={14} />
-                <span>ROI & Retainer Savings Calculator</span>
-              </div>
-
-              <h2 className="text-2xl sm:text-4xl font-sora font-bold text-white tracking-tight">
-                See How Much You Save vs. Traditional Retainers
-              </h2>
-
-              <p className="text-xs sm:text-sm text-slate-400 font-inter leading-relaxed">
-                Adjust your current monthly marketing spend on freelancers, graphic designers, social media agencies, or copywriters:
-              </p>
-
-              {/* Slider & Quick Buttons */}
-              <div className="space-y-4 pt-2">
-                <div className="flex items-center justify-between text-xs font-mono">
-                  <span className="text-slate-400">Current Monthly Spend:</span>
-                  <span className="text-lg font-bold text-white">₹{currentAgencySpend.toLocaleString('en-IN')} / mo</span>
-                </div>
-
-                <input
-                  type="range"
-                  min="15000"
-                  max="150000"
-                  step="5000"
-                  value={currentAgencySpend}
-                  onChange={(e) => setCurrentAgencySpend(Number(e.target.value))}
-                  className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#FF7A00]"
-                />
-
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {[25000, 45000, 75000, 120000].map((amount) => (
-                    <button
-                      key={amount}
-                      onClick={() => setCurrentAgencySpend(amount)}
-                      className={`px-3 py-1 rounded-lg text-xs font-mono transition ${
-                        currentAgencySpend === amount
-                          ? 'bg-[#FF7A00] text-white font-bold'
-                          : 'bg-white/5 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      ₹{amount / 1000}k
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Calculated Output Card */}
-            <div className="lg:col-span-5 bg-[#0B0F14] p-6 rounded-[16px] border border-[#FF7A00]/40 space-y-4 text-center">
-              <span className="text-xs font-mono uppercase text-slate-400 font-bold block">
-                Estimated Net Savings with KUIRO Growth
-              </span>
-
-              <div className="space-y-1">
-                <span className="text-3xl sm:text-4xl font-sora font-extrabold text-[#FF7A00] block">
-                  ₹{monthlySavings.toLocaleString('en-IN')}
-                </span>
-                <span className="text-xs text-slate-400 font-mono block">saved every month</span>
-              </div>
-
-              <div className="p-3 rounded-[10px] bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs font-mono flex items-center justify-center gap-2">
-                <CheckCircle2 size={14} className="text-emerald-400" />
-                <span>₹{annualSavings.toLocaleString('en-IN')} Annual Savings ({percentSavings}%)</span>
-              </div>
-
-              <div className="text-xs text-slate-300 space-y-1.5 pt-2 border-t border-white/10 text-left font-mono">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Net Return Multiple:</span>
-                  <span className="text-emerald-400 font-bold">{roiMultiplier}x ROI</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Time Saved Per Week:</span>
-                  <span className="text-white font-bold">8+ Hours</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">WhatsApp Revision Speed:</span>
-                  <span className="text-white font-bold">&lt; 15 Seconds</span>
-                </div>
-              </div>
-
-              <button
-                onClick={handleGetStarted}
-                className="w-full py-3.5 rounded-[12px] bg-[#FF7A00] hover:bg-[#FF881A] text-white text-xs font-sora font-semibold transition block shadow-md shadow-[#FF7A00]/25"
-              >
-                {isLoggedIn ? 'Go to Dashboard' : 'Claim Your Savings with Free Trial'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <CampaignRoiCalculator />
       </section>
 
       {/* 6. Comprehensive Feature Comparison Matrix */}

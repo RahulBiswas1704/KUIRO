@@ -17,9 +17,9 @@ function parseRupeeAmount(val?: string | null): number {
 }
 
 /**
- * Estimates clinical procedure/consultation value in INR based on patient tags and customer type
+ * Estimates commercial deal/order value in INR based on customer tags and profile type
  */
-function estimateClinicalValue(c: {
+function estimateLeadCommercialValue(c: {
   tags?: string[] | null;
   crmData?: any;
   customerName?: string;
@@ -33,28 +33,23 @@ function estimateClinicalValue(c: {
   const notes = (c.crmData?.notes || '').toLowerCase();
   const text = `${tags.join(' ')} ${type} ${notes}`;
 
-  // 2. High ticket: Clear Aligners / Orthodontics / Implants
-  if (text.includes('invisalign') || text.includes('aligner') || text.includes('implant') || text.includes('orthodontic')) {
-    return 45000;
-  }
-
-  // 3. Corporate / B2B Wellness Deals
-  if (text.includes('corporate') || text.includes('b2b') || text.includes('camp') || text.includes('deal')) {
+  // 2. High ticket / B2B Corporate Wholesale Deals & Group Orders
+  if (text.includes('corporate') || text.includes('wholesale') || text.includes('bulk') || text.includes('b2b') || text.includes('deal') || text.includes('group')) {
     return 85000;
   }
 
-  // 4. Emergency / Aesthetic Composite / Crown / Root Canal
-  if (text.includes('emergency') || text.includes('fracture') || text.includes('composite') || text.includes('crown') || text.includes('trauma')) {
+  // 3. Premium Artisanal / Bespoke Wardrobe / Executive Advisory
+  if (text.includes('bespoke') || text.includes('silk') || text.includes('bridal') || text.includes('advisory') || text.includes('sprint') || text.includes('retainer')) {
+    return 28000;
+  }
+
+  // 4. Repeat Orders / VIP Retail / Direct Purchases
+  if (text.includes('vip') || text.includes('repeat') || text.includes('order') || text.includes('buyer') || text.includes('pickup')) {
     return 6500;
   }
 
-  // 5. Skin / Dermatology / Laser / Peels
-  if (text.includes('aesthetic') || text.includes('skin') || text.includes('laser') || text.includes('peel')) {
-    return 8500;
-  }
-
-  // 6. Routine preventive checkup / consultation
-  return 1500;
+  // 5. Standard Inbound Lead / First Inquiry
+  return 2500;
 }
 
 /**
@@ -117,7 +112,7 @@ export async function GET(req: NextRequest) {
 
     // 3. Map conversations into attributed lead items
     const allAttributedLeads: AttributedLeadItem[] = conversationsList.map((c) => {
-      const estimatedValue = estimateClinicalValue(c);
+      const estimatedValue = estimateLeadCommercialValue(c);
       const booked = isAppointmentBooked(c);
 
       return {
