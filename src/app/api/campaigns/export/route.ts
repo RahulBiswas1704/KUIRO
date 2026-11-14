@@ -18,14 +18,14 @@ function slugify(text: string): string {
 
 export async function GET(req: NextRequest) {
   try {
-    const database = db;
-    if (!database) {
-      return NextResponse.json({ success: false, error: 'Database not connected' }, { status: 500 });
-    }
-
     const session = await getSessionFromRequest(req);
     if (!session) {
       return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
+    }
+
+    const database = db;
+    if (!database) {
+      return NextResponse.json({ success: false, error: 'Database not connected' }, { status: 500 });
     }
 
     const { searchParams } = new URL(req.url);

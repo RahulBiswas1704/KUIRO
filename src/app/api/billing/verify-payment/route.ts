@@ -127,10 +127,11 @@ export async function POST(req: NextRequest) {
         .update(`${orderId}|${paymentId}`)
         .digest('hex');
 
-      const isSignatureValid = crypto.timingSafeEqual(
-        Buffer.from(signature),
-        Buffer.from(expectedSignature)
-      );
+      const sigBuf = Buffer.from(signature);
+      const expBuf = Buffer.from(expectedSignature);
+      const isSignatureValid =
+        sigBuf.length === expBuf.length &&
+        crypto.timingSafeEqual(sigBuf, expBuf);
 
       if (!isSignatureValid) {
         return NextResponse.json(

@@ -8,15 +8,6 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    const database = db;
-    if (!database) {
-      return NextResponse.json({
-        success: true,
-        source: 'mock',
-        conversations: [],
-      });
-    }
-
     // Authorize workspace access (Strict Multi-Tenant Isolation)
     const workspaceIdParam = req.nextUrl.searchParams.get('workspaceId');
     const auth = await authorizeWorkspace(req, workspaceIdParam);
@@ -25,6 +16,15 @@ export async function GET(req: NextRequest) {
         { success: false, error: auth.error },
         { status: auth.status }
       );
+    }
+
+    const database = db;
+    if (!database) {
+      return NextResponse.json({
+        success: true,
+        source: 'mock',
+        conversations: [],
+      });
     }
 
     const wsId = auth.workspaceId!;

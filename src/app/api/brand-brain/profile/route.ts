@@ -7,14 +7,6 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    if (!db) {
-      return NextResponse.json({
-        success: true,
-        source: 'mock',
-        data: null,
-      });
-    }
-
     // 1. Authorize workspace access (Strict Multi-Tenant Isolation)
     const workspaceIdParam = req.nextUrl.searchParams.get('workspaceId');
     const auth = await authorizeWorkspace(req, workspaceIdParam);
@@ -23,6 +15,14 @@ export async function GET(req: NextRequest) {
         { success: false, error: auth.error },
         { status: auth.status }
       );
+    }
+
+    if (!db) {
+      return NextResponse.json({
+        success: true,
+        source: 'mock',
+        data: null,
+      });
     }
 
     const wsId = auth.workspaceId!;
@@ -151,6 +151,24 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+
+    // 1. Authorize workspace access (Strict Multi-Tenant Isolation)
+    const auth = await authorizeWorkspace(req, body.workspaceId);
+    if (!auth.authorized) {
+      return NextResponse.json(
+        { success: false, error: auth.error },
+        { status: auth.status }
+      );
+    }
+
+    if (!db) {
+      return NextResponse.json({
+        success: true,
+        source: 'mock',
+        message: 'Saved to mock storage',
+      });
+    }
+
     const {
       businessName,
       industry,
@@ -164,23 +182,6 @@ export async function POST(req: NextRequest) {
       pillars = [],
       negativeConstraints = [],
     } = body;
-
-    if (!db) {
-      return NextResponse.json({
-        success: true,
-        source: 'mock',
-        message: 'Saved to mock storage',
-      });
-    }
-
-    // 1. Authorize workspace access (Strict Multi-Tenant Isolation)
-    const auth = await authorizeWorkspace(req, body.workspaceId);
-    if (!auth.authorized) {
-      return NextResponse.json(
-        { success: false, error: auth.error },
-        { status: auth.status }
-      );
-    }
 
     const wsId = auth.workspaceId!;
     const [ws] = await db.select().from(workspaces).where(eq(workspaces.id, wsId)).limit(1);

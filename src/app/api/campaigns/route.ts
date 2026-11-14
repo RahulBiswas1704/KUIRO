@@ -267,11 +267,6 @@ You MUST return ONLY a raw valid JSON object (no markdown, no backticks, no mark
 
 export async function GET(req: NextRequest) {
   try {
-    const database = db;
-    if (!database) {
-      return NextResponse.json({ success: true, count: 0, campaigns: [] });
-    }
-
     // 1. Authorize workspace access (Strict Multi-Tenant Isolation)
     const workspaceIdParam = req.nextUrl.searchParams.get('workspaceId');
     const auth = await authorizeWorkspace(req, workspaceIdParam);
@@ -280,6 +275,11 @@ export async function GET(req: NextRequest) {
         { success: false, error: auth.error },
         { status: auth.status }
       );
+    }
+
+    const database = db;
+    if (!database) {
+      return NextResponse.json({ success: true, count: 0, campaigns: [] });
     }
 
     const wsId = auth.workspaceId!;
@@ -507,11 +507,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Topic string is required.' }, { status: 400 });
     }
 
-    const database = db;
-    if (!database) {
-      return NextResponse.json({ success: false, error: 'Database not connected' }, { status: 500 });
-    }
-
     // 1. Authorize workspace access (Strict Multi-Tenant Isolation)
     const auth = await authorizeWorkspace(req, body.workspaceId);
     if (!auth.authorized) {
@@ -519,6 +514,11 @@ export async function POST(req: NextRequest) {
         { success: false, error: auth.error },
         { status: auth.status }
       );
+    }
+
+    const database = db;
+    if (!database) {
+      return NextResponse.json({ success: false, error: 'Database not connected' }, { status: 500 });
     }
 
     const wsId = auth.workspaceId!;
@@ -715,6 +715,11 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
+    const session = await getSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
+    }
+
     const body = await req.json();
     const { campaignId, status, revisionPrompt } = body;
 
@@ -725,11 +730,6 @@ export async function PATCH(req: NextRequest) {
     const database = db;
     if (!database) {
       return NextResponse.json({ success: false, error: 'Database not connected' }, { status: 500 });
-    }
-
-    const session = await getSessionFromRequest(req);
-    if (!session) {
-      return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
     }
 
     // POLICY ENFORCEMENT: Email verification required before approving/publishing campaigns

@@ -75,11 +75,6 @@ function isAppointmentBooked(c: {
 
 export async function GET(req: NextRequest) {
   try {
-    const database = db;
-    if (!database) {
-      return NextResponse.json({ success: false, error: 'Database not connected' }, { status: 500 });
-    }
-
     // Authorize workspace access (Strict Multi-Tenant Isolation)
     const workspaceIdParam = req.nextUrl.searchParams.get('workspaceId');
     const auth = await authorizeWorkspace(req, workspaceIdParam);
@@ -88,6 +83,11 @@ export async function GET(req: NextRequest) {
         { success: false, error: auth.error },
         { status: auth.status }
       );
+    }
+
+    const database = db;
+    if (!database) {
+      return NextResponse.json({ success: false, error: 'Database not connected' }, { status: 500 });
     }
 
     const wsId = auth.workspaceId!;
