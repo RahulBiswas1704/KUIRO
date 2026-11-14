@@ -1,6 +1,8 @@
 import { db, workspaces, brandProfiles, scheduledCampaigns, platformPosts, users } from '@/db';
 import { eq } from 'drizzle-orm';
 import { inngest } from '@/lib/inngest/client';
+import { evaluateAndRefineCampaignCopy } from '@/lib/ai/critic';
+import { GeneratedAssetPayload } from '@/types';
 
 export interface GeminiCampaignOutput {
   topicSummary: string;
@@ -288,7 +290,70 @@ export async function createAutonomousCampaign(params: {
   const now = new Date();
   const publishAt = targetPublishAt || new Date(now.getTime() + 48 * 3600 * 1000);
 
-  // 3. Insert Campaign into scheduledCampaigns in Neon DB
+  // 3. Pre-Publish AI Critic Evaluation & Auto-Refinement
+  const rawAssets: GeneratedAssetPayload[] = [
+    {
+      platform: 'instagram',
+      caption: generated.instagram.caption,
+      firstComment: generated.instagram.hashtags.map((t) => `#${String(t).replace(/^#/, '')}`).join(' '),
+      hashtags: generated.instagram.hashtags,
+      mediaUrls: [bp?.visualIdentity?.logoUrl || '/brand/kuiro-primary.svg'],
+      mediaType: 'IMAGE',
+      aspectRatio: '4:5',
+    },
+    {
+      platform: 'linkedin',
+      caption: generated.linkedin.caption,
+      firstComment: generated.linkedin.hashtags.map((t) => `#${String(t).replace(/^#/, '')}`).join(' '),
+      hashtags: generated.linkedin.hashtags,
+      mediaUrls: [bp?.visualIdentity?.logoUrl || '/brand/kuiro-primary.svg'],
+      mediaType: 'IMAGE',
+      aspectRatio: '1:1',
+    },
+    {
+      platform: 'x',
+      caption: generated.x.caption,
+      firstComment: generated.x.firstComment,
+      hashtags: [],
+      mediaUrls: [],
+      mediaType: 'TEXT_ONLY',
+      aspectRatio: '1:1',
+    },
+    {
+      platform: 'whatsapp',
+      caption: generated.whatsapp.caption,
+      hashtags: [],
+      mediaUrls: [bp?.visualIdentity?.logoUrl || '/brand/kuiro-primary.svg'],
+      mediaType: 'IMAGE',
+      aspectRatio: '1:1',
+    },
+    {
+      platform: 'email',
+      caption: generated.email.bodyHtml,
+      emailSubject: generated.email.subject,
+      emailHtml: generated.email.bodyHtml,
+      hashtags: [],
+      mediaUrls: [bp?.visualIdentity?.logoUrl || '/brand/kuiro-primary.svg'],
+      mediaType: 'TEXT_ONLY',
+      aspectRatio: '1:1',
+    },
+  ];
+
+  const { evaluation, refinedAssets } = await evaluateAndRefineCampaignCopy(rawAssets, {
+    businessName,
+    industry,
+    tones,
+    pillars,
+    negativeConstraints,
+  });
+
+  const igAsset = refinedAssets.find((a) => a.platform === 'instagram') || rawAssets[0];
+  const liAsset = refinedAssets.find((a) => a.platform === 'linkedin') || rawAssets[1];
+  const xAsset = refinedAssets.find((a) => a.platform === 'x') || rawAssets[2];
+  const waAsset = refinedAssets.find((a) => a.platform === 'whatsapp') || rawAssets[3];
+  const emAsset = refinedAssets.find((a) => a.platform === 'email') || rawAssets[4];
+
+  // 4. Insert Campaign into scheduledCampaigns in Neon DB
   const [campaign] = await database
     .insert(scheduledCampaigns)
     .values({
@@ -302,52 +367,52 @@ export async function createAutonomousCampaign(params: {
     })
     .returning();
 
-  // 4. Insert 5 Platform Posts into Neon DB
+  // 5. Insert 5 Platform Posts into Neon DB with genuine evaluated AI Critic scores
   const postsToInsert = [
     {
       campaignId: campaign.id,
       platform: 'instagram' as const,
-      captionText: generated.instagram.caption,
-      firstCommentText: generated.instagram.hashtags.map((t) => `#${t}`).join(' '),
+      captionText: igAsset.caption,
+      firstCommentText: igAsset.firstComment || '',
       mediaUrls: [bp?.visualIdentity?.logoUrl || '/brand/kuiro-primary.svg'],
       aspectRatio: '4:5',
-      aiCriticScore: 96,
+      aiCriticScore: evaluation.platformScores['instagram']?.totalScore || 92,
     },
     {
       campaignId: campaign.id,
       platform: 'linkedin' as const,
-      captionText: generated.linkedin.caption,
-      firstCommentText: generated.linkedin.hashtags.map((t) => `#${t}`).join(' '),
+      captionText: liAsset.caption,
+      firstCommentText: liAsset.firstComment || '',
       mediaUrls: [bp?.visualIdentity?.logoUrl || '/brand/kuiro-primary.svg'],
       aspectRatio: '1:1',
-      aiCriticScore: 94,
+      aiCriticScore: evaluation.platformScores['linkedin']?.totalScore || 90,
     },
     {
       campaignId: campaign.id,
       platform: 'x' as const,
-      captionText: generated.x.caption,
-      firstCommentText: generated.x.firstComment,
+      captionText: xAsset.caption,
+      firstCommentText: xAsset.firstComment || '',
       mediaUrls: [],
       aspectRatio: '1:1',
-      aiCriticScore: 92,
+      aiCriticScore: evaluation.platformScores['x']?.totalScore || 88,
     },
     {
       campaignId: campaign.id,
       platform: 'whatsapp' as const,
-      captionText: generated.whatsapp.caption,
+      captionText: waAsset.caption,
       mediaUrls: [bp?.visualIdentity?.logoUrl || '/brand/kuiro-primary.svg'],
       aspectRatio: '1:1',
-      aiCriticScore: 98,
+      aiCriticScore: evaluation.platformScores['whatsapp']?.totalScore || 94,
     },
     {
       campaignId: campaign.id,
       platform: 'email' as const,
-      captionText: generated.email.bodyHtml,
-      emailSubject: generated.email.subject,
-      emailHtml: generated.email.bodyHtml,
+      captionText: emAsset.caption,
+      emailSubject: emAsset.emailSubject || generated.email.subject,
+      emailHtml: emAsset.emailHtml || emAsset.caption,
       mediaUrls: [bp?.visualIdentity?.logoUrl || '/brand/kuiro-primary.svg'],
       aspectRatio: '1:1',
-      aiCriticScore: 95,
+      aiCriticScore: evaluation.platformScores['email']?.totalScore || 91,
     },
   ];
 

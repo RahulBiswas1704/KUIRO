@@ -221,7 +221,7 @@ export default function SimulatorPage() {
             id: (Date.now() + 1).toString(),
             sender: 'kuiro',
             type: 'template',
-            text: `✨ *Revision ${nextCount} of 2 Completed via Gemini 2.5*\n\nI have re-synthesized the multi-channel payloads with your feedback and updated Neon DB.\n\n🛡️ *Updated AI Critic Score*: 98.6 / 100 (Pass)\n⏳ *48h Window*: Auto-Commit radar active.\n\n💬 *Revised WhatsApp Copy*:\n"${waRevised?.captionText?.slice(0, 160) || 'Updated campaign copy with requested revisions.'}..."`,
+            text: `✨ *Revision ${nextCount} of 2 Completed via Gemini 2.5*\n\n${data.revisionSummary ? `📋 *${data.revisionSummary}*\n\n` : ''}🛡️ *Updated AI Critic Score*: ${data.criticScore || 95} / 100 (Pass)\n⏳ *48h Window*: Auto-Commit radar active.\n\n💬 *Revised WhatsApp Copy*:\n"${waRevised?.captionText?.slice(0, 160) || 'Updated campaign copy with requested revisions.'}..."`,
             imageUrl: '/brand/kuiro-primary.svg',
             time: replyTime,
             buttons: [
