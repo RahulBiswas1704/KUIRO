@@ -3,6 +3,7 @@ import { db, users, workspaces, brandProfiles, accounts } from '@/db';
 import { eq } from 'drizzle-orm';
 import {
   hashPassword,
+  validatePasswordStrength,
   createDatabaseSession,
   SESSION_COOKIE_NAME,
   SESSION_MAX_AGE_DAYS,
@@ -15,9 +16,25 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { name, businessName, email, password, industry, phone } = body;
 
-    if (!email || !name) {
+    if (!name || typeof name !== 'string' || !name.trim()) {
       return NextResponse.json(
-        { error: 'Name and email are required.' },
+        { error: 'Full name is required.' },
+        { status: 400 }
+      );
+    }
+
+    if (!email || typeof email !== 'string' || !email.trim()) {
+      return NextResponse.json(
+        { error: 'Valid business email is required.' },
+        { status: 400 }
+      );
+    }
+
+    // Strict Password Validation (Prevents Passwordless Account Creation)
+    const passwordCheck = validatePasswordStrength(password);
+    if (!passwordCheck.valid) {
+      return NextResponse.json(
+        { error: passwordCheck.error || 'Password must be at least 8 characters in length.' },
         { status: 400 }
       );
     }
@@ -28,38 +45,10 @@ export async function POST(req: NextRequest) {
 
     const database = db;
     if (!database) {
-      // Local fallback if DB is not configured
-      const mockUser = {
-        id: `usr_${Date.now()}`,
-        name: cleanName,
-        email: cleanEmail,
-        role: 'Founder',
-        emailVerified: false,
-      };
-      const mockWorkspace = {
-        id: `ws_${Date.now()}`,
-        name: cleanBusinessName,
-        subscriptionTier: 'GROWTH',
-        whatsappAdminPhone: phone || null,
-      };
-
-      const response = NextResponse.json({
-        success: true,
-        user: mockUser,
-        workspace: mockWorkspace,
-        sessionToken: `mock_sess_${Date.now()}`,
-      });
-
-      response.cookies.set({
-        name: SESSION_COOKIE_NAME,
-        value: `mock_sess_${Date.now()}`,
-        path: '/',
-        httpOnly: true,
-        sameSite: 'lax',
-        maxAge: SESSION_MAX_AGE_DAYS * 24 * 60 * 60,
-      });
-
-      return response;
+      return NextResponse.json(
+        { error: 'Database service is temporarily unavailable. Please try again shortly.' },
+        { status: 503 }
+      );
     }
 
     // 1. Check if user already exists
@@ -76,8 +65,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Hash password (if provided; supports passwordless/instant onboarding)
-    const passwordHash = password ? hashPassword(password) : null;
+    // 2. Hash password with cryptographic salt
+    const passwordHash = hashPassword(password);
 
     // 3. Create User in Neon DB
     const [newUser] = await database
@@ -133,13 +122,11 @@ export async function POST(req: NextRequest) {
     });
 
     // 6. Record credentials in accounts table
-    if (password) {
-      await database.insert(accounts).values({
-        userId: newUser.id,
-        accountId: cleanEmail,
-        providerId: 'credentials',
-      });
-    }
+    await database.insert(accounts).values({
+      userId: newUser.id,
+      accountId: cleanEmail,
+      providerId: 'credentials',
+    });
 
     // 7. Create Persistent Database Session
     const ipAddress = req.headers.get('x-forwarded-for') || undefined;
@@ -191,4 +178,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

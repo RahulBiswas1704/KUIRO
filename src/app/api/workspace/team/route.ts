@@ -45,10 +45,13 @@ let globalTeamMembers: TeamMemberRecord[] = [
 export async function GET(req: NextRequest) {
   try {
     const session = await getSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
+    }
     return NextResponse.json({
       success: true,
       members: globalTeamMembers,
-      currentUserRole: 'Owner',
+      currentUserRole: session.user.role || 'Owner',
     });
   } catch (error: any) {
     return NextResponse.json(
@@ -61,6 +64,9 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
+    }
     const body = await req.json();
     const { name, email, role } = body;
 
@@ -98,6 +104,11 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const session = await getSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 

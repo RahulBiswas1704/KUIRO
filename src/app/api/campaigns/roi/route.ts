@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, workspaces, scheduledCampaigns, conversations, users } from '@/db';
 import { eq, desc, and } from 'drizzle-orm';
-import { getSessionFromRequest } from '@/lib/auth';
+import { getSessionFromRequest, authorizeWorkspace } from '@/lib/auth';
 import { WorkspaceRoiSummary, CampaignRoiMetric, AttributedLeadItem } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -80,18 +80,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Database not connected' }, { status: 500 });
     }
 
-    // Resolve scoped workspace
-    const session = await getSessionFromRequest(req);
+    // Authorize workspace access (Strict Multi-Tenant Isolation)
     const workspaceIdParam = req.nextUrl.searchParams.get('workspaceId');
-    const targetWorkspaceId = workspaceIdParam || session?.workspace.id;
+    const auth = await authorizeWorkspace(req, workspaceIdParam);
+    if (!auth.authorized) {
+      return NextResponse.json(
+        { success: false, error: auth.error },
+        { status: auth.status }
+      );
+    }
 
-    let ws;
-    if (targetWorkspaceId) {
-      [ws] = await database.select().from(workspaces).where(eq(workspaces.id, targetWorkspaceId)).limit(1);
-    }
-    if (!ws) {
-      [ws] = await database.select().from(workspaces).limit(1);
-    }
+    const wsId = auth.workspaceId!;
+    const [ws] = await database.select().from(workspaces).where(eq(workspaces.id, wsId)).limit(1);
     if (!ws) {
       return NextResponse.json({ success: false, error: 'No active workspace found' }, { status: 404 });
     }

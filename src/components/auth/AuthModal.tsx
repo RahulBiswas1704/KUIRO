@@ -48,10 +48,20 @@ export default function AuthModal() {
           setIsSubmitting(false);
           return;
         }
+        if (!password) {
+          setErrorMessage('Please enter your password');
+          setIsSubmitting(false);
+          return;
+        }
         await login(email, password);
       } else {
         if (!fullName || !email) {
           setErrorMessage('Please fill in your name and email address');
+          setIsSubmitting(false);
+          return;
+        }
+        if (!password || password.length < 8) {
+          setErrorMessage('Password must be at least 8 characters long');
           setIsSubmitting(false);
           return;
         }
@@ -242,6 +252,8 @@ export default function AuthModal() {
               <Lock size={14} className="absolute left-3 top-3 text-slate-400" />
               <input
                 type="password"
+                required
+                minLength={authModalMode === 'signup' ? 8 : 1}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

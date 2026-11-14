@@ -17,23 +17,10 @@ export async function POST(req: NextRequest) {
     const config = PERSONAS[personaKey] || PERSONAS.sharma;
 
     if (!db) {
-      // Offline fallback mock
-      const mockUser = {
-        id: `usr_${personaKey}`,
-        name: config.userName,
-        email: config.userEmail,
-        role: config.userRole,
-        businessName: config.workspaceName,
-        workspaceId: `ws_${personaKey}`,
-        hasCompletedOnboarding: true,
-      };
-      return NextResponse.json({
-        success: true,
-        source: 'local_fallback',
-        personaKey,
-        user: mockUser,
-        workspace: { id: `ws_${personaKey}`, name: config.workspaceName },
-      });
+      return NextResponse.json(
+        { error: 'Database service is temporarily unavailable.' },
+        { status: 503 }
+      );
     }
 
     // 1. Find or create persona User

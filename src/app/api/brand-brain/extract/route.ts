@@ -2,19 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { extractBrandBrainFromUrl } from '@/lib/brand-brain/extractor';
 import { db, workspaces, brandProfiles, users } from '@/db';
 import { eq } from 'drizzle-orm';
-import { getSessionFromRequest } from '@/lib/auth';
+import { authorizeWorkspace } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
   try {
-    const session = await getSessionFromRequest(req);
     const body = await req.json();
     const { url, workspaceId } = body;
 
     if (!url || typeof url !== 'string') {
       return NextResponse.json({ error: 'Valid URL is required' }, { status: 400 });
+    }
+
+    // Authorize workspace access (Strict Multi-Tenant Isolation)
+    const auth = await authorizeWorkspace(req, workspaceId);
+    if (!auth.authorized) {
+      return NextResponse.json(
+        { success: false, error: auth.error },
+        { status: auth.status }
+      );
     }
 
     const extractionResult = await extractBrandBrainFromUrl(url.trim());
@@ -23,35 +31,10 @@ export async function POST(req: NextRequest) {
     // Persist immediately to Neon PostgreSQL so changes are saved in real-time
     if (db) {
       try {
-        const targetWorkspaceId = workspaceId || session?.workspace.id;
-        let ws;
-        if (targetWorkspaceId) {
-          [ws] = await db.select().from(workspaces).where(eq(workspaces.id, targetWorkspaceId)).limit(1);
-        }
-        if (!ws) {
-          [ws] = await db.select().from(workspaces).limit(1);
-        }
-        if (!ws) {
-          let [u] = await db.select().from(users).limit(1);
-          if (!u) {
-            [u] = await db
-              .insert(users)
-              .values({
-                name: 'KUIRO Administrator',
-                email: 'admin@kuiro.in',
-                emailVerified: true,
-              })
-              .returning();
-          }
-          [ws] = await db
-            .insert(workspaces)
-            .values({
-              name: extractionResult.detected.businessName,
-              ownerId: u.id,
-              subscriptionTier: 'GROWTH',
-            })
-            .returning();
-        } else if (extractionResult.detected.businessName) {
+        const wsId = auth.workspaceId!;
+        const [ws] = await db.select().from(workspaces).where(eq(workspaces.id, wsId)).limit(1);
+
+        if (ws && extractionResult.detected.businessName) {
           await db
             .update(workspaces)
             .set({ name: extractionResult.detected.businessName })

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { subscribeToInboxEvents, InboxStreamEvent } from '@/lib/inbox/eventHub';
-import { getSessionFromRequest } from '@/lib/auth';
+import { authorizeWorkspace } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -10,10 +10,17 @@ export const runtime = 'nodejs';
  * Route: GET /api/inbox/stream
  */
 export async function GET(req: NextRequest) {
-  const session = await getSessionFromRequest(req);
   const workspaceIdParam = req.nextUrl.searchParams.get('workspaceId');
-  const targetWorkspaceId = workspaceIdParam || session?.workspace.id || undefined;
+  const auth = await authorizeWorkspace(req, workspaceIdParam);
 
+  if (!auth.authorized) {
+    return new Response(JSON.stringify({ error: auth.error || 'Unauthorized' }), {
+      status: auth.status,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const targetWorkspaceId = auth.workspaceId!;
   const encoder = new TextEncoder();
 
   let unsubscribe: (() => void) | null = null;

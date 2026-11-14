@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, workspaces, brandProfiles, users } from '@/db';
 import { eq } from 'drizzle-orm';
-import { getSessionFromRequest } from '@/lib/auth';
+import { getSessionFromRequest, authorizeWorkspace } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,33 +15,20 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const session = await getSessionFromRequest(req);
+    // 1. Authorize workspace access (Strict Multi-Tenant Isolation)
     const workspaceIdParam = req.nextUrl.searchParams.get('workspaceId');
-    const targetWorkspaceId = workspaceIdParam || session?.workspace.id;
+    const auth = await authorizeWorkspace(req, workspaceIdParam);
+    if (!auth.authorized) {
+      return NextResponse.json(
+        { success: false, error: auth.error },
+        { status: auth.status }
+      );
+    }
 
-    // 1. Find or create scoped workspace
-    let ws;
-    if (targetWorkspaceId) {
-      [ws] = await db.select().from(workspaces).where(eq(workspaces.id, targetWorkspaceId)).limit(1);
-    }
+    const wsId = auth.workspaceId!;
+    const [ws] = await db.select().from(workspaces).where(eq(workspaces.id, wsId)).limit(1);
     if (!ws) {
-      [ws] = await db.select().from(workspaces).limit(1);
-    }
-    if (!ws) {
-      let [u] = await db.select().from(users).limit(1);
-      if (!u) {
-        [u] = await db.insert(users).values({
-          name: 'KUIRO Administrator',
-          email: 'admin@kuiro.in',
-          emailVerified: true,
-        }).returning();
-      }
-      [ws] = await db.insert(workspaces).values({
-        name: 'Apex Diagnostic & Wellness Clinic',
-        ownerId: u.id,
-        subscriptionTier: 'GROWTH',
-        whatsappAdminPhone: '+919876543210',
-      }).returning();
+      return NextResponse.json({ success: false, error: 'Workspace not found' }, { status: 404 });
     }
 
     // 2. Fetch existing brand profile from Neon PostgreSQL
@@ -186,37 +173,26 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 1. Get or create scoped workspace
-    const session = await getSessionFromRequest(req);
-    const targetWorkspaceId = body.workspaceId || session?.workspace.id;
-    let ws;
-    if (targetWorkspaceId) {
-      [ws] = await db.select().from(workspaces).where(eq(workspaces.id, targetWorkspaceId)).limit(1);
+    // 1. Authorize workspace access (Strict Multi-Tenant Isolation)
+    const auth = await authorizeWorkspace(req, body.workspaceId);
+    if (!auth.authorized) {
+      return NextResponse.json(
+        { success: false, error: auth.error },
+        { status: auth.status }
+      );
     }
+
+    const wsId = auth.workspaceId!;
+    const [ws] = await db.select().from(workspaces).where(eq(workspaces.id, wsId)).limit(1);
     if (!ws) {
-      [ws] = await db.select().from(workspaces).limit(1);
+      return NextResponse.json({ success: false, error: 'Workspace not found' }, { status: 404 });
     }
-    if (!ws) {
-      let [u] = await db.select().from(users).limit(1);
-      if (!u) {
-        [u] = await db.insert(users).values({
-          name: 'KUIRO Administrator',
-          email: 'admin@kuiro.in',
-          emailVerified: true,
-        }).returning();
-      }
-      [ws] = await db.insert(workspaces).values({
-        name: businessName || 'My Business',
-        ownerId: u.id,
-        subscriptionTier: 'GROWTH',
-      }).returning();
-    } else {
-      const updateFields: any = {};
-      if (businessName && businessName !== ws.name) updateFields.name = businessName;
-      if (whatsappAdminPhone) updateFields.whatsappAdminPhone = whatsappAdminPhone;
-      if (Object.keys(updateFields).length > 0) {
-        await db.update(workspaces).set(updateFields).where(eq(workspaces.id, ws.id));
-      }
+
+    const updateFields: any = {};
+    if (businessName && businessName !== ws.name) updateFields.name = businessName;
+    if (whatsappAdminPhone) updateFields.whatsappAdminPhone = whatsappAdminPhone;
+    if (Object.keys(updateFields).length > 0) {
+      await db.update(workspaces).set(updateFields).where(eq(workspaces.id, ws.id));
     }
 
     // 2. Format & Sanitize JSON payloads

@@ -37,8 +37,8 @@ function checkAuthorization(req: NextRequest): { authorized: boolean; reason?: s
     return { authorized: true };
   }
 
-  // 3. User session cookie (e.g. Admin UI or Dashboard user trigger)
-  const sessionToken = req.cookies.get('kuiro_session_token')?.value;
+  // 3. User session cookie or operator clearance cookie
+  const sessionToken = req.cookies.get('kuiro_session')?.value || req.cookies.get('kuiro_admin_clearance')?.value;
   if (sessionToken) {
     return { authorized: true };
   }

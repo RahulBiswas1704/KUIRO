@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateWithGemini } from '@/lib/ai/gemini';
+import { getSessionFromRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
+    }
+
     const body = await req.json();
     const { 
       customerName = 'Customer', 

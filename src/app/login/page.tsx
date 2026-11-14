@@ -37,6 +37,10 @@ export default function LoginPage() {
       setErrorMessage('Please enter your email address');
       return;
     }
+    if (!password) {
+      setErrorMessage('Please enter your password');
+      return;
+    }
     setErrorMessage('');
     setIsSubmitting(true);
     try {
@@ -133,6 +137,7 @@ export default function LoginPage() {
                 <Lock size={15} className="absolute left-3 top-3 text-slate-400" />
                 <input
                   type="password"
+                  required
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

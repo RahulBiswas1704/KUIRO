@@ -24,6 +24,10 @@ const TIER_PRICING = {
 export async function POST(req: NextRequest) {
   try {
     const session = await getSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
+    }
+
     const body: CheckoutRequestBody = await req.json();
     const { tier, billingCycle, paymentMethod, upiVpa, gstin, businessName, gateway = 'razorpay' } = body;
 
@@ -42,16 +46,10 @@ export async function POST(req: NextRequest) {
     const invoiceNumber = `KUIRO/26-27/${Math.floor(1000 + Math.random() * 9000)}`;
 
     const database = db;
-    let wsId = session?.workspace.id;
+    const wsId = session.workspace.id;
 
     if (database) {
-      let ws;
-      if (wsId) {
-        [ws] = await database.select().from(workspaces).where(eq(workspaces.id, wsId)).limit(1);
-      }
-      if (!ws) {
-        [ws] = await database.select().from(workspaces).limit(1);
-      }
+      const [ws] = await database.select().from(workspaces).where(eq(workspaces.id, wsId)).limit(1);
 
       if (ws) {
         // Upgrade workspace tier in Neon PostgreSQL

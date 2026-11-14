@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, conversations, inboxMessages, workspaces, scheduledCampaigns } from '@/db';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, and } from 'drizzle-orm';
 import { publishInboxEvent } from '@/lib/inbox/eventHub';
 import { getSessionFromRequest } from '@/lib/auth';
 
@@ -48,6 +48,10 @@ const SIMULATION_PRESETS = [
 export async function POST(req: NextRequest) {
   try {
     const session = await getSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
+    }
+
     const body = await req.json().catch(() => ({}));
 
     // Pick random preset or use user-provided payload
@@ -60,22 +64,23 @@ export async function POST(req: NextRequest) {
     const city = body.city || preset.city;
 
     const database = db;
-    let targetWorkspaceId = session?.workspace.id || 'ws-sharma-101';
+    const targetWorkspaceId = session.workspace.id;
     let conversationId = `conv_sim_${Date.now()}`;
     let messageId = `msg_sim_${Date.now()}`;
 
     if (database) {
       try {
-        let [ws] = await database.select().from(workspaces).limit(1);
-        if (ws) {
-          targetWorkspaceId = ws.id;
+        const [ws] = await database.select().from(workspaces).where(eq(workspaces.id, targetWorkspaceId)).limit(1);
+        if (!ws) {
+          return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
+        }
 
-          // Check if conversation already exists for this handle
-          let [existingConv] = await database
-            .select()
-            .from(conversations)
-            .where(eq(conversations.customerHandle, customerHandle))
-            .limit(1);
+        // Check if conversation already exists for this handle in this workspace
+        let [existingConv] = await database
+          .select()
+          .from(conversations)
+          .where(and(eq(conversations.customerHandle, customerHandle), eq(conversations.workspaceId, ws.id)))
+          .limit(1);
 
           if (existingConv) {
             conversationId = existingConv.id;
@@ -145,7 +150,6 @@ export async function POST(req: NextRequest) {
           if (insertedMsg) {
             messageId = insertedMsg.id;
           }
-        }
       } catch (dbErr) {
         console.warn('[Simulate DB Fallback]:', dbErr);
       }

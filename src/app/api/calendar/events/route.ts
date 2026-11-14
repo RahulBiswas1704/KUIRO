@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, culturalEventsCalendar } from '@/db';
 import { sql as drizzleSql, asc } from 'drizzle-orm';
+import { getSessionFromRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -105,6 +106,11 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json({ success: false, error: 'Authentication required. Active session required.' }, { status: 401 });
+    }
+
     const body = await req.json();
     const { eventName, eventDate, regions = ['Pan-India'], targetIndustries = ['All'], promptContext } = body;
 
