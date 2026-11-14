@@ -5,7 +5,6 @@ import { createAutonomousCampaign } from '@/lib/campaigns/generator';
 import { publishToAllChannels } from '@/lib/social/publisher';
 import { authorizeWorkspace, getSessionFromRequest } from '@/lib/auth';
 import { retryOutboxEvents } from '@/lib/inngest/dispatcher';
-
 import { updateSchedulerTelemetry } from '@/lib/scheduler/telemetry';
 
 export const dynamic = 'force-dynamic';
