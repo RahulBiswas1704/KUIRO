@@ -86,8 +86,8 @@ export default function DashboardLayout({
   const getActivePersonaKey = (): 'sharma' | 'sengupta' | 'mehta' => {
     const email = user?.email?.toLowerCase() || '';
     const biz = user?.businessName?.toLowerCase() || '';
-    if (email.includes('sengupta') || biz.includes('sengupta')) return 'sengupta';
-    if (email.includes('mehta') || biz.includes('mehta') || biz.includes('yoga')) return 'mehta';
+    if (email.includes('sen') || biz.includes('sen') || biz.includes('advisory')) return 'sengupta';
+    if (email.includes('mehta') || biz.includes('mehta') || biz.includes('clinic') || biz.includes('care') || biz.includes('health')) return 'mehta';
     return 'sharma';
   };
 
@@ -106,7 +106,7 @@ export default function DashboardLayout({
   };
 
   const currentWorkspaceName = user?.businessName || activePersona.name;
-  const userName = user?.name || activePersona.doctor.split(' (')[0];
+  const userName = user?.name || activePersona.doctor.split(' •')[0];
   const userInitials = userName
     .split(' ')
     .filter(Boolean)

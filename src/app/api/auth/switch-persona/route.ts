@@ -91,6 +91,9 @@ export async function POST(req: NextRequest) {
       .where(eq(brandProfiles.workspaceId, workspace.id))
       .limit(1);
 
+    const isRetail = personaKey === 'sharma';
+    const isCreator = personaKey === 'sengupta';
+
     const bpPayload = {
       workspaceId: workspace.id,
       industry: config.industry,
@@ -102,9 +105,9 @@ export async function POST(req: NextRequest) {
         clinicAddress: config.address,
       },
       toneOfVoice: {
-        style: 'clinical_empathetic' as const,
+        style: isRetail ? ('professional_warm' as const) : isCreator ? ('authoritative_thought_leader' as const) : ('clinical_empathetic' as const),
         formality: 'semi-formal' as const,
-        archetype: 'compassionate_caregiver',
+        archetype: isRetail ? 'trusted_merchant' : isCreator ? 'innovator_advisor' : 'compassionate_caregiver',
         samplePhrases: config.tones,
       },
       visualIdentity: {
@@ -114,7 +117,11 @@ export async function POST(req: NextRequest) {
         logoUrl: '/brand/kuiro-primary.svg',
       },
       contentPillars: config.pillars,
-      negativeConstraints: ['No false medical promises', 'No disparaging competitors'],
+      negativeConstraints: isRetail 
+        ? ['No competitor disparagement', 'Promotional links on X in first comment']
+        : isCreator 
+        ? ['No unverified claims', 'Prioritize frameworks and zero-link surcharges on X']
+        : ['No false medical promises', 'No disparaging competitors'],
     };
 
     if (existingBp) {
@@ -150,54 +157,150 @@ export async function POST(req: NextRequest) {
         })
         .returning();
 
-      // Platform posts tailored to this persona
-      const postsToInsert = [
-        {
-          campaignId: newCamp.id,
-          platform: 'instagram' as const,
-          captionText: `${config.campaignTopic} ✨\n\nAt ${config.workspaceName}, our verified protocols deliver clinical precision and personalized care.\n\n📍 Tap the link in bio or WhatsApp our clinic desk to reserve your priority consultation slot.`,
-          firstCommentText: `#${config.category.replace(/[^a-zA-Z]/g, '')} #${config.workspaceName.replace(/[^a-zA-Z]/g, '')} #KolkataWellness #DoctorLed`,
-          mediaUrls: ['/brand/kuiro-primary.svg'],
-          aspectRatio: '4:5',
-          aiCriticScore: 97,
-        },
-        {
-          campaignId: newCamp.id,
-          platform: 'linkedin' as const,
-          captionText: `Clinical leadership in modern ${config.industry}.\n\nProactive care is not an expense—it is the single highest ROI intervention for long-term health resilience.\n\nHow is your organization approaching proactive employee well-being?`,
-          firstCommentText: `#HealthcareLeadership #PreventiveMedicine #${config.category.replace(/[^a-zA-Z]/g, '')}`,
-          mediaUrls: ['/brand/kuiro-primary.svg'],
-          aspectRatio: '1:1',
-          aiCriticScore: 95,
-        },
-        {
-          campaignId: newCamp.id,
-          platform: 'x' as const,
-          captionText: `Proactive care beats emergency panic every single time. ✨ Morning consultation slots open at ${config.workspaceName}.`,
-          firstCommentText: `Book your consultation directly: https://${config.workspaceName.toLowerCase().replace(/[^a-z0-9]/g, '')}.in/book`,
-          mediaUrls: [],
-          aspectRatio: '1:1',
-          aiCriticScore: 94,
-        },
-        {
-          campaignId: newCamp.id,
-          platform: 'whatsapp' as const,
-          captionText: `🌟 *Priority Update from ${config.workspaceName}*\n\nRoutine prevention is always better than cure. We have reserved priority slots for our comprehensive Vital Checkup package this week.\n\nReply *BOOK* to reserve your slot or call ${config.phone}.`,
-          mediaUrls: ['/brand/kuiro-primary.svg'],
-          aspectRatio: '1:1',
-          aiCriticScore: 98,
-        },
-        {
-          campaignId: newCamp.id,
-          platform: 'email' as const,
-          captionText: `<p>Dear Valued Client,</p><p>Seasonal transitions require proactive care. We are pleased to announce priority weekend slots at ${config.workspaceName}.</p>`,
-          emailSubject: `Exclusive Wellness Guide & Priority Slots from ${config.workspaceName}`,
-          emailHtml: `<p>Dear Valued Client,</p><p>Seasonal transitions require proactive care. We are pleased to announce priority weekend slots at ${config.workspaceName}.</p>`,
-          mediaUrls: ['/brand/kuiro-primary.svg'],
-          aspectRatio: '1:1',
-          aiCriticScore: 96,
-        },
-      ];
+      // Platform posts tailored dynamically to this persona
+      const postsToInsert = isRetail
+        ? [
+            {
+              campaignId: newCamp.id,
+              platform: 'instagram' as const,
+              captionText: `${config.campaignTopic} ✨🛍️\n\nCelebrate authentic Indian craftsmanship at ${config.workspaceName}. Each piece in our festive collection is woven with pride, heritage, and timeless elegance.\n\n📍 Visit our showroom or WhatsApp us for instant video call assistance and doorstep delivery.`,
+              firstCommentText: `#FestiveCollection #HandloomSilk #KolkataRetail #${config.workspaceName.replace(/[^a-zA-Z]/g, '')}`,
+              mediaUrls: ['/brand/kuiro-primary.svg'],
+              aspectRatio: '4:5',
+              aiCriticScore: 98,
+            },
+            {
+              campaignId: newCamp.id,
+              platform: 'linkedin' as const,
+              captionText: `Retail excellence is won in the details: authenticity, artisan partnerships, and customer trust.\n\nAt ${config.workspaceName}, we believe sustainable retail starts with preserving local artisan heritage while delivering world-class shopping experiences.\n\nHow is your retail operation innovating customer loyalty this festive season?`,
+              firstCommentText: `#RetailLeadership #HeritageCommerce #MadeInIndia`,
+              mediaUrls: ['/brand/kuiro-primary.svg'],
+              aspectRatio: '1:1',
+              aiCriticScore: 95,
+            },
+            {
+              campaignId: newCamp.id,
+              platform: 'x' as const,
+              captionText: `Fresh festive weaves have arrived at ${config.workspaceName}. Authentic craftsmanship, timeless colors. ✨🛍️`,
+              firstCommentText: `View our festive catalog lookbook: https://${config.workspaceName.toLowerCase().replace(/[^a-z0-9]/g, '')}.in/catalog`,
+              mediaUrls: [],
+              aspectRatio: '1:1',
+              aiCriticScore: 94,
+            },
+            {
+              campaignId: newCamp.id,
+              platform: 'whatsapp' as const,
+              captionText: `🌟 *Exclusive Festive Preview from ${config.workspaceName}*\n\nCelebrate the season with pure handcrafted weaves! We have reserved priority customer previews and festive discounts this week.\n\nReply *VIEW* to receive the collection lookbook or call ${config.phone}.`,
+              mediaUrls: ['/brand/kuiro-primary.svg'],
+              aspectRatio: '1:1',
+              aiCriticScore: 98,
+            },
+            {
+              campaignId: newCamp.id,
+              platform: 'email' as const,
+              captionText: `<p>Dear Valued Customer,</p><p>We are delighted to invite you to an exclusive festive showcase at ${config.workspaceName}.</p>`,
+              emailSubject: `✨ Festive Showcase & Exclusive Previews from ${config.workspaceName}`,
+              emailHtml: `<p>Dear Valued Customer,</p><p>We are delighted to invite you to an exclusive festive showcase of handloom weaves at ${config.workspaceName}.</p>`,
+              mediaUrls: ['/brand/kuiro-primary.svg'],
+              aspectRatio: '1:1',
+              aiCriticScore: 96,
+            },
+          ]
+        : isCreator
+        ? [
+            {
+              campaignId: newCamp.id,
+              platform: 'instagram' as const,
+              captionText: `${config.campaignTopic} 🚀📈\n\nHigh-velocity execution beats over-complicated plans every time. When you eliminate routine friction, sustainable business momentum follows.\n\n📍 Tap the link in bio or WhatsApp our studio desk to book an executive advisory session.`,
+              firstCommentText: `#FounderMindset #B2BGrowth #HighAgency #ProductStrategy`,
+              mediaUrls: ['/brand/kuiro-primary.svg'],
+              aspectRatio: '4:5',
+              aiCriticScore: 97,
+            },
+            {
+              campaignId: newCamp.id,
+              platform: 'linkedin' as const,
+              captionText: `Most growth bottlenecks aren't marketing problems—they are clarity and distribution problems.\n\nWhen your value proposition is crystal clear and distribution is autonomous, customer trust compounds exponentially.\n\nAt ${config.workspaceName}, our frameworks empower operators to scale without headcount bloat.\n\nWhat is your biggest operational focus this quarter?`,
+              firstCommentText: `#ExecutiveLeadership #ScalableGrowth #B2BPlaybook`,
+              mediaUrls: ['/brand/kuiro-primary.svg'],
+              aspectRatio: '1:1',
+              aiCriticScore: 96,
+            },
+            {
+              campaignId: newCamp.id,
+              platform: 'x' as const,
+              captionText: `Clarity > Complexity. Sustainable growth happens when you eliminate routine friction and double down on core distribution. 🚀`,
+              firstCommentText: `Read our full strategy breakdown: https://${config.workspaceName.toLowerCase().replace(/[^a-z0-9]/g, '')}.in/insights`,
+              mediaUrls: [],
+              aspectRatio: '1:1',
+              aiCriticScore: 95,
+            },
+            {
+              campaignId: newCamp.id,
+              platform: 'whatsapp' as const,
+              captionText: `🚀 *Strategic Brief from ${config.workspaceName}*\n\nWe just released our latest advisory brief on building high-leverage distribution engines.\n\nReply *ADVISORY* to reserve a strategy session or call ${config.phone}.`,
+              mediaUrls: ['/brand/kuiro-primary.svg'],
+              aspectRatio: '1:1',
+              aiCriticScore: 98,
+            },
+            {
+              campaignId: newCamp.id,
+              platform: 'email' as const,
+              captionText: `<p>Dear Colleague,</p><p>We are pleased to share our newest strategic executive brief from ${config.workspaceName}.</p>`,
+              emailSubject: `📈 Executive Strategy Brief from ${config.workspaceName}`,
+              emailHtml: `<p>Dear Colleague,</p><p>We are pleased to share our newest strategic executive brief on high-velocity distribution from ${config.workspaceName}.</p>`,
+              mediaUrls: ['/brand/kuiro-primary.svg'],
+              aspectRatio: '1:1',
+              aiCriticScore: 96,
+            },
+          ]
+        : [
+            {
+              campaignId: newCamp.id,
+              platform: 'instagram' as const,
+              captionText: `${config.campaignTopic} ✨🩺\n\nAt ${config.workspaceName}, our verified protocols deliver diagnostic precision and personalized patient care.\n\n📍 Tap the link in bio or WhatsApp our clinic desk to reserve your priority consultation slot.`,
+              firstCommentText: `#${config.category.replace(/[^a-zA-Z]/g, '')} #${config.workspaceName.replace(/[^a-zA-Z]/g, '')} #FamilyWellness #DoctorLed`,
+              mediaUrls: ['/brand/kuiro-primary.svg'],
+              aspectRatio: '4:5',
+              aiCriticScore: 97,
+            },
+            {
+              campaignId: newCamp.id,
+              platform: 'linkedin' as const,
+              captionText: `Clinical leadership in modern ${config.industry}.\n\nProactive care is not an expense—it is the single highest ROI intervention for long-term health resilience.\n\nHow is your organization approaching proactive employee well-being?`,
+              firstCommentText: `#HealthcareLeadership #PreventiveMedicine #${config.category.replace(/[^a-zA-Z]/g, '')}`,
+              mediaUrls: ['/brand/kuiro-primary.svg'],
+              aspectRatio: '1:1',
+              aiCriticScore: 95,
+            },
+            {
+              campaignId: newCamp.id,
+              platform: 'x' as const,
+              captionText: `Proactive care beats emergency panic every single time. ✨ Morning consultation slots open at ${config.workspaceName}.`,
+              firstCommentText: `Book your consultation directly: https://${config.workspaceName.toLowerCase().replace(/[^a-z0-9]/g, '')}.in/book`,
+              mediaUrls: [],
+              aspectRatio: '1:1',
+              aiCriticScore: 94,
+            },
+            {
+              campaignId: newCamp.id,
+              platform: 'whatsapp' as const,
+              captionText: `🌟 *Priority Update from ${config.workspaceName}*\n\nRoutine prevention is always better than cure. We have reserved priority slots for our comprehensive Vital Checkup package this week.\n\nReply *BOOK* to reserve your slot or call ${config.phone}.`,
+              mediaUrls: ['/brand/kuiro-primary.svg'],
+              aspectRatio: '1:1',
+              aiCriticScore: 98,
+            },
+            {
+              campaignId: newCamp.id,
+              platform: 'email' as const,
+              captionText: `<p>Dear Valued Patient,</p><p>Seasonal transitions require proactive care. We are pleased to announce priority weekend slots at ${config.workspaceName}.</p>`,
+              emailSubject: `Exclusive Wellness Guide & Priority Slots from ${config.workspaceName}`,
+              emailHtml: `<p>Dear Valued Patient,</p><p>Seasonal transitions require proactive care. We are pleased to announce priority weekend slots at ${config.workspaceName}.</p>`,
+              mediaUrls: ['/brand/kuiro-primary.svg'],
+              aspectRatio: '1:1',
+              aiCriticScore: 96,
+            },
+          ];
 
       for (const p of postsToInsert) {
         await db.insert(platformPosts).values(p);

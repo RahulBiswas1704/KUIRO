@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
         }).returning();
       }
       [ws] = await database.insert(workspaces).values({
-        name: 'Apex Diagnostic & Wellness Clinic',
+        name: 'Apex Studio & Retail',
         ownerId: u.id,
         subscriptionTier: 'GROWTH',
         whatsappAdminPhone: '+919876543210',
@@ -58,31 +58,31 @@ export async function GET(req: NextRequest) {
     const hasEmail = convList.some((c) => c.channel.toLowerCase() === 'email');
     const hasWhatsApp = convList.some((c) => c.channel.toLowerCase() === 'whatsapp');
 
-    // A. Seed Instagram DM Lead (Emergency Lead)
+    // A. Seed Instagram DM Lead (Retail & Product Inquiry)
     if (!hasInstagram) {
       const [igConv] = await database
         .insert(conversations)
         .values({
           workspaceId: ws.id,
           channel: 'instagram',
-          customerName: 'Rohit Verma',
-          customerHandle: '@rohit_fitlife',
-          customerAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+          customerName: 'Priya Sen',
+          customerHandle: '@priya_lifestyle',
+          customerAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
           status: 'OPEN',
-          priority: 'URGENT',
-          tags: ['Emergency Walk-In', 'Tooth Trauma', 'Urgent'],
-          sentiment: 'URGENT',
-          campaignSource: 'Instagram Reel: Sports Mouthguard Protection',
+          priority: 'HIGH',
+          tags: ['Festive Collection', 'Direct Order', 'Priority Customer'],
+          sentiment: 'POSITIVE',
+          campaignSource: 'Instagram Reel: Handcrafted Festive Lookbook',
           crmData: {
             phone: '+91 97110 32890',
-            email: 'rohit@fitlife.co',
-            city: 'Delhi NCR / South Ext',
-            totalSpend: '₹0 (New Lead)',
-            patientOrClientType: 'Emergency New Patient',
-            lastVisitDate: 'First Visit',
-            notes: 'Acute anterior tooth fracture. Needs emergency aesthetic composite or crown.',
+            email: 'priya@lifestyle.in',
+            city: 'Kolkata / Salt Lake',
+            totalSpend: '₹18,500 (Repeat Customer)',
+            patientOrClientType: 'VIP Retail Customer',
+            lastVisitDate: 'Oct 24, 2026',
+            notes: 'Loves pure silk & handlooms. Inquired about festive collection sizes.',
           },
-          lastMessageText: 'Hey! I chipped my front tooth playing football an hour ago. Do you take emergency walk-ins today?',
+          lastMessageText: 'Hey! Loved the royal blue festive set in your recent Reel. Do you have Medium in stock for pickup today?',
           unreadCount: 1,
         })
         .returning();
@@ -92,8 +92,8 @@ export async function GET(req: NextRequest) {
           conversationId: igConv.id,
           channel: 'instagram',
           senderType: 'CUSTOMER',
-          senderName: 'Rohit Verma',
-          content: 'Hey! I chipped my front tooth playing football an hour ago. Do you take emergency walk-ins today?',
+          senderName: 'Priya Sen',
+          content: 'Hey! Loved the royal blue festive set in your recent Reel. Do you have Medium in stock for pickup today?',
           createdAt: new Date(Date.now() - 3600000),
         },
         {
@@ -101,7 +101,7 @@ export async function GET(req: NextRequest) {
           channel: 'instagram',
           senderType: 'AI_BOT',
           senderName: 'KUIRO AI Co-Pilot',
-          content: 'Hi Rohit! We are so sorry to hear that. Yes, we reserve immediate slots for dental emergencies. Please call our emergency triage desk immediately at +91 98301 24589 or come directly to our clinic before 1:00 PM. We have flagged Dr. Sharma!',
+          content: 'Hi Priya! Yes, we have the royal blue festive set in Medium right now at our showroom. Would you like us to hold it for pickup this afternoon, or arrange doorstep delivery?',
           createdAt: new Date(Date.now() - 3500000),
           aiGenerated: true,
         },
@@ -109,15 +109,15 @@ export async function GET(req: NextRequest) {
           conversationId: igConv.id,
           channel: 'instagram',
           senderType: 'AGENT',
-          senderName: 'Dr. Rajesh Sharma',
-          content: 'Operatory 2 is prepped with aesthetic bonding composite.',
+          senderName: 'Showroom Team',
+          content: 'Inventory verified in rack B4. Ready for pickup.',
           isInternalNote: true,
           createdAt: new Date(Date.now() - 3400000),
         },
       ]);
     }
 
-    // B. Seed Email Lead (B2B Corporate Wellness)
+    // B. Seed Email Lead (B2B Corporate & Brand Partnership)
     if (!hasEmail) {
       const [emailConv] = await database
         .insert(conversations)
@@ -129,19 +129,19 @@ export async function GET(req: NextRequest) {
           customerAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150',
           status: 'WAITING',
           priority: 'NORMAL',
-          tags: ['Corporate Plan', 'B2B Wellness', 'TCS Camp'],
+          tags: ['Corporate Account', 'B2B Partnership', 'High Value'],
           sentiment: 'POSITIVE',
-          campaignSource: 'Corporate Dental Wellness Newsletter #42',
+          campaignSource: 'Executive Partnership & Festive Gifting Newsletter #42',
           crmData: {
             phone: '+91 98212 90812',
             email: 'meera.deshmukh@tcs.com',
             city: 'Mumbai / BKC',
             totalSpend: '₹85,000 (Corporate Account)',
-            patientOrClientType: 'Corporate HR Director',
+            patientOrClientType: 'Corporate Partner Director',
             lastVisitDate: 'Oct 28, 2026',
-            notes: 'High value corporate account. Reviewed proposal for 450 employees.',
+            notes: 'High value corporate account. Reviewed proposal for 450 corporate gifting sets.',
           },
-          lastMessageText: 'Reviewed your corporate dental wellness proposal. Will discuss in committee this Thursday.',
+          lastMessageText: 'Reviewed your corporate partnership proposal. We would like to schedule an alignment call this Thursday at 3 PM.',
           unreadCount: 0,
         })
         .returning();
@@ -152,15 +152,15 @@ export async function GET(req: NextRequest) {
           channel: 'email',
           senderType: 'CUSTOMER',
           senderName: 'Meera Deshmukh',
-          content: 'Dear Dr. Sharma, We received your corporate wellness proposal for our 450 employees. We will discuss in committee this Thursday.',
+          content: 'Dear Team, We reviewed your corporate partnership proposal for our regional team. We would like to schedule an introductory alignment call this Thursday at 3 PM.',
           createdAt: new Date(Date.now() - 7200000),
         },
         {
           conversationId: emailConv.id,
           channel: 'email',
           senderType: 'AGENT',
-          senderName: 'Dr. Rajesh Sharma',
-          content: 'Thank you Meera! We look forward to partnering with TCS. Please let us know if you need customized package tiers for senior leaders.',
+          senderName: 'Executive Team',
+          content: 'Thank you Meera! Thursday at 3 PM works perfectly for our team. We look forward to connecting.',
           createdAt: new Date(Date.now() - 5400000),
         },
       ]);
@@ -178,18 +178,18 @@ export async function GET(req: NextRequest) {
           customerAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
           status: 'OPEN',
           priority: 'HIGH',
-          tags: ['Diwali Promo', 'Invisalign', 'ClearAligners'],
+          tags: ['Festive Offer', 'Direct Booking', 'Priority Client'],
           sentiment: 'POSITIVE',
-          campaignSource: 'Holi Festive Smiles & Cosmetic Consultation Drive',
+          campaignSource: 'Festive Showcase & Priority Consultation Drive',
           crmData: {
             phone: '+91 98201 44512',
             city: 'Mumbai / Bandra',
             totalSpend: '₹14,500',
-            patientOrClientType: 'Orthodontics Patient',
+            patientOrClientType: 'Priority Client',
             lastVisitDate: 'Oct 14, 2026',
-            notes: 'Interested in Invisalign invisible aligners for wedding in December. Very prompt on WhatsApp.',
+            notes: 'Interested in priority package for festive season. Very responsive on WhatsApp.',
           },
-          lastMessageText: 'Can I schedule a consultation for Invisalign clear aligners this Saturday around 11:30 AM?',
+          lastMessageText: 'Can I schedule a consultation session this Saturday around 11:30 AM?',
           unreadCount: 1,
         })
         .returning();
@@ -200,7 +200,7 @@ export async function GET(req: NextRequest) {
           channel: 'whatsapp',
           senderType: 'CUSTOMER',
           senderName: 'Ananya Mukherjee',
-          content: 'Hello! I saw your festive health campaign on WhatsApp about the cosmetic consultation offer. Is that still active?',
+          content: 'Hello! I saw your festive campaign broadcast on WhatsApp. Is the priority consultation offer still active?',
           createdAt: new Date(Date.now() - 3600000),
         },
         {
@@ -208,7 +208,7 @@ export async function GET(req: NextRequest) {
           channel: 'whatsapp',
           senderType: 'AI_BOT',
           senderName: 'KUIRO AI Co-Pilot',
-          content: 'Namaste Ananya! 🙏 Yes, our Festive Smile Consultation offer is valid till November 15! It includes a full 3D digital scan and consultation with Dr. Sharma. Would you like a weekday or weekend appointment?',
+          content: 'Namaste Ananya! 🙏 Yes, our festive priority offer is active through this month! We have reserved exclusive weekend slots. Would you prefer morning or afternoon?',
           createdAt: new Date(Date.now() - 3500000),
           aiGenerated: true,
         },
@@ -217,7 +217,7 @@ export async function GET(req: NextRequest) {
           channel: 'whatsapp',
           senderType: 'CUSTOMER',
           senderName: 'Ananya Mukherjee',
-          content: 'Can I schedule a consultation for Invisalign clear aligners this Saturday around 11:30 AM?',
+          content: 'Can I schedule a consultation session this Saturday around 11:30 AM?',
           createdAt: new Date(Date.now() - 1800000),
         },
       ]);

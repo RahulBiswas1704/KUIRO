@@ -196,19 +196,21 @@ export default function GetStartedPage() {
         fontFamily: extractedData?.fontFamily || 'Sora',
         logoUrl: extractedData?.logoUrl || '/brand/kuiro-primary.svg',
         tones: extractedData?.tones || [
-          'Empathetic & Caring',
-          'Clinically Authoritative',
-          'Jargon-Free',
-          'Culturally Warm (Indian Family Values)',
+          'Customer-Centric & Engaging',
+          'Professional & Authoritative',
+          'Culturally Rooted (Indian Regional Values)',
+          'Clear & Jargon-Free',
         ],
         pillars: extractedData?.pillars || [
-          'Preventive Care & Diagnostics',
-          'Patient Case Studies & Success Stories',
-          'Seasonal Health & Festival Greetings',
+          'Core Products & Quality Showcase',
+          'Customer Case Studies & Reviews',
+          'Seasonal Moments & Festival Greetings',
+          'Industry Insights & Practical Guidance',
         ],
         negativeConstraints: extractedData?.negativeConstraints || [
-          'Never mention competitor chains or compare pricing',
-          'No clinical guarantees without medical disclaimer',
+          'Never disparage competitors or make unverified claims',
+          'Place links on X in the first reply to avoid the $0.200 link surcharge',
+          'Keep graphics clean, high-DPI, and strictly on-brand',
         ],
       };
 
