@@ -65,6 +65,12 @@ const navItems = [
     icon: Share2,
   },
   {
+    name: 'Workspace Settings',
+    href: '/dashboard/settings',
+    icon: Settings,
+    badge: 'NEW',
+  },
+  {
     name: 'Admin Command Center',
     href: '/admin',
     icon: ShieldCheck,
