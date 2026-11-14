@@ -68,6 +68,11 @@ export const workspaces = pgTable('workspaces', {
     enum: ['STARTER', 'GROWTH', 'AGENCY'] 
   }).default('GROWTH').notNull(),
   whatsappAdminPhone: text('whatsapp_admin_phone'),
+  timezone: text('timezone').default('Asia/Kolkata').notNull(),
+  autoCommitEnabled: boolean('auto_commit_enabled').default(true).notNull(),
+  reviewWindowHours: integer('review_window_hours').default(48).notNull(),
+  publishHourOfDay: integer('publish_hour_of_day').default(10).notNull(),
+  lateRevisionGraceMinutes: integer('late_revision_grace_minutes').default(60).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -205,12 +210,27 @@ export const scheduledCampaigns = pgTable('scheduled_campaigns', {
   }).notNull(),
   topicSummary: text('topic_summary').notNull(),
   status: text('status', { 
-    enum: ['GENERATING', 'AUTO_QUEUED', 'APPROVED', 'PAUSED', 'PUBLISHED', 'FAILED'] 
+    enum: [
+      'GENERATING', 
+      'REVIEW_PENDING', 
+      'AUTO_QUEUED', // Backwards-compatible alias for REVIEW_PENDING
+      'REVISION_REQUESTED', 
+      'APPROVED', 
+      'PAUSED', 
+      'READY_TO_PUBLISH', 
+      'PUBLISHING', 
+      'PUBLISHED', 
+      'FAILED', 
+      'CANCELLED'
+    ] 
   }).default('GENERATING').notNull(),
   revisionCount: integer('revision_count').default(0).notNull(), // Max 2 free voice/text revisions
   generateAt: timestamp('generate_at', { withTimezone: true }).notNull(),
-  publishAt: timestamp('publish_at', { withTimezone: true }).notNull(), // Exactly 48h after generation
+  publishAt: timestamp('publish_at', { withTimezone: true }).notNull(), // Target publishing deadline
   inngestRunId: text('inngest_run_id'),
+  failureReason: text('failure_reason'),
+  diagnosticMetadata: jsonb('diagnostic_metadata'),
+  lockAcquiredAt: timestamp('lock_acquired_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 

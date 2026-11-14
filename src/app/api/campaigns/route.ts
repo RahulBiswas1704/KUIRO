@@ -7,6 +7,12 @@ import { evaluateAndRefineCampaignCopy, evaluateCampaignWithCritic } from '@/lib
 import { reviseCampaignSurgically } from '@/lib/campaigns/reviser';
 import { GeneratedAssetPayload } from '@/types';
 import { getSessionFromRequest, authorizeWorkspace } from '@/lib/auth';
+import {
+  transitionCampaignState,
+  handleLateRevision,
+  handleUnpauseAndApproval,
+  calculateTargetPublishTime,
+} from '@/lib/campaigns/stateMachine';
 
 export const dynamic = 'force-dynamic';
 
@@ -549,7 +555,11 @@ export async function POST(req: NextRequest) {
     });
 
     const now = new Date();
-    const publishAt = new Date(now.getTime() + 48 * 3600 * 1000); // exactly 48h from now
+    const publishAt = calculateTargetPublishTime({
+      timezone: ws.timezone || 'Asia/Kolkata',
+      publishHourOfDay: ws.publishHourOfDay ?? 10,
+      reviewWindowHours: ws.reviewWindowHours ?? 48,
+    });
 
     // 3. Insert Campaign into scheduledCampaigns
     const [newCamp] = await database
@@ -558,7 +568,7 @@ export async function POST(req: NextRequest) {
         workspaceId: ws.id,
         triggerType,
         topicSummary: topic.trim(),
-        status: 'AUTO_QUEUED',
+        status: 'REVIEW_PENDING',
         revisionCount: 0,
         generateAt: now,
         publishAt: publishAt,
@@ -824,12 +834,20 @@ export async function PATCH(req: NextRequest) {
         negativeConstraints,
       });
 
+      // Check for late revision and automatically extend publishing window if needed
+      const lateRevisionResult = await handleLateRevision({
+        campaignId,
+        workspaceId: wsId,
+        revisionPrompt: revisionPrompt.trim(),
+      });
+
       const nextRevisionCount = (camp.revisionCount || 0) + 1;
       const [updatedCamp] = await database
         .update(scheduledCampaigns)
         .set({
           revisionCount: nextRevisionCount,
-          status: 'AUTO_QUEUED', // reset to auto-queued with fresh revision
+          status: 'REVIEW_PENDING', // reset to review pending with fresh revision
+          publishAt: lateRevisionResult.newPublishAt || camp.publishAt,
         })
         .where(eq(scheduledCampaigns.id, campaignId))
         .returning();
@@ -881,19 +899,41 @@ export async function PATCH(req: NextRequest) {
       });
     }
 
-    // 2. Handle Status Change (APPROVE, PAUSE, RESUME)
+    // 2. Handle Status Change (APPROVE, PAUSE, RESUME, CANCEL)
     if (!status) {
       return NextResponse.json({ error: 'status or revisionPrompt is required' }, { status: 400 });
     }
 
-    const [updated] = await database
-      .update(scheduledCampaigns)
-      .set({ status })
-      .where(and(
-        eq(scheduledCampaigns.id, campaignId),
-        eq(scheduledCampaigns.workspaceId, wsId)
-      ))
-      .returning();
+    let updatedCampRecord: any;
+
+    if (status === 'APPROVED') {
+      const approvalResult = await handleUnpauseAndApproval({
+        campaignId,
+        workspaceId: wsId,
+      });
+
+      if (!approvalResult.success) {
+        return NextResponse.json(
+          { success: false, error: approvalResult.error || 'Failed to approve campaign.' },
+          { status: 400 }
+        );
+      }
+      updatedCampRecord = approvalResult.campaign;
+    } else {
+      const transitionResult = await transitionCampaignState({
+        campaignId,
+        workspaceId: wsId,
+        targetState: status,
+      });
+
+      if (!transitionResult.success) {
+        return NextResponse.json(
+          { success: false, error: transitionResult.error || 'Invalid campaign state transition.' },
+          { status: 400 }
+        );
+      }
+      updatedCampRecord = transitionResult.campaign;
+    }
 
     // Trigger Inngest event so state machine unblocks via Resilient Dispatcher
     await safeDispatchInngest({
@@ -908,7 +948,7 @@ export async function PATCH(req: NextRequest) {
       success: true,
       source: 'neon_postgres',
       action: 'status_updated',
-      campaign: updated,
+      campaign: updatedCampRecord,
     });
   } catch (error: any) {
     console.error('[Campaigns PATCH Error]:', error);

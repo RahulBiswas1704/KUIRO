@@ -2,13 +2,26 @@ export type TriggerType = 'FESTIVAL' | 'EVERGREEN' | 'TREND' | 'MANUAL';
 
 export type CampaignStatus = 
   | 'GENERATING'
-  | 'AUTO_QUEUED'
-  | 'REVISING'
+  | 'REVIEW_PENDING'
+  | 'AUTO_QUEUED' // Backwards-compatible alias for REVIEW_PENDING
+  | 'REVISION_REQUESTED'
   | 'APPROVED'
-  | 'SKIPPED'
+  | 'PAUSED'
+  | 'READY_TO_PUBLISH'
   | 'PUBLISHING'
   | 'PUBLISHED'
-  | 'FAILED';
+  | 'FAILED'
+  | 'CANCELLED'
+  | 'SKIPPED'
+  | 'REVISING';
+
+export interface AutopilotPolicyConfig {
+  timezone: string; // e.g. 'Asia/Kolkata'
+  autoCommitEnabled: boolean;
+  reviewWindowHours: number; // default 48
+  publishHourOfDay: number; // default 10 (10:00 AM local time)
+  lateRevisionGraceMinutes: number; // default 60
+}
 
 export type SocialPlatform = 
   | 'facebook' 
@@ -44,6 +57,9 @@ export interface ScheduledCampaign {
   generate_at: string;
   publish_at: string;
   inngest_run_id?: string;
+  failure_reason?: string;
+  diagnostic_metadata?: any;
+  lock_acquired_at?: string;
   revision_count: number;
   last_revision_instruction?: string;
   ai_critic_overall_score?: number;

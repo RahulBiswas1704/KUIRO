@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { inngest } from '@/lib/inngest/client';
 import { safeDispatchInngest } from '@/lib/inngest/dispatcher';
 import { db, scheduledCampaigns, platformPosts, brandProfiles, conversations, inboxMessages, workspaces, socialConnections } from '@/db';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 import { generateWithGemini, transcribeAudioWithGemini } from '@/lib/ai/gemini';
 import { reviseCampaignSurgically } from '@/lib/campaigns/reviser';
 import { whatsappClient } from '@/lib/whatsapp/client';
@@ -19,6 +19,11 @@ import {
   transcribeWhatsAppAudio,
   processWhatsAppVoiceRevision,
 } from '@/lib/whatsapp/voiceProcessor';
+import {
+  transitionCampaignState,
+  handleUnpauseAndApproval,
+  handleLateRevision,
+} from '@/lib/campaigns/stateMachine';
 
 function normalizePhone(phone: string): string {
   return phone.replace(/\D/g, '').slice(-10);
@@ -220,19 +225,19 @@ export async function POST(req: NextRequest) {
           }
 
           if (action === 'APPROVE') {
-            await db.update(scheduledCampaigns).set({ status: 'APPROVED' }).where(eq(scheduledCampaigns.id, campaignId));
+            await handleUnpauseAndApproval({ campaignId, workspaceId: camp.workspaceId });
             await sendWhatsAppReply(
               senderPhone,
               '✅ *Approved!* Your campaign creative and copy are locked and scheduled for publication at peak audience hours.'
             );
           } else if (action === 'SKIP') {
-            await db.update(scheduledCampaigns).set({ status: 'PAUSED' }).where(eq(scheduledCampaigns.id, campaignId));
+            await transitionCampaignState({ campaignId, targetState: 'PAUSED', workspaceId: camp.workspaceId, reason: 'Skipped by admin' });
             await sendWhatsAppReply(
               senderPhone,
               '🛑 *Skipped.* This post will not be published. KUIRO will prepare your next campaign on the regular calendar.'
             );
           } else if (action === 'EMERGENCY_PAUSE') {
-            await db.update(scheduledCampaigns).set({ status: 'PAUSED' }).where(eq(scheduledCampaigns.id, campaignId));
+            await transitionCampaignState({ campaignId, targetState: 'PAUSED', workspaceId: camp.workspaceId, reason: 'Emergency Pause by admin' });
             await sendWhatsAppReply(
               senderPhone,
               '⚠️ *Emergency Pause Activated.* All automated social publishing has been safely paused.'
@@ -398,7 +403,7 @@ export async function POST(req: NextRequest) {
               .where(
                 and(
                   eq(scheduledCampaigns.workspaceId, targetWs.id),
-                  eq(scheduledCampaigns.status, 'AUTO_QUEUED')
+                  inArray(scheduledCampaigns.status, ['AUTO_QUEUED', 'REVIEW_PENDING', 'PAUSED'])
                 )
               )
               .orderBy(desc(scheduledCampaigns.createdAt))
@@ -410,10 +415,7 @@ export async function POST(req: NextRequest) {
               // Check for quick Approval
               const isApprove = /\b(approve|approved|haan|ha|publish|sahi hai|chalega|looks good|perfect|ok)\b/i.test(cleanContent);
               if (isApprove) {
-                await db
-                  .update(scheduledCampaigns)
-                  .set({ status: 'APPROVED' })
-                  .where(eq(scheduledCampaigns.id, pendingCamp.id));
+                await handleUnpauseAndApproval({ campaignId: pendingCamp.id, workspaceId: targetWs.id });
 
                 await safeSendInngest({
                   name: 'whatsapp/admin.action',
@@ -437,10 +439,12 @@ export async function POST(req: NextRequest) {
               // Check for Emergency Pause
               const isPause = /\b(pause|stop|ruk jao|hold|cancel|mat daalo|skip)\b/i.test(cleanContent);
               if (isPause) {
-                await db
-                  .update(scheduledCampaigns)
-                  .set({ status: 'PAUSED' })
-                  .where(eq(scheduledCampaigns.id, pendingCamp.id));
+                await transitionCampaignState({
+                  campaignId: pendingCamp.id,
+                  targetState: 'PAUSED',
+                  workspaceId: targetWs.id,
+                  reason: 'Emergency Pause triggered via WhatsApp chat',
+                });
 
                 await safeSendInngest({
                   name: 'whatsapp/admin.action',

@@ -8,6 +8,12 @@ import { verifyManagementAuth, timingSafeCompare, BANNED_SECRETS } from '@/lib/a
 import { retryOutboxEvents } from '@/lib/inngest/dispatcher';
 import { updateSchedulerTelemetry } from '@/lib/scheduler/telemetry';
 import { refreshExpiringTokens } from '@/lib/social/tokenRefresh';
+import {
+  acquirePublishLock,
+  releasePublishLock,
+  verifyPublishReadiness,
+  calculateTargetPublishTime,
+} from '@/lib/campaigns/stateMachine';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -104,13 +110,37 @@ async function executeAutonomousScheduler(params: SchedulerExecutionParams) {
       .from(scheduledCampaigns)
       .where(
         and(
-          inArray(scheduledCampaigns.status, ['AUTO_QUEUED', 'APPROVED']),
+          inArray(scheduledCampaigns.status, ['AUTO_QUEUED', 'REVIEW_PENDING', 'APPROVED', 'READY_TO_PUBLISH']),
           lte(scheduledCampaigns.publishAt, now)
         )
       );
 
     for (const campaign of overdueCampaigns) {
       try {
+        // Pre-Flight Check: Verify workspace has active channels
+        const readiness = await verifyPublishReadiness(campaign.id, campaign.workspaceId);
+        if (!readiness.ready) {
+          console.warn(`[Auto-Commit Pre-Flight Blocked on ${campaign.id}]: ${readiness.reason}`);
+          await releasePublishLock({
+            campaignId: campaign.id,
+            finalStatus: 'FAILED',
+            failureReason: readiness.reason,
+            metadata: { preflight: readiness },
+          });
+          continue;
+        }
+
+        // Distributed In-Flight Lock: Ensure single worker execution
+        const lock = await acquirePublishLock({
+          campaignId: campaign.id,
+          lockOwnerId: `cron-sweep-${Date.now()}`,
+        });
+
+        if (!lock.acquired) {
+          console.log(`[Auto-Commit Fail-Safe] Lock skipped on ${campaign.id}: ${lock.reason}`);
+          continue;
+        }
+
         const posts = await database
           .select()
           .from(platformPosts)
@@ -145,10 +175,11 @@ async function executeAutonomousScheduler(params: SchedulerExecutionParams) {
             }
           }
 
-          await database
-            .update(scheduledCampaigns)
-            .set({ status: 'PUBLISHED' })
-            .where(eq(scheduledCampaigns.id, campaign.id));
+          await releasePublishLock({
+            campaignId: campaign.id,
+            finalStatus: 'PUBLISHED',
+            metadata: { channelResults },
+          });
 
           autoCommittedResults.push({
             campaignId: campaign.id,
@@ -158,9 +189,20 @@ async function executeAutonomousScheduler(params: SchedulerExecutionParams) {
           });
 
           console.log(`[Auto-Commit Fail-Safe] Campaign "${campaign.topicSummary}" published across ${channelResults.length} channels.`);
+        } else {
+          await releasePublishLock({
+            campaignId: campaign.id,
+            finalStatus: 'FAILED',
+            failureReason: 'NO_PLATFORM_POSTS_FOUND',
+          });
         }
-      } catch (pubErr) {
+      } catch (pubErr: any) {
         console.error(`[Auto-Commit Fail-Safe Error on ${campaign.id}]:`, pubErr);
+        await releasePublishLock({
+          campaignId: campaign.id,
+          finalStatus: 'FAILED',
+          failureReason: pubErr.message || 'Auto-commit sweep publication failed',
+        });
       }
     }
   }
@@ -219,11 +261,17 @@ async function executeAutonomousScheduler(params: SchedulerExecutionParams) {
 
         if (existing.length === 0) {
           try {
+            const targetPublishAt = calculateTargetPublishTime({
+              timezone: ws.timezone || 'Asia/Kolkata',
+              publishHourOfDay: ws.publishHourOfDay ?? 10,
+              reviewWindowHours: ws.reviewWindowHours ?? 48,
+            });
+
             const res = await createAutonomousCampaign({
               workspaceId: ws.id,
               topic: event.eventName,
               triggerType: 'FESTIVAL',
-              targetPublishAt: new Date(Date.now() + 48 * 3600 * 1000),
+              targetPublishAt,
             });
 
             createdCampaigns.push({
