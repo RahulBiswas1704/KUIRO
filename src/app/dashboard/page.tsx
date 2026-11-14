@@ -30,7 +30,9 @@ import {
   Send,
   Sliders,
   KeyRound,
-  Lock
+  Lock,
+  Download,
+  FileArchive
 } from 'lucide-react';
 import ConnectedChannelsModal, { PlatformKey } from '@/components/dashboard/ConnectedChannelsModal';
 import { CampaignRoiDashboard } from '@/components/dashboard';
@@ -246,6 +248,38 @@ export default function DashboardPage() {
       showToast(err.message || 'Generation error.', 'error');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  // 1-Click Creative Kit Asset Exporter
+  const [isExportingKit, setIsExportingKit] = useState(false);
+
+  const handleExportCreativeKit = async (campaignId: string, topicName: string) => {
+    try {
+      setIsExportingKit(true);
+      showToast(`Generating Creative Kit ZIP for "${topicName}"...`, 'info');
+
+      const res = await fetch(`/api/campaigns/export?campaignId=${campaignId}`);
+      if (!res.ok) {
+        throw new Error('Failed to bundle creative kit package');
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const cleanSlug = topicName.slice(0, 24).replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_');
+      a.download = `KUIRO_Creative_Kit_${cleanSlug}_${Date.now()}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      showToast(`Creative Kit ZIP downloaded! Packaged 4:5 visual, WhatsApp card, copy & HTML newsletter.`, 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Error exporting creative kit bundle.', 'error');
+    } finally {
+      setIsExportingKit(false);
     }
   };
 
@@ -588,7 +622,15 @@ export default function DashboardPage() {
 
               <div className="flex items-center justify-between text-xs text-gray-500 px-1">
                 <span>Contact Sheet (2x2 Multi-Channel)</span>
-                <span className="text-[#FF7A00] font-medium text-[11px]">Meta Utility Template</span>
+                <button
+                  onClick={() => handleExportCreativeKit(activeCampaign.id, activeCampaign.topicSummary)}
+                  disabled={isExportingKit}
+                  className="text-[#FF7A00] hover:text-[#E66E00] font-semibold text-[11px] flex items-center gap-1 transition disabled:opacity-50"
+                  title="Download offline clinic display visual & copy ZIP"
+                >
+                  <Download size={12} />
+                  <span>Download Assets (ZIP)</span>
+                </button>
               </div>
             </div>
 
@@ -802,6 +844,25 @@ export default function DashboardPage() {
                   Target Auto-Commit: <span className="font-semibold text-gray-700">{new Date(activeCampaign.publishAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' })} IST</span>
                 </div>
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleExportCreativeKit(activeCampaign.id, activeCampaign.topicSummary)}
+                    disabled={isExportingKit}
+                    className="px-3.5 py-2 rounded-[10px] bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white text-xs font-semibold transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                    title="Download high-resolution 4:5 visual, WhatsApp 1:1 card, copy & HTML newsletter in a ZIP"
+                  >
+                    {isExportingKit ? (
+                      <>
+                        <Loader2 size={13} className="animate-spin" />
+                        <span>Bundling ZIP...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download size={13} />
+                        <span>Export Kit (ZIP)</span>
+                      </>
+                    )}
+                  </button>
+
                   <button
                     onClick={() => handlePause(activeCampaign.id)}
                     disabled={isUpdatingStatus}
