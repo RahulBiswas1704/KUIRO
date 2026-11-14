@@ -87,7 +87,7 @@ You MUST return ONLY a raw valid JSON object (no markdown, no backticks, no mark
   const cleanKey = apiKey ? apiKey.replace(/^["']|["']$/g, '').trim() : '';
 
   if (cleanKey && !cleanKey.includes('YourGeminiApiKeyHere')) {
-    const modelsToTry = ['gemini-2.5-flash-lite', 'gemini-1.5-flash'];
+    const modelsToTry = ['gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-1.5-flash'];
     for (const model of modelsToTry) {
       try {
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
@@ -101,7 +101,7 @@ You MUST return ONLY a raw valid JSON object (no markdown, no backticks, no mark
               maxOutputTokens: 2048,
             },
           }),
-          signal: AbortSignal.timeout(3000),
+          signal: AbortSignal.timeout(6000),
         });
 
         if (res.ok) {
@@ -118,9 +118,8 @@ You MUST return ONLY a raw valid JSON object (no markdown, no backticks, no mark
           
           return JSON.parse(clean);
         } else {
-          // If 400 Bad Request (e.g. invalid API key), break immediately to avoid waiting
-          if (res.status === 400) {
-            break;
+          if (res.status === 400 || res.status === 404) {
+            continue;
           }
         }
       } catch (err) {
@@ -129,29 +128,116 @@ You MUST return ONLY a raw valid JSON object (no markdown, no backticks, no mark
     }
   }
 
-  // Graceful fallback copy if AI call fails
+  // Graceful universal dynamic fallback copy if AI call fails
+  const indLower = (industry || '').toLowerCase();
+  const isRetail = indLower.includes('retail') || indLower.includes('store') || indLower.includes('cloth') || indLower.includes('jewel') || indLower.includes('fashion');
+  const isCreatorOrTech = indLower.includes('consult') || indLower.includes('coach') || indLower.includes('founder') || indLower.includes('tech') || indLower.includes('studio') || indLower.includes('saas');
+  const isClinic = indLower.includes('clinic') || indLower.includes('dental') || indLower.includes('health') || indLower.includes('doctor');
+
+  if (isRetail) {
+    return {
+      topicSummary: topic,
+      instagram: {
+        hook: `Craftsmanship that celebrates your unique style and heritage. ✨🛍️`,
+        caption: `Craftsmanship that celebrates your unique style and heritage. ✨🛍️\n\nCelebrate the season with our authentic collections crafted with attention to every single detail. Discover what makes ${businessName} the go-to destination for timeless quality.\n\n📍 Visit our store or WhatsApp us for instant video call assistance and doorstep delivery.`,
+        hashtags: ['FestiveCollection', 'HandcraftedLuxury', 'LocalRetailIndia', 'TimelessStyle'],
+      },
+      linkedin: {
+        hook: `Retail leadership is won in the details: authenticity, customer trust, and memorable experiences.`,
+        caption: `Retail leadership is won in the details: authenticity, customer trust, and memorable experiences.\n\nAt ${businessName}, we believe every product must carry genuine pride of craftsmanship.\n\nHow is your retail operation innovating customer loyalty this quarter?`,
+        hashtags: ['RetailLeadership', 'CustomerExperience', 'CommerceIndia'],
+      },
+      x: {
+        caption: `Fresh seasonal arrivals have landed at ${businessName}. Crafted for authenticity, designed for everyday elegance. ✨🛍️`,
+        firstComment: `Explore our latest collection lookbook: https://kuiro.in/catalog`,
+      },
+      whatsapp: {
+        caption: `🌟 *Exclusive Preview from ${businessName}*\n\nCelebrate with our latest arrivals! We have reserved priority customer previews and festive specials this week.\n\nReply *VIEW* to receive the catalog or visit our store.`,
+      },
+      email: {
+        subject: `✨ Exclusive Showcase & Festive Previews from ${businessName}`,
+        bodyHtml: `<p>Dear Valued Customer,</p><p>We are delighted to invite you to an exclusive showcase of our newest arrivals at ${businessName}.</p><p>Visit our store or reach out on WhatsApp to experience our curated collection.</p>`,
+      },
+    };
+  }
+
+  if (isCreatorOrTech) {
+    return {
+      topicSummary: topic,
+      instagram: {
+        hook: `High velocity is about focused execution, not endless busywork. 🚀📈`,
+        caption: `High velocity is about focused execution, not endless busywork. 🚀📈\n\nWhen you strip away unnecessary friction, real business momentum begins. At ${businessName}, we help modern operators build durable growth systems.\n\n📍 Tap the link in bio or WhatsApp us for strategic consultations.`,
+        hashtags: ['GrowthStrategy', 'FounderMindset', 'BusinessSystems', 'Leadership'],
+      },
+      linkedin: {
+        hook: `Most growth bottlenecks aren’t marketing problems—they are clarity and distribution problems.`,
+        caption: `Most growth bottlenecks aren’t marketing problems—they are clarity and distribution problems.\n\nWhen your value proposition is crystal clear and distribution is autonomous, customer trust compounds exponentially.\n\nAt ${businessName}, our frameworks empower high-performing founders.\n\nWhat is your biggest operational focus this quarter?`,
+        hashtags: ['ExecutiveLeadership', 'Strategy', 'ScalableGrowth'],
+      },
+      x: {
+        caption: `Clarity > Complexity. Sustainable growth happens when you eliminate routine friction and double down on core value. 🚀`,
+        firstComment: `Read our full strategy breakdown: https://kuiro.in/insights`,
+      },
+      whatsapp: {
+        caption: `🚀 *Strategic Brief from ${businessName}*\n\nWe just published our newest advisory breakdown on building high-leverage growth engines.\n\nReply *ADVISORY* to schedule a consultation with our team.`,
+      },
+      email: {
+        subject: `📈 Executive Brief: High-Leverage Strategic Insights from ${businessName}`,
+        bodyHtml: `<p>Dear Colleague,</p><p>We are sharing our latest strategic playbook on scaling operations with speed and precision at ${businessName}.</p><p>Reach out directly to discuss how these frameworks apply to your goals.</p>`,
+      },
+    };
+  }
+
+  if (isClinic) {
+    return {
+      topicSummary: topic,
+      instagram: {
+        hook: `Invest in the only home you will ever truly live in—your health and well-being. ✨🩺`,
+        caption: `Invest in the only home you will ever truly live in—your health and well-being. ✨🩺\n\nEarly diagnostic detection turns anxieties into peace of mind. Get a comprehensive screening at ${businessName}.\n\n📍 Tap link in bio or WhatsApp us to schedule your appointment.`,
+        hashtags: ['PreventiveCare', 'HealthFirst', 'WellnessIndia', 'EarlyDetection'],
+      },
+      linkedin: {
+        hook: `Preventive healthcare isn’t a personal expense; it’s the single highest ROI investment.`,
+        caption: `Preventive healthcare isn’t a personal expense; it’s the single highest ROI investment a founder or executive can make.\n\nAt ${businessName}, our clinical workflows deliver reliable precision.\n\nHow does your organization prioritize proactive health resilience?`,
+        hashtags: ['CorporateWellness', 'Leadership', 'PreventiveMedicine'],
+      },
+      x: {
+        caption: `A busy schedule is no excuse to ignore your body’s signals. Early detection beats late regrets every single time. 🩺 Morning slots open at ${businessName}.`,
+        firstComment: `Book direct consultation: https://kuiro.in/book`,
+      },
+      whatsapp: {
+        caption: `🌟 *Priority Update from ${businessName}*\n\nRoutine prevention is always better than cure. We have reserved priority slots for comprehensive wellness checkups this week.\n\nReply *BOOK* to reserve your slot or tap below to confirm.`,
+      },
+      email: {
+        subject: `🩺 Prioritize Your Health: Exclusive Wellness Insights from ${businessName}`,
+        bodyHtml: `<p>Dear Valued Client,</p><p>Routine prevention is always better than cure. We are pleased to announce priority weekend slots at ${businessName}.</p>`,
+      },
+    };
+  }
+
+  // Universal Default for all other SMBs
   return {
     topicSummary: topic,
     instagram: {
-      hook: `Invest in the only home you will ever truly live in—your body. ✨🩺`,
-      caption: `Invest in the only home you will ever truly live in—your body. ✨🩺\n\nEarly diagnostic detection turns anxieties into peace of mind. Get a comprehensive screening with 40+ vital parameters at ${businessName}.\n\n📍 Tap link in bio or WhatsApp us to schedule your appointment.`,
-      hashtags: ['PreventiveCare', 'HealthFirst', 'WellnessIndia', 'EarlyDetection'],
+      hook: `Excellence is not an accident—it is the result of high intention and sincere effort. ✨`,
+      caption: `Excellence is not an accident—it is the result of high intention and sincere effort. ✨\n\nAt ${businessName}, we are dedicated to delivering unmatched value, dependable consistency, and personalized care for every client we serve.\n\n📍 Tap the link in bio or WhatsApp us directly to get started today.`,
+      hashtags: ['QualityService', 'CustomerFirst', 'IndiaBusiness', 'Excellence'],
     },
     linkedin: {
-      hook: `Preventive healthcare isn’t a personal expense; it’s the single highest ROI investment.`,
-      caption: `Preventive healthcare isn’t a personal expense; it’s the single highest ROI investment a founder or executive can make.\n\nOver 65% of chronic lifestyle ailments can be reversed when detected early.\n\nAt ${businessName}, our clinical workflows deliver reliable precision.\n\nHow does your organization prioritize proactive health resilience?`,
-      hashtags: ['CorporateWellness', 'Leadership', 'PreventiveMedicine'],
+      hook: `Building lasting customer trust requires continuous reliability and clear communication.`,
+      caption: `Building lasting customer trust requires continuous reliability and clear communication.\n\nAt ${businessName}, our priority is creating enduring value for our partners and clients.\n\nHow is your team elevating customer experience this month?`,
+      hashtags: ['BusinessLeadership', 'CustomerTrust', 'OperationalExcellence'],
     },
     x: {
-      caption: `A busy schedule is no excuse to ignore your body’s signals. Early detection beats late regrets every single time. 🩺 Priority morning slots open today at ${businessName}.`,
-      firstComment: `Book direct consultation: https://kuiro.in/book`,
+      caption: `Quality, consistency, and customer focus are the foundation of everything we build at ${businessName}. Discover what sets us apart. ✨`,
+      firstComment: `Connect with our team directly: https://kuiro.in/connect`,
     },
     whatsapp: {
-      caption: `🌟 *Priority Update from ${businessName}*\n\nRoutine prevention is always better than cure. We have reserved priority slots for our comprehensive Vital Checkup package this week.\n\nReply *BOOK* to reserve your slot or tap below to confirm.`,
+      caption: `🌟 *Special Announcement from ${businessName}*\n\nWe are excited to share our latest offerings with you! Enjoy priority scheduling and dedicated assistance.\n\nReply *INFO* to speak with our team or schedule a consultation.`,
     },
     email: {
-      subject: `🩺 Prioritize Your Health: Exclusive Wellness Insights from ${businessName}`,
-      bodyHtml: `<p>Dear Valued Client,</p><p>Routine prevention is always better than cure. We are pleased to announce priority weekend slots for comprehensive wellness screenings at ${businessName}.</p><p>Reserve your consultation today to keep your family healthy and active.</p>`,
+      subject: `✨ News & Exclusive Announcements from ${businessName}`,
+      bodyHtml: `<p>Dear Valued Client,</p><p>We are delighted to share our latest updates and priority offerings at ${businessName}.</p><p>Thank you for trusting us as your partner.</p>`,
     },
   };
 }

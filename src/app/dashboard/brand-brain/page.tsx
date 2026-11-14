@@ -20,39 +20,39 @@ import {
 } from 'lucide-react';
 
 export default function BrandBrainPage() {
-  const [url, setUrl] = useState('https://drsharmadental.in');
+  const [url, setUrl] = useState('https://mybrand.in');
   const [isExtracting, setIsExtracting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [extractedNotice, setExtractedNotice] = useState<string | null>(null);
 
   // Form State
-  const [businessName, setBusinessName] = useState('Dr. Sharma Dental Care & Implant Center');
-  const [industry, setIndustry] = useState('Healthcare & Dentistry');
-  const [primaryColor, setPrimaryColor] = useState('#0B3B60');
-  const [secondaryColor, setSecondaryColor] = useState('#FF7A00');
+  const [businessName, setBusinessName] = useState('My Venture / Store / Studio');
+  const [industry, setIndustry] = useState('Retail, Commerce & Professional Services');
+  const [primaryColor, setPrimaryColor] = useState('#FF7A00');
+  const [secondaryColor, setSecondaryColor] = useState('#0B0F14');
   const [fontFamily, setFontFamily] = useState('Sora');
   const [logoUrl, setLogoUrl] = useState('/brand/kuiro-primary.svg');
   const [tones, setTones] = useState<string[]>([
-    'Empathetic & Caring',
-    'Clinically Authoritative',
-    'Jargon-Free',
-    'Culturally Warm (Indian Family Values)',
+    'Customer-Centric & Engaging',
+    'Authoritative & Professional',
+    'Culturally Rooted (Indian Regional Values)',
+    'Clear & Jargon-Free',
   ]);
   const [newTone, setNewTone] = useState('');
 
   const [pillars, setPillars] = useState<string[]>([
-    'Preventive Care & Child Dentistry',
-    'Cosmetic Dentistry & Clear Aligners',
-    'Indian Festival Greetings & Health Tips',
-    'Patient Case Studies & Myths Busted',
+    'Core Products & Quality Showcase',
+    'Customer Success Stories & Case Studies',
+    'Indian Festival Greetings & Regional Moments',
+    'Educational Industry Insights & Tips',
   ]);
   const [newPillar, setNewPillar] = useState('');
 
   const [negativeConstraints, setNegativeConstraints] = useState<string[]>([
-    'Never mention competitor chains or compare pricing',
-    'No clinical guarantees (e.g. "100% painless") without medical disclaimer',
-    'Place links on X in the first reply to avoid API link post fees ($0.200)',
-    'Keep graphics clean and avoid cluttered stock photos',
+    'Never mention competitor brands or disparage others',
+    'Place links on X in the first reply to avoid the $0.200 link surcharge',
+    'Keep graphics clean, high-DPI, and strictly on-brand',
+    'No unsubstantiated or misleading claims without disclaimers',
   ]);
   const [newConstraint, setNewConstraint] = useState('');
 

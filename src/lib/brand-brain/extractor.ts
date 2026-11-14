@@ -255,41 +255,53 @@ You MUST return ONLY a raw valid JSON object (no markdown, no backticks, no mark
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (apiKey && !apiKey.includes('YourGeminiApiKeyHere')) {
-    try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`;
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.35,
-            maxOutputTokens: 2048,
-          },
-        }),
-      });
+    const modelsToTry = ['gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+    for (const model of modelsToTry) {
+      try {
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.35,
+              maxOutputTokens: 2048,
+            },
+          }),
+          signal: AbortSignal.timeout(6000),
+        });
 
-      if (res.ok) {
-        const d = await res.json();
-        const rawText = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        const cleanJson = rawText.replace(/```json/gi, '').replace(/```/gi, '').trim();
-        aiResult = JSON.parse(cleanJson);
+        if (res.ok) {
+          const d = await res.json();
+          const rawText = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          const cleanJson = rawText.replace(/```json/gi, '').replace(/```/gi, '').trim();
+          aiResult = JSON.parse(cleanJson);
+          if (aiResult) break;
+        } else if (res.status === 400 || res.status === 404) {
+          continue;
+        }
+      } catch (err) {
+        console.warn(`[Brand Brain] Gemini ${model} live extraction error:`, err);
       }
-    } catch (err) {
-      console.warn('[Brand Brain] Gemini 3.5 Flash Lite live extraction error:', err);
     }
   }
 
-  // Sensible, highly realistic fallbacks if AI call is unavailable
+  // Sensible, highly realistic universal fallbacks if AI call is unavailable
+  const titleLower = (meta.title + ' ' + meta.description).toLowerCase();
   const businessName =
-    aiResult?.businessName || meta.siteName || meta.title || `${domainLabel} Care`;
+    aiResult?.businessName || meta.siteName || meta.title || `${domainLabel} Enterprise`;
   const industry =
     aiResult?.industry ||
-    (meta.title.toLowerCase().includes('dental')
-      ? 'Cosmetic & Implant Dentistry'
-      : meta.title.toLowerCase().includes('jewel')
-      ? 'Luxury Jewelry & Heritage Gold'
-      : 'Healthcare & Preventive Wellness');
+    (titleLower.includes('retail') || titleLower.includes('store') || titleLower.includes('shop') || titleLower.includes('fashion') || titleLower.includes('apparel')
+      ? 'Retail, Apparel & Local Commerce'
+      : titleLower.includes('jewel') || titleLower.includes('gold')
+      ? 'Luxury Jewelry & Heritage Retail'
+      : titleLower.includes('consult') || titleLower.includes('coach') || titleLower.includes('founder') || titleLower.includes('studio') || titleLower.includes('saas') || titleLower.includes('tech')
+      ? 'Consultancy, Technology & Creator Brand'
+      : titleLower.includes('dental') || titleLower.includes('clinic') || titleLower.includes('health') || titleLower.includes('doctor')
+      ? 'Healthcare & Clinical Practice'
+      : 'Small & Medium Business Services');
   const primaryColor =
     aiResult?.primaryColor ||
     meta.themeColor ||
