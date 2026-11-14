@@ -135,31 +135,81 @@ export default function SubscriptionCheckoutModal({
     setPaymentError(null);
 
     try {
-      const res = await fetch('/api/billing/verify-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderId: pendingOrder.orderId,
-          orderToken: pendingOrder.orderToken,
-          paymentId: `pay_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`,
-          signature: `sig_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`,
-          gateway: pendingOrder.gateway || gateway,
-          tier: pendingOrder.tier,
-          billingCycle: pendingOrder.billingCycle,
-          totalAmount: pendingOrder.totalAmount,
-        }),
-      });
+      // 1. If Razorpay Checkout SDK is loaded on window, trigger genuine gateway checkout
+      if (typeof window !== 'undefined' && (window as any).Razorpay && pendingOrder.gateway === 'razorpay') {
+        const rzp = new (window as any).Razorpay({
+          key: pendingOrder.keyId || 'rzp_test_kuiro',
+          amount: pendingOrder.totalAmount * 100, // Amount in paise
+          currency: 'INR',
+          name: 'KUIRO Technologies',
+          description: `KUIRO ${selectedTier} Plan Autopilot`,
+          order_id: pendingOrder.orderId,
+          prefill: {
+            name: businessName,
+            contact: '+919876543210',
+          },
+          handler: async function (response: any) {
+            // Forward genuine gateway cryptographic signature to server
+            try {
+              const res = await fetch('/api/billing/verify-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  orderId: response.razorpay_order_id || pendingOrder.orderId,
+                  paymentId: response.razorpay_payment_id,
+                  signature: response.razorpay_signature,
+                  gateway: 'razorpay',
+                }),
+              });
 
-      const data = await res.json();
-      if (data.success && data.order) {
+              const data = await res.json();
+              if (data.success && data.order) {
+                setCompletedOrder({ ...data.order, gateway: 'razorpay' });
+                setPendingOrder(null);
+                if (onSuccess) onSuccess(selectedTier);
+              } else {
+                setPaymentError(data.error || 'Payment signature verification failed.');
+              }
+            } catch (err: any) {
+              setPaymentError(err.message || 'Payment verification failed.');
+            }
+          },
+          modal: {
+            ondismiss: function () {
+              setPaymentError('Payment window closed. Your subscription order remains PENDING.');
+            },
+          },
+        });
+        rzp.open();
+        setIsVerifying(false);
+        return;
+      }
+
+      // 2. Fallback for QR Code / UPI App: Check server status to verify if payment was captured by webhook
+      const checkRes = await fetch(`/api/billing/verify-payment?orderId=${encodeURIComponent(pendingOrder.orderId)}`);
+      const checkData = await checkRes.json();
+
+      if (checkData.isPaid) {
         setCompletedOrder({
-          ...data.order,
-          gateway,
+          orderId: pendingOrder.orderId,
+          tier: checkData.tier || selectedTier,
+          billingCycle: pendingOrder.billingCycle,
+          status: 'PAID_ACTIVE',
+          invoiceNumber: `KUIRO/26-27/${Math.floor(1000 + Math.random() * 9000)}`,
+          totalAmount: pendingOrder.totalAmount,
+          baseAmount: pendingOrder.baseAmount,
+          gstAmount: pendingOrder.gstAmount,
+          gateway: pendingOrder.gateway || gateway,
+          businessName: pendingOrder.businessName,
+          gstin: pendingOrder.gstin,
+          paymentId: pendingOrder.orderId,
         });
         setPendingOrder(null);
         if (onSuccess) onSuccess(selectedTier);
       } else {
-        setPaymentError(data.error || 'Payment verification failed. No subscription change applied.');
+        setPaymentError(
+          'Payment is currently PENDING gateway settlement. Please approve the transaction in your UPI app or complete card authorization, then click Check Status.'
+        );
       }
     } catch (err: any) {
       setPaymentError(err.message || 'Network error during payment verification.');
@@ -396,8 +446,8 @@ export default function SubscriptionCheckoutModal({
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 size={15} />
-                    <span>I Have Paid • Verify &amp; Activate Plan</span>
+                    <ShieldCheck size={15} />
+                    <span>Check Settlement Status &amp; Activate</span>
                   </>
                 )}
               </button>

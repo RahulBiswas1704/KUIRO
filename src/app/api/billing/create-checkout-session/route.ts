@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authorizeWorkspace } from '@/lib/auth';
 import { createPendingOrder, PlanTier, BillingCycle, TIER_PRICING } from '@/lib/billing';
+import { db, subscriptions } from '@/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,6 +60,31 @@ export async function POST(req: NextRequest) {
       businessName,
       gstin,
     });
+
+    // 1b. Record PENDING subscription in database (workspace tier remains unchanged)
+    if (db) {
+      try {
+        const periodStart = new Date();
+        const periodEnd = new Date();
+        if (billingCycle === 'annual') {
+          periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+        } else {
+          periodEnd.setMonth(periodEnd.getMonth() + 1);
+        }
+
+        await db.insert(subscriptions).values({
+          workspaceId: wsId,
+          planTier: tier,
+          billingCycle,
+          status: 'PENDING',
+          currentPeriodStart: periodStart,
+          currentPeriodEnd: periodEnd,
+          razorpaySubscriptionId: pendingOrder.orderId,
+        });
+      } catch (subErr) {
+        console.warn('[Pending Subscription Insert Warning]:', subErr);
+      }
+    }
 
     // 2. Dynamic UPI Payment Link (BHIM / PhonePe / GPay QR Compatible)
     const upiLink = `upi://pay?pa=kuiro@icici&pn=KUIRO%20Technologies&tr=${pendingOrder.orderId}&am=${pendingOrder.totalAmount}&cu=INR&tn=KUIRO%20${tier}%20Autopilot%20Subscription`;
