@@ -113,3 +113,4 @@ export const PERSONAS_LIST = Object.values(PERSONAS).map((p) => ({
   iconBg: p.iconBg,
   emoji: p.emoji,
 }));
+

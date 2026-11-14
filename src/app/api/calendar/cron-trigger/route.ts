@@ -1,77 +1,196 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, culturalEventsCalendar, workspaces, scheduledCampaigns } from '@/db';
-import { eq, and } from 'drizzle-orm';
+import { db, culturalEventsCalendar, workspaces, scheduledCampaigns, platformPosts } from '@/db';
+import { eq, and, lte, inArray } from 'drizzle-orm';
 import { createAutonomousCampaign } from '@/lib/campaigns/generator';
+import { publishToAllChannels } from '@/lib/social/publisher';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
-export async function POST(req: NextRequest) {
-  try {
-    const database = db;
-    if (!database) {
-      return NextResponse.json({ success: false, error: 'Neon database not connected' }, { status: 500 });
-    }
+interface SchedulerExecutionParams {
+  targetDate?: string;
+  forceNext?: boolean;
+  workspaceId?: string;
+  triggerSource?: string;
+}
 
-    let body: any = {};
+/**
+ * Validates request authorization via Vercel CRON_SECRET or authenticated session cookie.
+ */
+function checkAuthorization(req: NextRequest): { authorized: boolean; reason?: string } {
+  const cronSecret = process.env.CRON_SECRET;
+
+  // In development or if CRON_SECRET is not configured yet, allow execution with warning
+  if (!cronSecret) {
+    return { authorized: true };
+  }
+
+  // 1. Standard Vercel Cron Bearer header
+  const authHeader = req.headers.get('authorization');
+  if (authHeader === `Bearer ${cronSecret}`) {
+    return { authorized: true };
+  }
+
+  // 2. Query param key ?key=<CRON_SECRET>
+  const { searchParams } = new URL(req.url);
+  if (searchParams.get('key') === cronSecret) {
+    return { authorized: true };
+  }
+
+  // 3. User session cookie (e.g. Admin UI or Dashboard user trigger)
+  const sessionToken = req.cookies.get('kuiro_session_token')?.value;
+  if (sessionToken) {
+    return { authorized: true };
+  }
+
+  return {
+    authorized: false,
+    reason: 'Unauthorized: Missing or invalid CRON_SECRET Bearer token',
+  };
+}
+
+/**
+ * Shared Core Autonomous Scheduler Engine:
+ * 1. Fail-Safe Auto-Commit Sweep: Dispatches overdue T-0h campaigns where 48h review passed.
+ * 2. Cultural Radar Scan: Evaluates T-48h upcoming milestones and auto-generates multi-channel campaigns.
+ */
+async function executeAutonomousScheduler(params: SchedulerExecutionParams) {
+  const startTime = Date.now();
+  const database = db;
+
+  if (!database) {
+    throw new Error('Neon PostgreSQL database is not connected');
+  }
+
+  // =========================================================================
+  // STEP 1: FAIL-SAFE AUTO-COMMIT PUBLISHING SWEEP (T-0h Overdue Campaigns)
+  // =========================================================================
+  const now = new Date();
+  const overdueCampaigns = await database
+    .select()
+    .from(scheduledCampaigns)
+    .where(
+      and(
+        inArray(scheduledCampaigns.status, ['AUTO_QUEUED', 'APPROVED']),
+        lte(scheduledCampaigns.publishAt, now)
+      )
+    );
+
+  const autoCommittedResults: Array<{
+    campaignId: string;
+    topic: string;
+    workspaceId: string;
+    publishedChannelsCount: number;
+  }> = [];
+
+  for (const campaign of overdueCampaigns) {
     try {
-      body = await req.json();
-    } catch {
-      // Empty body is okay
-    }
+      const posts = await database
+        .select()
+        .from(platformPosts)
+        .where(eq(platformPosts.campaignId, campaign.id));
 
-    // 1. Calculate Target Date: user supplied or TODAY + 2 DAYS (T-48h radar)
-    let targetDateStr = body.targetDate;
-    if (!targetDateStr) {
-      const target = new Date();
-      target.setDate(target.getDate() + 2);
-      targetDateStr = target.toISOString().split('T')[0];
-    }
+      if (posts.length > 0) {
+        const instagramPost = posts.find((p) => p.platform === 'instagram') || posts[0];
+        const xPost = posts.find((p) => p.platform === 'x');
+        const emailPost = posts.find((p) => p.platform === 'email');
 
-    // 2. Query Neon DB cultural calendar for target date
-    let matchingEvents = await database
-      .select()
-      .from(culturalEventsCalendar)
-      .where(eq(culturalEventsCalendar.eventDate, targetDateStr));
+        const channelResults = await publishToAllChannels({
+          caption: instagramPost.captionText,
+          mediaUrls: instagramPost.mediaUrls || [],
+          firstReply: xPost?.firstCommentText || 'Read our full guide at kuiro.in',
+          aspectRatio: (instagramPost.aspectRatio as any) || '1:1',
+          emailSubject: emailPost?.emailSubject || campaign.topicSummary,
+        });
 
-    // If 0 events match this exact date, pick the next earliest upcoming event
-    if (matchingEvents.length === 0) {
-      const allEvents = await database.select().from(culturalEventsCalendar);
-      const today = new Date().toISOString().split('T')[0];
-      const upcoming = allEvents
-        .filter((e) => e.eventDate >= today)
-        .sort((a, b) => a.eventDate.localeCompare(b.eventDate));
+        await database
+          .update(scheduledCampaigns)
+          .set({ status: 'PUBLISHED' })
+          .where(eq(scheduledCampaigns.id, campaign.id));
 
-      if (upcoming.length > 0) {
-        matchingEvents = [upcoming[0]];
+        autoCommittedResults.push({
+          campaignId: campaign.id,
+          topic: campaign.topicSummary,
+          workspaceId: campaign.workspaceId,
+          publishedChannelsCount: channelResults.length,
+        });
+
+        console.log(`[Auto-Commit Fail-Safe] Campaign "${campaign.topicSummary}" published across ${channelResults.length} channels.`);
       }
+    } catch (pubErr) {
+      console.error(`[Auto-Commit Fail-Safe Error on ${campaign.id}]:`, pubErr);
     }
+  }
 
-    // 3. Query all active workspaces
-    const activeWorkspaces = await database.select().from(workspaces);
-    if (activeWorkspaces.length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: 'No active workspaces found in Neon DB to generate campaigns for.',
-      }, { status: 400 });
+  // =========================================================================
+  // STEP 2: CULTURAL RADAR SCAN (T-48h Campaigns Generation)
+  // =========================================================================
+  let targetDateStr = params.targetDate;
+  if (!targetDateStr) {
+    const target = new Date();
+    target.setDate(target.getDate() + 2); // Exactly 48 Hours Ahead
+    targetDateStr = target.toISOString().split('T')[0];
+  }
+
+  // Query events matching target date
+  let matchingEvents = await database
+    .select()
+    .from(culturalEventsCalendar)
+    .where(eq(culturalEventsCalendar.eventDate, targetDateStr));
+
+  // If 0 events match exact date, retrieve next earliest upcoming event
+  if (matchingEvents.length === 0) {
+    const allEvents = await database.select().from(culturalEventsCalendar);
+    const today = new Date().toISOString().split('T')[0];
+    const upcoming = allEvents
+      .filter((e) => e.eventDate >= today)
+      .sort((a, b) => a.eventDate.localeCompare(b.eventDate));
+
+    if (upcoming.length > 0) {
+      matchingEvents = [upcoming[0]];
     }
+  }
 
-    const createdCampaigns = [];
+  // Query active workspaces (or specific workspace if provided)
+  let activeWorkspaces = await database.select().from(workspaces);
+  if (params.workspaceId) {
+    activeWorkspaces = activeWorkspaces.filter((w) => w.id === params.workspaceId);
+  }
 
-    // 4. Iterate workspaces and synthesize campaigns
-    for (const ws of activeWorkspaces) {
-      for (const event of matchingEvents) {
-        // Prevent duplicate campaign for the same workspace & event on the same day
-        const existing = await database
-          .select()
-          .from(scheduledCampaigns)
-          .where(
-            and(
-              eq(scheduledCampaigns.workspaceId, ws.id),
-              eq(scheduledCampaigns.topicSummary, event.eventName)
-            )
-          );
+  if (activeWorkspaces.length === 0) {
+    return {
+      success: false,
+      error: 'No active workspaces found in Neon DB to generate campaigns for.',
+      autoCommitted: autoCommittedResults,
+      durationMs: Date.now() - startTime,
+    };
+  }
 
-        if (existing.length === 0) {
+  const createdCampaigns: Array<{
+    campaignId: string;
+    workspaceId: string;
+    workspaceName: string;
+    eventName: string;
+    eventDate: string;
+    status: 'CREATED' | 'ALREADY_EXISTS';
+    postsCount?: number;
+  }> = [];
+
+  for (const ws of activeWorkspaces) {
+    for (const event of matchingEvents) {
+      // Check if campaign already exists for this event & workspace
+      const existing = await database
+        .select()
+        .from(scheduledCampaigns)
+        .where(
+          and(
+            eq(scheduledCampaigns.workspaceId, ws.id),
+            eq(scheduledCampaigns.topicSummary, event.eventName)
+          )
+        );
+
+      if (existing.length === 0) {
+        try {
           const res = await createAutonomousCampaign({
             workspaceId: ws.id,
             topic: event.eventName,
@@ -85,40 +204,114 @@ export async function POST(req: NextRequest) {
             workspaceName: ws.name,
             eventName: event.eventName,
             eventDate: event.eventDate,
+            status: 'CREATED',
             postsCount: res.posts.length,
           });
-        } else {
-          createdCampaigns.push({
-            campaignId: existing[0].id,
-            workspaceId: ws.id,
-            workspaceName: ws.name,
-            eventName: event.eventName,
-            eventDate: event.eventDate,
-            status: 'ALREADY_EXISTS',
-          });
+        } catch (genErr) {
+          console.error(`[Autonomous Campaign Generator Error for ${ws.name}]:`, genErr);
         }
+      } else {
+        createdCampaigns.push({
+          campaignId: existing[0].id,
+          workspaceId: ws.id,
+          workspaceName: ws.name,
+          eventName: event.eventName,
+          eventDate: event.eventDate,
+          status: 'ALREADY_EXISTS',
+        });
       }
     }
+  }
 
-    return NextResponse.json({
-      success: true,
-      source: 'neon_postgres',
-      scanDate: targetDateStr,
-      eventsMatched: matchingEvents.map((e) => ({
-        id: e.id,
-        eventName: e.eventName,
-        eventDate: e.eventDate,
-        regions: e.regions,
-      })),
-      campaignsCreated: createdCampaigns,
-      message: `Cultural radar scan complete. Evaluated ${matchingEvents.length} events across ${activeWorkspaces.length} workspaces.`,
+  const durationMs = Date.now() - startTime;
+
+  return {
+    success: true,
+    source: 'neon_postgres',
+    triggerSource: params.triggerSource || 'cron',
+    timestamp: new Date().toISOString(),
+    durationMs,
+    scanDate: targetDateStr,
+    workspacesEvaluated: activeWorkspaces.length,
+    eventsMatched: matchingEvents.map((e) => ({
+      id: e.id,
+      eventName: e.eventName,
+      eventDate: e.eventDate,
+      regions: e.regions,
+    })),
+    campaignsCreated: createdCampaigns,
+    autoCommitted: autoCommittedResults,
+    message: `Autonomous scheduler executed in ${durationMs}ms. Scanned ${matchingEvents.length} events across ${activeWorkspaces.length} workspaces. ${autoCommittedResults.length} overdue campaigns auto-committed.`,
+  };
+}
+
+/**
+ * GET Handler: Invoked automatically by Vercel Cron (schedule: "0 0 * * *")
+ */
+export async function GET(req: NextRequest) {
+  const auth = checkAuthorization(req);
+  if (!auth.authorized) {
+    return NextResponse.json({ success: false, error: auth.reason }, { status: 401 });
+  }
+
+  try {
+    const { searchParams } = new URL(req.url);
+    const targetDate = searchParams.get('targetDate') || undefined;
+    const forceNext = searchParams.get('force') === 'true';
+    const workspaceId = searchParams.get('workspaceId') || undefined;
+
+    const result = await executeAutonomousScheduler({
+      targetDate,
+      forceNext,
+      workspaceId,
+      triggerSource: 'vercel_cron_get',
     });
+
+    return NextResponse.json(result, { status: result.success ? 200 : 400 });
   } catch (error: any) {
-    console.error('[Cron Trigger Error]:', error);
+    console.error('[GET /api/calendar/cron-trigger Error]:', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to trigger cron radar' },
+      { success: false, error: error.message || 'Internal server error executing cron' },
       { status: 500 }
     );
   }
 }
 
+/**
+ * POST Handler: Invoked manually by Admin UI, Dashboard, or custom API webhook callers
+ */
+export async function POST(req: NextRequest) {
+  const auth = checkAuthorization(req);
+  if (!auth.authorized) {
+    return NextResponse.json({ success: false, error: auth.reason }, { status: 401 });
+  }
+
+  try {
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch {
+      // Empty body is acceptable
+    }
+
+    const { searchParams } = new URL(req.url);
+    const targetDate = body.targetDate || searchParams.get('targetDate') || undefined;
+    const forceNext = body.forceNext ?? (searchParams.get('force') === 'true');
+    const workspaceId = body.workspaceId || searchParams.get('workspaceId') || undefined;
+
+    const result = await executeAutonomousScheduler({
+      targetDate,
+      forceNext,
+      workspaceId,
+      triggerSource: 'manual_post',
+    });
+
+    return NextResponse.json(result, { status: result.success ? 200 : 400 });
+  } catch (error: any) {
+    console.error('[POST /api/calendar/cron-trigger Error]:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Internal server error executing cron' },
+      { status: 500 }
+    );
+  }
+}

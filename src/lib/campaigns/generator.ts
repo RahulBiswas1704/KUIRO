@@ -84,25 +84,44 @@ You MUST return ONLY a raw valid JSON object (no markdown, no backticks, no mark
   }
 }`;
 
-  if (apiKey && !apiKey.includes('YourGeminiApiKeyHere')) {
-    const modelsToTry = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.5-flash'];
+  const cleanKey = apiKey ? apiKey.replace(/^["']|["']$/g, '').trim() : '';
+
+  if (cleanKey && !cleanKey.includes('YourGeminiApiKeyHere')) {
+    const modelsToTry = ['gemini-2.5-flash-lite', 'gemini-1.5-flash'];
     for (const model of modelsToTry) {
       try {
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
         const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.35, maxOutputTokens: 2048 },
+            generationConfig: { 
+              temperature: 0.35, 
+              maxOutputTokens: 2048,
+            },
           }),
+          signal: AbortSignal.timeout(3000),
         });
 
         if (res.ok) {
           const d = await res.json();
           const rawText = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          const clean = rawText.replace(/```json/gi, '').replace(/```/gi, '').trim();
+          let clean = rawText.replace(/```json/gi, '').replace(/```/gi, '').trim();
+          
+          // Ensure valid JSON brackets extraction
+          const firstBrace = clean.indexOf('{');
+          const lastBrace = clean.lastIndexOf('}');
+          if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+            clean = clean.substring(firstBrace, lastBrace + 1);
+          }
+          
           return JSON.parse(clean);
+        } else {
+          // If 400 Bad Request (e.g. invalid API key), break immediately to avoid waiting
+          if (res.status === 400) {
+            break;
+          }
         }
       } catch (err) {
         console.warn(`[Campaign Gemini ${model} Error]:`, err);

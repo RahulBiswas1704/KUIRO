@@ -81,3 +81,4 @@ export const DEFAULT_CHANNELS: ChannelConfig[] = [
     description: 'Sends clinic newsletters, patient reminders, and event announcements using authenticated domain credentials.',
   },
 ];
+

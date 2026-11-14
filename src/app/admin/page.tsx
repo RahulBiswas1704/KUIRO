@@ -411,12 +411,15 @@ export default function AdminPage() {
       const res = await fetch('/api/calendar/cron-trigger', { method: 'POST' });
       const data = await res.json();
       if (res.ok) {
-        showToast(`Radar scan complete! Evaluated ${data.workspacesEvaluated || 0} workspaces.`);
+        const autoCount = data.autoCommitted?.length || 0;
+        showToast(`Radar scan complete! Evaluated ${data.workspacesEvaluated || 0} workspaces. ${autoCount > 0 ? `${autoCount} campaigns auto-committed.` : ''}`);
         loadCampaigns();
         loadOverview();
+      } else {
+        showToast(data.error || 'Failed to trigger radar sweep');
       }
     } catch (err) {
-      alert('Failed to trigger radar sweep');
+      showToast('Failed to trigger radar sweep');
     }
   };
 
@@ -1023,6 +1026,25 @@ export default function AdminPage() {
                   <Plus size={14} />
                   <span>Add Cultural Event</span>
                 </button>
+              </div>
+            </div>
+
+            {/* Vercel Cron Engine Status Card */}
+            <div className="p-3.5 rounded-[12px] bg-emerald-950/20 border border-emerald-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                <div>
+                  <span className="font-semibold text-emerald-300">Vercel Cron Active: </span>
+                  <span className="text-slate-300 font-mono text-[11px]">0 0 * * * (Daily 00:00 UTC / 05:30 AM IST)</span>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Endpoint: <code className="text-emerald-400 font-mono">/api/calendar/cron-trigger</code> (GET/POST) • 48h Radar + T-0h Auto-Commit Fail-Safe
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
+                  CRON_SECRET Protected
+                </span>
               </div>
             </div>
 
