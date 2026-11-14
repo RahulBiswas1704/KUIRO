@@ -3,6 +3,7 @@ import { extractBrandBrainFromUrl } from '@/lib/brand-brain/extractor';
 import { db, workspaces, brandProfiles, users } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { authorizeWorkspace } from '@/lib/auth';
+import { validateUrlForSSRF } from '@/lib/security/safeFetch';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, error: auth.error },
         { status: auth.status }
+      );
+    }
+
+    // Upfront SSRF & Scheme Validation
+    const validation = validateUrlForSSRF(url);
+    if (!validation.valid) {
+      return NextResponse.json(
+        { success: false, error: validation.error, code: 'SSRF_BLOCKED' },
+        { status: 400 }
       );
     }
 
@@ -102,6 +112,28 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     console.error('Brand Brain extraction error:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    const msg = error?.message || 'Brand Brain extraction failed';
+    const isSsrfOrClientError =
+      msg.includes('SSRF_BLOCKED') ||
+      msg.includes('Prohibited') ||
+      msg.includes('credentials') ||
+      msg.includes('prohibited') ||
+      msg.includes('private') ||
+      msg.includes('loopback') ||
+      msg.includes('exceeds maximum permitted limit') ||
+      msg.includes('exceeded maximum size limit') ||
+      msg.includes('Unsupported content type') ||
+      msg.includes('Too many redirects') ||
+      msg.includes('DNS_RESOLUTION_FAILED');
+
+    const status = isSsrfOrClientError ? 400 : 500;
+    return NextResponse.json(
+      {
+        success: false,
+        error: msg,
+        code: isSsrfOrClientError ? 'SSRF_BLOCKED' : 'EXTRACTION_ERROR',
+      },
+      { status }
+    );
   }
 }
