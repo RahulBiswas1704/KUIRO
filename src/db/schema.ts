@@ -118,6 +118,19 @@ export const processedWebhookEvents = pgTable('processed_webhook_events', {
   processedAt: timestamp('processed_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// 2f. Admin Audit Logs (Platform Operator Activity Ledger)
+export const adminAuditLogs = pgTable('admin_audit_logs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  operatorEmail: text('operator_email').notNull(),
+  action: text('action').notNull(),
+  resource: text('resource'),
+  status: text('status', { enum: ['SUCCESS', 'FAILURE', 'BLOCKED', 'RATE_LIMITED'] }).notNull(),
+  details: jsonb('details'),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 // 3. The Brand Brain (Persistent Knowledge & Guardrails)
 export const brandProfiles = pgTable('brand_profiles', {
   id: uuid('id').defaultRandom().primaryKey(),

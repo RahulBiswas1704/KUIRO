@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, users, workspaces, brandProfiles, scheduledCampaigns, platformPosts, conversations, inboxMessages, culturalEventsCalendar, sessions } from '@/db';
 import { desc, sql as drizzleSql } from 'drizzle-orm';
-import { verifyManagementAuth } from '@/lib/adminAuth';
+import { verifyManagementAuth, recordAdminAuditLog } from '@/lib/adminAuth';
 import { checkStorageHealth } from '@/lib/storage/r2';
 import { getOutboxTelemetry } from '@/lib/inngest/dispatcher';
 
@@ -12,10 +12,24 @@ export async function GET(req: NextRequest) {
     const auth = await verifyManagementAuth(req);
     if (!auth.authorized) {
       return NextResponse.json(
-        { success: false, error: 'Access Denied: KUIRO Executive Management Clearance Required.' },
+        {
+          success: false,
+          error: 'Access Denied: KUIRO Platform Operator Clearance Required.',
+          code: auth.errorCode,
+          reason: auth.reason,
+        },
         { status: 403 }
       );
     }
+
+    // Record audit event
+    await recordAdminAuditLog({
+      operatorEmail: auth.email || 'operator@kuiro.in',
+      action: 'VIEW_SYSTEM_OVERVIEW',
+      resource: '/api/admin/overview',
+      status: 'SUCCESS',
+      req,
+    });
     const database = db;
     if (!database) {
       return NextResponse.json({

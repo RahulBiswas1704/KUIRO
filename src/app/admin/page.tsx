@@ -75,7 +75,7 @@ interface ActivityItem {
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'workspaces' | 'users' | 'campaigns' | 'calendar' | 'optimizer'
+    'overview' | 'workspaces' | 'users' | 'campaigns' | 'calendar' | 'optimizer' | 'audit'
   >('overview');
 
   // Management Security Clearance State
@@ -84,8 +84,15 @@ export default function AdminPage() {
   const [managementEmail, setManagementEmail] = useState('');
   const [managementPasskey, setManagementPasskey] = useState('');
   const [showPasskey, setShowPasskey] = useState(false);
+  const [mfaCode, setMfaCode] = useState('');
+  const [showMfaInput, setShowMfaInput] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isAuthorizing, setIsAuthorizing] = useState(false);
+
+  // Security Audit Logs State
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [auditStatusFilter, setAuditStatusFilter] = useState('ALL');
+  const [auditSearch, setAuditSearch] = useState('');
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -280,6 +287,23 @@ export default function AdminPage() {
     }
   }, []);
 
+  // 7. Fetch Security Audit Logs
+  const loadAuditLogs = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/audit-logs');
+      if (res.status === 401 || res.status === 403) {
+        setIsManagementAuthenticated(false);
+        return;
+      }
+      if (res.ok) {
+        const data = await res.json();
+        setAuditLogs(data.logs || []);
+      }
+    } catch (err) {
+      console.error('Failed to load audit logs:', err);
+    }
+  }, []);
+
   // Refresh current view
   const refreshCurrentView = async () => {
     setIsRefreshing(true);
@@ -289,6 +313,7 @@ export default function AdminPage() {
     else if (activeTab === 'campaigns') await loadCampaigns();
     else if (activeTab === 'calendar') await loadCalendar();
     else if (activeTab === 'optimizer') await loadOptimizer();
+    else if (activeTab === 'audit') await loadAuditLogs();
     setIsRefreshing(false);
   };
 
@@ -305,12 +330,13 @@ export default function AdminPage() {
           loadCampaigns(),
           loadCalendar(),
           loadOptimizer(),
+          loadAuditLogs(),
         ]);
         setIsLoading(false);
       }
     }
     init();
-  }, [checkManagementAuth, loadOverview, loadWorkspaces, loadUsers, loadCampaigns, loadCalendar, loadOptimizer]);
+  }, [checkManagementAuth, loadOverview, loadWorkspaces, loadUsers, loadCampaigns, loadCalendar, loadOptimizer, loadAuditLogs]);
 
   // Management Login Handler
   const handleManagementLogin = async (e: React.FormEvent) => {
@@ -321,16 +347,30 @@ export default function AdminPage() {
       const res = await fetch('/api/admin/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: managementEmail, passkey: managementPasskey }),
+        body: JSON.stringify({
+          email: managementEmail,
+          passkey: managementPasskey,
+          mfaCode: mfaCode.trim() || undefined,
+        }),
       });
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        setAuthError(data.error || 'Access Denied: Invalid management clearance credentials.');
+
+      if (data.mfaRequired) {
+        setShowMfaInput(true);
+        setAuthError(data.error || 'Dual-Factor Authentication: Operator 6-digit MFA code required.');
         return;
       }
+
+      if (!res.ok || !data.success) {
+        setAuthError(data.error || 'Access Denied: Invalid operator clearance credentials.');
+        return;
+      }
+
       setIsManagementAuthenticated(true);
+      setShowMfaInput(false);
+      setMfaCode('');
       setManagementEmail(data.user?.email || managementEmail);
-      showToast('KUIRO Management Clearance Granted: Terminal Unlocked');
+      showToast('KUIRO Platform Operator Clearance Granted: Terminal Unlocked');
       setIsLoading(true);
       await Promise.all([
         loadOverview(),
@@ -339,6 +379,7 @@ export default function AdminPage() {
         loadCampaigns(),
         loadCalendar(),
         loadOptimizer(),
+        loadAuditLogs(),
       ]);
       setIsLoading(false);
     } catch (err: any) {
@@ -644,14 +685,14 @@ export default function AdminPage() {
                   />
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1 font-inter">
-                  Authorized domains: <span className="text-slate-400 font-mono">@kuiro.in</span>, <span className="text-slate-400 font-mono">@sharmaheritage.in</span>, or registered executive email.
+                  Authorized domains: <span className="text-slate-400 font-mono">@kuiro.in</span> or registered platform operator email.
                 </p>
               </div>
 
               {/* Master Security Passkey */}
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5 font-inter">
-                  Master Security Passkey
+                  Master Operator Passkey
                 </label>
                 <div className="relative">
                   <Key size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
@@ -660,7 +701,7 @@ export default function AdminPage() {
                     required
                     value={managementPasskey}
                     onChange={(e) => setManagementPasskey(e.target.value)}
-                    placeholder="Enter Master Passkey"
+                    placeholder="Enter Master Operator Passkey"
                     className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[#06090F] border border-white/10 text-white placeholder-slate-500 text-xs font-mono focus:outline-none focus:border-[#FF7A00] transition"
                     autoComplete="current-password"
                   />
@@ -674,6 +715,29 @@ export default function AdminPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Optional / Required MFA Code Input */}
+              {showMfaInput && (
+                <div className="p-3 rounded-xl bg-[#FF7A00]/10 border border-[#FF7A00]/30 animate-fade-in space-y-2">
+                  <label className="block text-xs font-semibold text-[#FF7A00] font-inter flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <ShieldCheck size={14} />
+                      <span>Operator 2FA / TOTP Code</span>
+                    </span>
+                    <span className="text-[10px] uppercase font-mono text-slate-400">RFC 6238 Standard</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={mfaCode}
+                    onChange={(e) => setMfaCode(e.target.value)}
+                    placeholder="Enter 6-digit TOTP (e.g. 123456) or Recovery Code"
+                    className="w-full px-3 py-2 rounded-lg bg-[#06090F] border border-[#FF7A00]/40 text-white placeholder-slate-500 text-xs font-mono focus:outline-none focus:border-[#FF7A00]"
+                  />
+                  <p className="text-[10px] text-slate-400">
+                    Enter the code from your authenticator app or emergency recovery code.
+                  </p>
+                </div>
+              )}
 
               {/* Submit Button */}
               <button
@@ -795,6 +859,7 @@ export default function AdminPage() {
           { id: 'campaigns', label: '48h Campaign Queue', icon: Sparkles, count: metrics?.campaigns },
           { id: 'calendar', label: '365 Indian Calendar', icon: CalendarDays, count: metrics?.calendarEvents },
           { id: 'optimizer', label: 'AI Critic & Optimizer', icon: Sliders },
+          { id: 'audit', label: 'Security Audit Logs', icon: ShieldCheck, count: auditLogs.length },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -1557,6 +1622,164 @@ export default function AdminPage() {
                     className="w-full accent-[#FF7A00]"
                   />
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 7: SECURITY AUDIT LOGS */}
+        {activeTab === 'audit' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-[#0C111A] p-5 rounded-[16px] border border-white/[0.08]">
+              <div>
+                <h2 className="text-lg font-sora font-bold text-white flex items-center gap-2">
+                  <ShieldCheck size={20} className="text-[#FF7A00]" />
+                  <span>Platform Operator Security Audit Logs</span>
+                </h2>
+                <p className="text-xs text-slate-400 mt-1 font-inter">
+                  Immutable audit trail of operator logins, rate limiting throttles, and administrative mutations.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={loadAuditLogs}
+                  className="px-3.5 py-1.5 rounded-[10px] bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-xs font-semibold text-slate-300 hover:text-white transition flex items-center gap-1.5"
+                >
+                  <RefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />
+                  <span>Refresh Audit Trail</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Filters Toolbar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#0A0E16] p-3 rounded-[12px] border border-white/5 font-inter text-xs">
+              <div className="flex items-center gap-2 flex-1 max-w-md bg-[#06090F] border border-white/10 rounded-[8px] px-3 py-1.5">
+                <Search size={14} className="text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Filter by operator email, action, IP..."
+                  value={auditSearch}
+                  onChange={(e) => setAuditSearch(e.target.value)}
+                  className="bg-transparent text-white placeholder-slate-500 w-full focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 overflow-x-auto">
+                {['ALL', 'SUCCESS', 'FAILURE', 'BLOCKED', 'RATE_LIMITED'].map((st) => (
+                  <button
+                    key={st}
+                    onClick={() => setAuditStatusFilter(st)}
+                    className={`px-2.5 py-1 rounded-[6px] text-[11px] font-mono transition ${
+                      auditStatusFilter === st
+                        ? 'bg-[#FF7A00] text-white font-bold'
+                        : 'bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.06]'
+                    }`}
+                  >
+                    {st}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Logs Table */}
+            <div className="rounded-[16px] bg-[#0C111A] border border-white/[0.08] overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left font-inter text-xs">
+                  <thead className="bg-[#101722] text-slate-400 border-b border-white/[0.06] uppercase font-mono text-[10px]">
+                    <tr>
+                      <th className="py-3 px-4">Timestamp</th>
+                      <th className="py-3 px-4">Operator Email</th>
+                      <th className="py-3 px-4">Action</th>
+                      <th className="py-3 px-4">Resource</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4">IP Address</th>
+                      <th className="py-3 px-4">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.04]">
+                    {auditLogs
+                      .filter((l) => {
+                        if (auditStatusFilter !== 'ALL' && l.status !== auditStatusFilter) return false;
+                        if (auditSearch) {
+                          const q = auditSearch.toLowerCase();
+                          return (
+                            l.operatorEmail?.toLowerCase().includes(q) ||
+                            l.action?.toLowerCase().includes(q) ||
+                            l.resource?.toLowerCase().includes(q) ||
+                            l.ipAddress?.toLowerCase().includes(q)
+                          );
+                        }
+                        return true;
+                      })
+                      .map((log) => {
+                        const statusBadge =
+                          log.status === 'SUCCESS'
+                            ? 'bg-emerald-950/60 text-emerald-400 border-emerald-500/20'
+                            : log.status === 'FAILURE'
+                            ? 'bg-red-950/60 text-red-400 border-red-500/20'
+                            : log.status === 'RATE_LIMITED'
+                            ? 'bg-purple-950/60 text-purple-400 border-purple-500/20'
+                            : 'bg-amber-950/60 text-amber-400 border-amber-500/20';
+
+                        return (
+                          <tr key={log.id} className="hover:bg-white/[0.02] transition">
+                            <td className="py-3 px-4 font-mono text-[11px] text-slate-400 whitespace-nowrap">
+                              {new Date(log.createdAt).toLocaleString('en-IN', {
+                                day: '2-digit',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                              })}
+                            </td>
+                            <td className="py-3 px-4 font-medium text-white whitespace-nowrap">
+                              {log.operatorEmail}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="font-mono text-[11px] px-2 py-0.5 rounded bg-white/[0.04] border border-white/10 text-slate-300">
+                                {log.action}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 font-mono text-[11px] text-slate-400 whitespace-nowrap">
+                              {log.resource || '—'}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span
+                                className={`text-[10px] font-mono px-2 py-0.5 rounded-full border uppercase font-semibold ${statusBadge}`}
+                              >
+                                {log.status}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 font-mono text-[11px] text-slate-400 whitespace-nowrap">
+                              {log.ipAddress}
+                            </td>
+                            <td className="py-3 px-4 text-slate-400">
+                              {log.details ? (
+                                <details className="cursor-pointer">
+                                  <summary className="text-[10px] font-mono text-[#FF7A00] hover:underline">
+                                    View Payload
+                                  </summary>
+                                  <pre className="mt-1 p-2 rounded bg-black/40 border border-white/5 text-[10px] font-mono text-slate-300 max-w-xs overflow-x-auto">
+                                    {JSON.stringify(log.details, null, 2)}
+                                  </pre>
+                                </details>
+                              ) : (
+                                '—'
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    {auditLogs.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-slate-500 font-inter">
+                          No audit log entries recorded yet. Operator activities will stream here live.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>

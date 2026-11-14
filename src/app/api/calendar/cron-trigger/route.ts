@@ -4,7 +4,7 @@ import { eq, and, lte, inArray } from 'drizzle-orm';
 import { createAutonomousCampaign } from '@/lib/campaigns/generator';
 import { publishToAllChannels } from '@/lib/social/publisher';
 import { authorizeWorkspace, getSessionFromRequest } from '@/lib/auth';
-import { verifyManagementAuth } from '@/lib/adminAuth';
+import { verifyManagementAuth, timingSafeCompare, BANNED_SECRETS } from '@/lib/adminAuth';
 import { retryOutboxEvents } from '@/lib/inngest/dispatcher';
 import { updateSchedulerTelemetry } from '@/lib/scheduler/telemetry';
 
@@ -23,17 +23,22 @@ export interface SchedulerExecutionParams {
  * Validates request authorization via Vercel CRON_SECRET or authenticated session cookie.
  */
 async function checkAuthorization(req: NextRequest): Promise<{ authorized: boolean; reason?: string; isSystemAdmin: boolean }> {
-  const cronSecret = process.env.CRON_SECRET || 'kuiro_cron_secret_secure_2026';
-
+  const cronSecret = process.env.CRON_SECRET?.trim();
   const authHeader = req.headers.get('authorization');
   const bearerToken = authHeader?.toLowerCase().startsWith('bearer ') ? authHeader.substring(7).trim() : null;
+  const keyParam = new URL(req.url).searchParams.get('key')?.trim();
 
-  // 1. Standard Vercel Cron Bearer header or query param
-  if (bearerToken === cronSecret || new URL(req.url).searchParams.get('key') === cronSecret) {
-    return { authorized: true, isSystemAdmin: true };
+  // 1. Standard Vercel Cron Bearer header or query param (fails closed if secret missing or banned)
+  if (cronSecret && !BANNED_SECRETS.has(cronSecret.toLowerCase())) {
+    if (
+      (bearerToken && timingSafeCompare(bearerToken, cronSecret)) ||
+      (keyParam && timingSafeCompare(keyParam, cronSecret))
+    ) {
+      return { authorized: true, isSystemAdmin: true };
+    }
   }
 
-  // 2. Platform Admin clearance (Management Key Header, Cookie, or Token)
+  // 2. Platform Operator clearance (Management Key Header, Cookie, or Token)
   const adminAuth = await verifyManagementAuth(req);
   if (adminAuth.authorized) {
     return { authorized: true, isSystemAdmin: true };

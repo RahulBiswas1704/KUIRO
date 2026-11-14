@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyManagementAuth } from '@/lib/adminAuth';
+import { verifyManagementAuth, recordAdminAuditLog } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,6 +79,16 @@ export async function POST(req: NextRequest) {
     if (body.autonomousEngine) {
       currentConfig.autonomousEngine = { ...currentConfig.autonomousEngine, ...body.autonomousEngine };
     }
+
+    // Record audit log for optimizer update
+    await recordAdminAuditLog({
+      operatorEmail: auth.email || 'operator@kuiro.in',
+      action: 'UPDATE_SYSTEM_OPTIMIZER_CONFIG',
+      resource: '/api/admin/optimizer',
+      status: 'SUCCESS',
+      details: { updatedKeys: Object.keys(body) },
+      req,
+    });
 
     return NextResponse.json({
       success: true,
