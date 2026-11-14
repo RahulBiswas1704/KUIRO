@@ -34,8 +34,19 @@ const BILLING_SECRET =
   process.env.BILLING_WEBHOOK_SECRET ||
   'kuiro_billing_master_secret_2026';
 
-// Global cache of pending orders with 30-min TTL
-const pendingOrdersStore = new Map<string, PendingOrder>();
+// Global cache of pending orders with 30-min TTL (attached to globalThis for Next.js singleton stability)
+const globalForBilling = globalThis as unknown as {
+  pendingOrdersStore?: Map<string, PendingOrder>;
+  processedBillingEventsStore?: Map<string, number>;
+};
+
+const pendingOrdersStore =
+  globalForBilling.pendingOrdersStore ?? new Map<string, PendingOrder>();
+globalForBilling.pendingOrdersStore = pendingOrdersStore;
+
+const processedBillingEventsStore =
+  globalForBilling.processedBillingEventsStore ?? new Map<string, number>();
+globalForBilling.processedBillingEventsStore = processedBillingEventsStore;
 
 export function generateOrderToken(
   orderId: string,
@@ -125,4 +136,100 @@ export function markOrderPaid(orderId: string): PendingOrder | undefined {
     pendingOrdersStore.set(orderId, order);
   }
   return order;
+}
+
+export function isDuplicateBillingEvent(eventId: string, ttlMs = 24 * 60 * 60 * 1000): boolean {
+  if (!eventId) return false;
+  const now = Date.now();
+  if (processedBillingEventsStore.size > 10000) {
+    for (const [id, ts] of processedBillingEventsStore.entries()) {
+      if (now - ts > ttlMs) {
+        processedBillingEventsStore.delete(id);
+      }
+    }
+  }
+  if (processedBillingEventsStore.has(eventId)) {
+    return true;
+  }
+  processedBillingEventsStore.set(eventId, now);
+  return false;
+}
+
+export function verifyRazorpayWebhookSignature(
+  rawBody: string,
+  signatureHeader: string | null,
+  customSecret?: string
+): { valid: boolean; status: number; error?: string } {
+  const secret =
+    customSecret ||
+    process.env.RAZORPAY_WEBHOOK_SECRET ||
+    process.env.BILLING_WEBHOOK_SECRET ||
+    (process.env.NODE_ENV !== 'production' ? 'kuiro_razorpay_webhook_secret_secure_32chars' : '');
+
+  if (!secret) {
+    console.error('[Razorpay Webhook Critical] RAZORPAY_WEBHOOK_SECRET not configured on server.');
+    return {
+      valid: false,
+      status: 500,
+      error: 'Server configuration error: Razorpay webhook secret missing.',
+    };
+  }
+
+  if (!signatureHeader) {
+    console.warn('[Razorpay Webhook Alert] Missing X-Razorpay-Signature header.');
+    return {
+      valid: false,
+      status: 401,
+      error: 'Unauthorized: Missing X-Razorpay-Signature header.',
+    };
+  }
+
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(rawBody, 'utf8')
+    .digest('hex');
+
+  const sigBuf = Buffer.from(signatureHeader, 'utf8');
+  const expBuf = Buffer.from(expectedSignature, 'utf8');
+
+  if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+    console.warn('[Razorpay Webhook Security Alert] Cryptographic signature mismatch. Forged request rejected.');
+    return {
+      valid: false,
+      status: 401,
+      error: 'Unauthorized: Invalid signature.',
+    };
+  }
+
+  return { valid: true, status: 200 };
+}
+
+export function validatePlanAmount(
+  amount: number,
+  tier: PlanTier,
+  billingCycle: BillingCycle = 'monthly'
+): { valid: boolean; expectedPaise: number; expectedRupees: number } {
+  const pricing = TIER_PRICING[tier];
+  if (!pricing) {
+    return { valid: false, expectedPaise: 0, expectedRupees: 0 };
+  }
+  const baseRupees = billingCycle === 'annual' ? pricing.annual : pricing.monthly;
+  const gstRupees = Math.round(baseRupees * 0.18);
+  const totalRupees = baseRupees + gstRupees;
+
+  const totalPaise = totalRupees * 100;
+  const basePaise = baseRupees * 100;
+
+  // Accept total amount in paise, total in rupees, or base (ex-tax) amount in paise/rupees
+  const valid =
+    amount === totalPaise ||
+    amount === totalRupees ||
+    amount === basePaise ||
+    amount === baseRupees;
+
+  return {
+    valid,
+    expectedPaise: totalPaise,
+    expectedRupees: totalRupees,
+  };
 }

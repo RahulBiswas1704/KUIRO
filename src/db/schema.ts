@@ -80,6 +80,44 @@ export const workspaceMembers = pgTable('workspace_members', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// 2c. Subscriptions & Billing State
+export const subscriptions = pgTable('subscriptions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id').references(() => workspaces.id, { onDelete: 'cascade' }).notNull(),
+  planTier: text('plan_tier', { enum: ['STARTER', 'GROWTH', 'AGENCY'] }).notNull(),
+  billingCycle: text('billing_cycle', { enum: ['monthly', 'annual'] }).default('monthly').notNull(),
+  status: text('status', { enum: ['ACTIVE', 'PAST_DUE', 'CANCELLED', 'PAUSED'] }).default('ACTIVE').notNull(),
+  currentPeriodStart: timestamp('current_period_start', { withTimezone: true }).defaultNow().notNull(),
+  currentPeriodEnd: timestamp('current_period_end', { withTimezone: true }).notNull(),
+  razorpaySubscriptionId: text('razorpay_subscription_id'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// 2d. Payments (Ledger of verified transactions)
+export const payments = pgTable('payments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id').references(() => workspaces.id, { onDelete: 'cascade' }).notNull(),
+  orderId: text('order_id').notNull(),
+  paymentId: text('payment_id').notNull().unique(),
+  amount: integer('amount').notNull(),
+  currency: text('currency').default('INR').notNull(),
+  status: text('status', { enum: ['captured', 'failed', 'refunded'] }).notNull(),
+  gateway: text('gateway').default('razorpay').notNull(),
+  planTier: text('plan_tier', { enum: ['STARTER', 'GROWTH', 'AGENCY'] }).notNull(),
+  invoiceNumber: text('invoice_number'),
+  rawEventData: jsonb('raw_event_data'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// 2e. Processed Webhook Events (Idempotency Ledger)
+export const processedWebhookEvents = pgTable('processed_webhook_events', {
+  id: text('id').primaryKey(),
+  gateway: text('gateway').notNull(),
+  eventType: text('event_type').notNull(),
+  processedAt: timestamp('processed_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 // 3. The Brand Brain (Persistent Knowledge & Guardrails)
 export const brandProfiles = pgTable('brand_profiles', {
   id: uuid('id').defaultRandom().primaryKey(),
