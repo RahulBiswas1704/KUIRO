@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { inngest } from '@/lib/inngest/client';
-import { db, scheduledCampaigns, conversations, inboxMessages, workspaces } from '@/db';
+import { db, scheduledCampaigns, conversations, inboxMessages, workspaces, socialConnections } from '@/db';
 import { eq, and, desc } from 'drizzle-orm';
 import { generateWithGemini } from '@/lib/ai/gemini';
 import { publishInboxEvent } from '@/lib/inbox/eventHub';
+
+function normalizePhone(phone: string): string {
+  return phone.replace(/\D/g, '').slice(-10);
+}
 
 /**
  * Meta WhatsApp Cloud API Webhook Handler
@@ -96,100 +100,107 @@ export async function POST(req: NextRequest) {
     if (messageType === 'interactive') {
       const buttonId: string = message.interactive?.button_reply?.id || '';
 
-      if (buttonId.startsWith('BTN_APPROVE_')) {
-        const campaignId = buttonId.replace('BTN_APPROVE_', '');
-        console.log(`[WhatsApp Webhook] Campaign ${campaignId} manually APPROVED by ${senderPhone}`);
-
-        await safeSendInngest({
-          name: 'whatsapp/admin.action',
-          data: {
-            campaignId,
-            action: 'APPROVE',
-            senderPhone,
-            timestamp: new Date().toISOString(),
-          },
-        });
-
-        if (db) {
-          try {
-            await db
-              .update(scheduledCampaigns)
-              .set({ status: 'APPROVED' })
-              .where(eq(scheduledCampaigns.id, campaignId));
-          } catch {}
+      if (buttonId.startsWith('BTN_APPROVE_') || buttonId.startsWith('BTN_SKIP_') || buttonId.startsWith('BTN_PAUSE_')) {
+        let action: 'APPROVE' | 'SKIP' | 'EMERGENCY_PAUSE' = 'APPROVE';
+        let campaignId = '';
+        if (buttonId.startsWith('BTN_APPROVE_')) {
+          action = 'APPROVE';
+          campaignId = buttonId.replace('BTN_APPROVE_', '');
+        } else if (buttonId.startsWith('BTN_SKIP_')) {
+          action = 'SKIP';
+          campaignId = buttonId.replace('BTN_SKIP_', '');
+        } else {
+          action = 'EMERGENCY_PAUSE';
+          campaignId = buttonId.replace('BTN_PAUSE_', '');
         }
 
-        await sendWhatsAppReply(
-          senderPhone,
-          '✅ *Approved!* Your campaign creative and copy are locked and scheduled for publication at peak audience hours.'
-        );
-
-        return NextResponse.json({
-          status: 'success',
-          action: 'APPROVED',
-          campaignId,
-        });
-      }
-
-      if (buttonId.startsWith('BTN_SKIP_')) {
-        const campaignId = buttonId.replace('BTN_SKIP_', '');
-        console.log(`[WhatsApp Webhook] Campaign ${campaignId} SKIPPED by ${senderPhone}`);
-
-        await safeSendInngest({
-          name: 'whatsapp/admin.action',
-          data: {
-            campaignId,
-            action: 'SKIP',
-            senderPhone,
-            timestamp: new Date().toISOString(),
-          },
-        });
-
+        // TENANT ISOLATION: Validate that the sender phone is authorized for this campaign's workspace
         if (db) {
-          try {
-            await db
-              .update(scheduledCampaigns)
-              .set({ status: 'PAUSED' })
-              .where(eq(scheduledCampaigns.id, campaignId));
-          } catch {}
-        }
+          const [camp] = await db
+            .select()
+            .from(scheduledCampaigns)
+            .where(eq(scheduledCampaigns.id, campaignId))
+            .limit(1);
 
-        await sendWhatsAppReply(
-          senderPhone,
-          '🛑 *Skipped.* This post will not be published. KUIRO will prepare your next campaign on the regular calendar.'
-        );
+          if (!camp) {
+            return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+          }
 
-        return NextResponse.json({
-          status: 'success',
-          action: 'SKIPPED',
-          campaignId,
-        });
-      }
+          const [campWs] = await db
+            .select()
+            .from(workspaces)
+            .where(eq(workspaces.id, camp.workspaceId))
+            .limit(1);
 
-      if (buttonId.startsWith('BTN_PAUSE_')) {
-        const campaignId = buttonId.replace('BTN_PAUSE_', '');
-        console.log(`[WhatsApp Webhook] EMERGENCY PAUSE triggered by ${senderPhone}`);
+          const normalizedSender = normalizePhone(senderPhone);
+          const normalizedAdmin = campWs?.whatsappAdminPhone ? normalizePhone(campWs.whatsappAdminPhone) : '';
 
-        await safeSendInngest({
-          name: 'whatsapp/admin.action',
-          data: {
+          let isAuthorized = false;
+          if (normalizedAdmin && normalizedSender === normalizedAdmin) {
+            isAuthorized = true;
+          } else {
+            // Also check socialConnections for this workspace
+            const [waConn] = await db
+              .select()
+              .from(socialConnections)
+              .where(
+                and(
+                  eq(socialConnections.workspaceId, camp.workspaceId),
+                  eq(socialConnections.platform, 'whatsapp')
+                )
+              )
+              .limit(1);
+
+            if (waConn && normalizePhone(waConn.platformAccountId) === normalizedSender) {
+              isAuthorized = true;
+            }
+          }
+
+          if (!isAuthorized) {
+            console.warn(`[WhatsApp Webhook Unauthorized] Sender ${senderPhone} attempted ${action} on campaign ${campaignId} owned by workspace ${camp.workspaceId}`);
+            await sendWhatsAppReply(
+              senderPhone,
+              '⚠️ *Access Denied:* Your WhatsApp number is not authorized to approve or modify campaigns for this workspace.'
+            );
+            return NextResponse.json({ error: 'Unauthorized: Phone not linked to workspace admin' }, { status: 403 });
+          }
+
+          if (action === 'APPROVE') {
+            await db.update(scheduledCampaigns).set({ status: 'APPROVED' }).where(eq(scheduledCampaigns.id, campaignId));
+            await sendWhatsAppReply(
+              senderPhone,
+              '✅ *Approved!* Your campaign creative and copy are locked and scheduled for publication at peak audience hours.'
+            );
+          } else if (action === 'SKIP') {
+            await db.update(scheduledCampaigns).set({ status: 'PAUSED' }).where(eq(scheduledCampaigns.id, campaignId));
+            await sendWhatsAppReply(
+              senderPhone,
+              '🛑 *Skipped.* This post will not be published. KUIRO will prepare your next campaign on the regular calendar.'
+            );
+          } else if (action === 'EMERGENCY_PAUSE') {
+            await db.update(scheduledCampaigns).set({ status: 'PAUSED' }).where(eq(scheduledCampaigns.id, campaignId));
+            await sendWhatsAppReply(
+              senderPhone,
+              '⚠️ *Emergency Pause Activated.* All automated social publishing has been safely paused.'
+            );
+          }
+
+          await safeSendInngest({
+            name: 'whatsapp/admin.action',
+            data: {
+              campaignId,
+              action,
+              senderPhone,
+              timestamp: new Date().toISOString(),
+            },
+          });
+
+          return NextResponse.json({
+            status: 'success',
+            action,
             campaignId,
-            action: 'EMERGENCY_PAUSE',
-            senderPhone,
-            timestamp: new Date().toISOString(),
-          },
-        });
-
-        await sendWhatsAppReply(
-          senderPhone,
-          '⚠️ *Emergency Pause Activated.* All automated social publishing has been safely paused.'
-        );
-
-        return NextResponse.json({
-          status: 'success',
-          action: 'EMERGENCY_PAUSED',
-          campaignId,
-        });
+          });
+        }
       }
     }
 
@@ -210,8 +221,79 @@ export async function POST(req: NextRequest) {
     // 3. Save into Neon Database (Unified Omni-Inbox)
     if (db) {
       try {
-        // Fetch or assign workspace
-        const [targetWs] = await db.select().from(workspaces).limit(1);
+        const businessPhoneId = value?.metadata?.phone_number_id;
+        const businessDisplayPhone = value?.metadata?.display_phone_number;
+
+        // TENANT ISOLATION: Resolve exact target workspace without arbitrary limit(1)
+        let targetWs: typeof workspaces.$inferSelect | undefined;
+
+        // a. Check if existing conversation exists with this customer handle
+        const [existingConv] = await db
+          .select()
+          .from(conversations)
+          .where(
+            and(
+              eq(conversations.customerHandle, senderPhone),
+              eq(conversations.channel, 'whatsapp')
+            )
+          )
+          .limit(1);
+
+        if (existingConv) {
+          const [matchedWs] = await db
+            .select()
+            .from(workspaces)
+            .where(eq(workspaces.id, existingConv.workspaceId))
+            .limit(1);
+          targetWs = matchedWs;
+        }
+
+        // b. Match business WhatsApp ID in socialConnections
+        if (!targetWs && (businessPhoneId || businessDisplayPhone)) {
+          const matchedConnections = await db
+            .select()
+            .from(socialConnections)
+            .where(eq(socialConnections.platform, 'whatsapp'));
+
+          const foundConn = matchedConnections.find(
+            (c) =>
+              (businessPhoneId && c.platformAccountId === businessPhoneId) ||
+              (businessDisplayPhone && normalizePhone(c.platformAccountId) === normalizePhone(businessDisplayPhone))
+          );
+
+          if (foundConn) {
+            const [matchedWs] = await db
+              .select()
+              .from(workspaces)
+              .where(eq(workspaces.id, foundConn.workspaceId))
+              .limit(1);
+            targetWs = matchedWs;
+          }
+        }
+
+        // c. Match workspace admin phone
+        if (!targetWs && (businessDisplayPhone || senderPhone)) {
+          const allWorkspaces = await db.select().from(workspaces);
+          targetWs = allWorkspaces.find((w) => {
+            if (!w.whatsappAdminPhone) return false;
+            const normWsPhone = normalizePhone(w.whatsappAdminPhone);
+            return (
+              (businessDisplayPhone && normWsPhone === normalizePhone(businessDisplayPhone)) ||
+              normWsPhone === normalizePhone(senderPhone)
+            );
+          });
+        }
+
+        // Strictly drop unmapped messages rather than corrupting random tenant data
+        if (!targetWs) {
+          console.warn(
+            `[WhatsApp Webhook Dropped] Received inbound message from ${senderPhone} (business ID: ${businessPhoneId || 'none'}), but no matching tenant workspace was found. Dropped to preserve strict multi-tenant isolation.`
+          );
+          return NextResponse.json({
+            status: 'ignored_unattributed_tenant',
+            message: 'Inbound message could not be attributed to an authorized tenant workspace.',
+          }, { status: 200 });
+        }
 
         if (targetWs) {
           // Check for existing conversation with this customer

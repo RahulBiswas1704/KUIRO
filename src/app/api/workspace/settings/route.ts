@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, workspaces, brandProfiles, users } from '@/db';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { getSessionFromRequest, authorizeWorkspace } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
         whatsappAdminPhone: whatsappAdminPhone || ws.whatsappAdminPhone,
         subscriptionTier: (subscriptionTier as any) || ws.subscriptionTier,
       })
-      .where(eq(workspaces.id, ws.id))
+      .where(and(eq(workspaces.id, ws.id), eq(workspaces.ownerId, session!.user.id)))
       .returning();
 
     // 2. Update or Upsert Brand Profile

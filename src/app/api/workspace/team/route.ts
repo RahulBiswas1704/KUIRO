@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, workspaces, users } from '@/db';
-import { eq } from 'drizzle-orm';
-import { getSessionFromRequest } from '@/lib/auth';
+import { eq, and } from 'drizzle-orm';
+import { authorizeWorkspace } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 interface TeamMemberRecord {
   id: string;
+  workspaceId: string;
   name: string;
   email: string;
   role: 'Owner' | 'Admin' | 'Marketer' | 'Inbox Agent';
@@ -14,44 +15,62 @@ interface TeamMemberRecord {
   invitedAt: string;
 }
 
-// In-memory persistent team store across sessions
-let globalTeamMembers: TeamMemberRecord[] = [
-  {
-    id: 'mem_1',
-    name: 'Rajesh Sharma',
-    email: 'rajesh.sharma@kuiro.in',
-    role: 'Owner',
-    status: 'Active',
-    invitedAt: '2026-01-10T10:00:00Z',
-  },
-  {
-    id: 'mem_2',
-    name: 'Priya Sen',
-    email: 'priya.marketing@sharmaheritage.in',
-    role: 'Marketer',
-    status: 'Active',
-    invitedAt: '2026-02-14T12:30:00Z',
-  },
-  {
-    id: 'mem_3',
-    name: 'Amit Patel',
-    email: 'reception.leads@sharmaheritage.in',
-    role: 'Inbox Agent',
-    status: 'Active',
-    invitedAt: '2026-03-01T09:15:00Z',
-  },
-];
+// Workspace-scoped persistent team store
+const workspaceTeamStore = new Map<string, TeamMemberRecord[]>();
+
+function getOrCreateWorkspaceTeam(workspaceId: string, ownerName: string, ownerEmail: string): TeamMemberRecord[] {
+  if (!workspaceTeamStore.has(workspaceId)) {
+    workspaceTeamStore.set(workspaceId, [
+      {
+        id: `mem_owner_${workspaceId.slice(0, 8)}`,
+        workspaceId,
+        name: ownerName || 'Workspace Owner',
+        email: ownerEmail || 'owner@kuiro.in',
+        role: 'Owner',
+        status: 'Active',
+        invitedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        id: `mem_mkt_${workspaceId.slice(0, 8)}`,
+        workspaceId,
+        name: 'Priya Sen',
+        email: 'priya.marketing@sharmaheritage.in',
+        role: 'Marketer',
+        status: 'Active',
+        invitedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      {
+        id: `mem_inbox_${workspaceId.slice(0, 8)}`,
+        workspaceId,
+        name: 'Amit Patel',
+        email: 'reception.leads@sharmaheritage.in',
+        role: 'Inbox Agent',
+        status: 'Active',
+        invitedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+    ]);
+  }
+  return workspaceTeamStore.get(workspaceId)!;
+}
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getSessionFromRequest(req);
-    if (!session) {
-      return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
+    const { searchParams } = new URL(req.url);
+    const workspaceIdParam = searchParams.get('workspaceId');
+
+    const auth = await authorizeWorkspace(req, workspaceIdParam);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
+
+    const wsId = auth.workspaceId!;
+    const members = getOrCreateWorkspaceTeam(wsId, auth.session!.user.name, auth.session!.user.email);
+
     return NextResponse.json({
       success: true,
-      members: globalTeamMembers,
-      currentUserRole: session.user.role || 'Owner',
+      workspaceId: wsId,
+      members,
+      currentUserRole: auth.session!.user.role || 'Owner',
     });
   } catch (error: any) {
     return NextResponse.json(
@@ -63,16 +82,20 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSessionFromRequest(req);
-    if (!session) {
-      return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
-    }
     const body = await req.json();
-    const { name, email, role } = body;
+    const { name, email, role, workspaceId: customWsId } = body;
+
+    const auth = await authorizeWorkspace(req, customWsId);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
 
     if (!name || !email) {
       return NextResponse.json({ error: 'Name and email are required.' }, { status: 400 });
     }
+
+    const wsId = auth.workspaceId!;
+    const members = getOrCreateWorkspaceTeam(wsId, auth.session!.user.name, auth.session!.user.email);
 
     // Role validation
     const validRoles = ['Owner', 'Admin', 'Marketer', 'Inbox Agent'];
@@ -80,6 +103,7 @@ export async function POST(req: NextRequest) {
 
     const newMember: TeamMemberRecord = {
       id: `mem_${Date.now().toString(36)}`,
+      workspaceId: wsId,
       name: name.trim(),
       email: email.trim().toLowerCase(),
       role: assignedRole,
@@ -87,7 +111,7 @@ export async function POST(req: NextRequest) {
       invitedAt: new Date().toISOString(),
     };
 
-    globalTeamMembers.push(newMember);
+    members.push(newMember);
 
     return NextResponse.json({
       success: true,
@@ -104,24 +128,33 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await getSessionFromRequest(req);
-    if (!session) {
-      return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
-    }
-
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
+    const workspaceIdParam = searchParams.get('workspaceId');
+
+    const auth = await authorizeWorkspace(req, workspaceIdParam);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
 
     if (!id) {
       return NextResponse.json({ error: 'Member ID required.' }, { status: 400 });
     }
 
-    const member = globalTeamMembers.find((m) => m.id === id);
-    if (member && member.role === 'Owner') {
+    const wsId = auth.workspaceId!;
+    const members = getOrCreateWorkspaceTeam(wsId, auth.session!.user.name, auth.session!.user.email);
+
+    const member = members.find((m) => m.id === id);
+    if (!member) {
+      return NextResponse.json({ error: 'Team member not found in this workspace.' }, { status: 404 });
+    }
+
+    if (member.role === 'Owner') {
       return NextResponse.json({ error: 'Cannot remove the primary workspace Owner.' }, { status: 400 });
     }
 
-    globalTeamMembers = globalTeamMembers.filter((m) => m.id !== id);
+    const filtered = members.filter((m) => m.id !== id);
+    workspaceTeamStore.set(wsId, filtered);
 
     return NextResponse.json({
       success: true,
@@ -134,4 +167,3 @@ export async function DELETE(req: NextRequest) {
     );
   }
 }
-
