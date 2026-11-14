@@ -51,6 +51,17 @@ export default function LoginPage() {
     }
   };
 
+  const handleDemoLogin = async () => {
+    setErrorMessage('');
+    setIsSubmitting(true);
+    try {
+      await loginDemoUser();
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : 'Demo sign in failed. Database unavailable.');
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans selection:bg-[#FF7A00] selection:text-white">
       <AnnouncementBar subtitle="— Sign in to access your autonomous marketing dashboard." />
@@ -75,8 +86,9 @@ export default function LoginPage() {
           {/* 1-Click Fast Demo Login Pill */}
           <button
             type="button"
-            onClick={loginDemoUser}
-            className="w-full p-3.5 rounded-[12px] bg-gradient-to-r from-emerald-950/60 to-[#121A15] border border-emerald-500/40 hover:border-emerald-500/80 text-left transition flex items-center justify-between group shadow-sm"
+            onClick={handleDemoLogin}
+            disabled={isSubmitting}
+            className="w-full p-3.5 rounded-[12px] bg-gradient-to-r from-emerald-950/60 to-[#121A15] border border-emerald-500/40 hover:border-emerald-500/80 text-left transition flex items-center justify-between group shadow-sm disabled:opacity-50"
           >
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">

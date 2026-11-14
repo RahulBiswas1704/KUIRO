@@ -289,6 +289,12 @@ export default function DashboardLayout({
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium hidden sm:inline">
               Workspace Isolated
             </span>
+            {user?.isDemo && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1 shadow-xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                Demo Sandbox (Server)
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-3">

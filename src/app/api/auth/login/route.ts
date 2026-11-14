@@ -18,6 +18,14 @@ export async function POST(req: NextRequest) {
     const ipAddress = req.headers.get('x-forwarded-for') || undefined;
     const userAgent = req.headers.get('user-agent') || undefined;
 
+    const database = db;
+    if (!database) {
+      return NextResponse.json(
+        { error: 'Database service is temporarily unavailable. Please try again shortly.' },
+        { status: 503 }
+      );
+    }
+
     // 1. Explicit 1-Click Demo Login (Dr. Rajesh Sharma)
     if (isDemo === true) {
       const demoData = await ensureDemoUser();
@@ -28,7 +36,7 @@ export async function POST(req: NextRequest) {
 
       const response = NextResponse.json({
         success: true,
-        user: demoData.user,
+        user: { ...demoData.user, isDemo: true },
         workspace: demoData.workspace,
         sessionToken: token,
         expiresAt,
@@ -63,14 +71,6 @@ export async function POST(req: NextRequest) {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const database = db;
-
-    if (!database) {
-      return NextResponse.json(
-        { error: 'Database service is temporarily unavailable. Please try again shortly.' },
-        { status: 503 }
-      );
-    }
 
     // Find User in Neon DB
     const [userRecord] = await database
