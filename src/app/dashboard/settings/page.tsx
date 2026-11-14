@@ -217,14 +217,14 @@ export default function WorkspaceSettingsPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-8 font-inter text-slate-100">
+    <div className="space-y-6 max-w-6xl mx-auto font-inter text-[#0B0F14]">
       {/* Toast Notification */}
       {toastMessage && (
         <div
           className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-semibold animate-in fade-in slide-in-from-bottom-5 duration-200 ${
             toastType === 'success'
-              ? 'bg-emerald-950/90 border border-emerald-500 text-emerald-200'
-              : 'bg-rose-950/90 border border-rose-500 text-rose-200'
+              ? 'bg-[#0B0F14] text-white border border-emerald-500/50'
+              : 'bg-[#0B0F14] text-white border border-rose-500/50'
           }`}
         >
           {toastType === 'success' ? <CheckCircle2 size={16} className="text-emerald-400" /> : <AlertCircle size={16} className="text-rose-400" />}
@@ -233,24 +233,24 @@ export default function WorkspaceSettingsPage() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[#E5E7EB]">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-950/60 border border-orange-700/40 text-[#FF7A00] text-xs font-mono mb-2">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-orange-100 border border-orange-200 text-[#FF7A00] text-xs font-mono font-bold mb-2">
             <Settings size={13} />
             <span>Workspace Configuration</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-sora font-bold text-white tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-sora font-bold text-[#0B0F14] tracking-tight">
             Settings &amp; Autonomous Controls
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 font-inter mt-1">
-            Manage your business profile, WhatsApp review loop, team seats, and subscription.
+          <p className="text-xs sm:text-sm text-gray-500 font-inter mt-1">
+            Manage your business profile, WhatsApp 48-hour review loop, team seats, and subscription invoicing.
           </p>
         </div>
 
         <button
           onClick={handleSaveSettings}
           disabled={isSaving}
-          className="px-5 py-2.5 rounded-[10px] bg-[#FF7A00] hover:bg-[#FF881A] text-white text-xs font-sora font-semibold transition shadow-lg shadow-[#FF7A00]/25 flex items-center justify-center gap-2 self-start sm:self-auto disabled:opacity-50"
+          className="px-5 py-2.5 rounded-[10px] bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-sora font-semibold transition shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 self-start sm:self-auto disabled:opacity-50 active:scale-95 cursor-pointer"
         >
           {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
           <span>{isSaving ? 'Saving Changes...' : 'Save Settings'}</span>
@@ -258,80 +258,56 @@ export default function WorkspaceSettingsPage() {
       </div>
 
       {/* Horizontal Settings Tabs */}
-      <div className="flex overflow-x-auto border-b border-white/10 gap-2 pb-px scrollbar-none">
-        <button
-          onClick={() => setActiveTab('general')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-sora font-semibold border-b-2 transition whitespace-nowrap ${
-            activeTab === 'general'
-              ? 'border-[#FF7A00] text-white bg-white/[0.02]'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Building2 size={15} className={activeTab === 'general' ? 'text-[#FF7A00]' : 'text-slate-500'} />
-          <span>Workspace &amp; Brand</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('whatsapp')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-sora font-semibold border-b-2 transition whitespace-nowrap ${
-            activeTab === 'whatsapp'
-              ? 'border-[#FF7A00] text-white bg-white/[0.02]'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Smartphone size={15} className={activeTab === 'whatsapp' ? 'text-emerald-400' : 'text-slate-500'} />
-          <span>WhatsApp Review Loop</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('billing')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-sora font-semibold border-b-2 transition whitespace-nowrap ${
-            activeTab === 'billing'
-              ? 'border-[#FF7A00] text-white bg-white/[0.02]'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <CreditCard size={15} className={activeTab === 'billing' ? 'text-blue-400' : 'text-slate-500'} />
-          <span>Plan &amp; GST Invoicing</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('team')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-sora font-semibold border-b-2 transition whitespace-nowrap ${
-            activeTab === 'team'
-              ? 'border-[#FF7A00] text-white bg-white/[0.02]'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Users size={15} className={activeTab === 'team' ? 'text-purple-400' : 'text-slate-500'} />
-          <span>Team &amp; Access Control</span>
-        </button>
+      <div className="flex overflow-x-auto border-b border-[#E5E7EB] gap-2 pb-px scrollbar-none">
+        {[
+          { id: 'general', label: 'Workspace & Brand', icon: Building2 },
+          { id: 'whatsapp', label: 'WhatsApp Review Loop', icon: Smartphone, color: 'text-emerald-600' },
+          { id: 'billing', label: 'Plan & GST Invoicing', icon: CreditCard, color: 'text-blue-600' },
+          { id: 'team', label: 'Team & Access Control', icon: Users, color: 'text-purple-600' },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-sora font-semibold border-b-2 transition whitespace-nowrap rounded-t-lg ${
+                isActive
+                  ? 'border-[#FF7A00] text-[#0B0F14] bg-orange-50/70 font-bold'
+                  : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <Icon size={15} className={isActive ? 'text-[#FF7A00]' : (tab.color || 'text-gray-400')} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab 1: General Workspace & Brand Identity */}
       {activeTab === 'general' && (
         <div className="space-y-6">
-          <div className="p-6 rounded-[16px] bg-[#0B0F14] border border-white/10 space-y-6">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div className="p-6 rounded-[14px] bg-white border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-6">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
               <div>
-                <h3 className="text-base font-sora font-bold text-white">Business Identity &amp; Tenant Partition</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Primary workspace identifier used across campaigns, receipts, and Brand Brain.</p>
+                <h3 className="text-base font-sora font-bold text-[#0B0F14]">Business Identity &amp; Tenant Partition</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Primary workspace identifier used across campaigns, receipts, and Brand Brain.</p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-mono text-slate-500">ID: {workspaceId.slice(0, 10)}...</span>
+                <span className="text-[11px] font-mono text-gray-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">ID: {workspaceId.slice(0, 10)}...</span>
                 <button
                   onClick={handleCopyId}
-                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition"
+                  className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition cursor-pointer"
                   title="Copy Workspace ID"
                 >
-                  {copiedId ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                  {copiedId ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
                 </button>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs font-inter">
               <div>
-                <label className="block text-[11px] font-medium text-slate-300 mb-1.5">
+                <label className="block text-[11px] font-semibold text-gray-700 mb-1.5">
                   Workspace / Business Name
                 </label>
                 <input
@@ -339,18 +315,18 @@ export default function WorkspaceSettingsPage() {
                   value={workspaceName}
                   onChange={(e) => setWorkspaceName(e.target.value)}
                   placeholder="e.g. Sharma Heritage Handlooms"
-                  className="w-full bg-[#11141A] border border-white/10 rounded-[10px] px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-[#FF7A00] transition"
+                  className="w-full bg-[#F9FAFB] border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-[#0B0F14] placeholder-gray-400 focus:outline-none focus:border-[#FF7A00] focus:bg-white transition"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-slate-300 mb-1.5">
+                <label className="block text-[11px] font-semibold text-gray-700 mb-1.5">
                   Industry / Sector
                 </label>
                 <select
                   value={industry}
                   onChange={(e) => setIndustry(e.target.value)}
-                  className="w-full bg-[#11141A] border border-white/10 rounded-[10px] px-3.5 py-2.5 text-white focus:outline-none focus:border-[#FF7A00] transition"
+                  className="w-full bg-[#F9FAFB] border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-[#0B0F14] focus:outline-none focus:border-[#FF7A00] focus:bg-white transition"
                 >
                   <option value="Retail, Apparel & Local Commerce">Retail, Apparel &amp; Local Commerce</option>
                   <option value="Consultancy, Growth & Creator Brand">Consultancy, Growth &amp; Creator Brand</option>
@@ -363,7 +339,7 @@ export default function WorkspaceSettingsPage() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-slate-300 mb-1.5">
+                <label className="block text-[11px] font-semibold text-gray-700 mb-1.5">
                   Official Website / Online Catalog URL
                 </label>
                 <input
@@ -371,16 +347,16 @@ export default function WorkspaceSettingsPage() {
                   value={websiteUrl}
                   onChange={(e) => setWebsiteUrl(e.target.value)}
                   placeholder="https://sharmaheritage.in"
-                  className="w-full bg-[#11141A] border border-white/10 rounded-[10px] px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-[#FF7A00] transition"
+                  className="w-full bg-[#F9FAFB] border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-[#0B0F14] placeholder-gray-400 focus:outline-none focus:border-[#FF7A00] focus:bg-white transition"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-slate-300 mb-1.5">
+                <label className="block text-[11px] font-semibold text-gray-700 mb-1.5">
                   Tenant Data Isolation Tier
                 </label>
-                <div className="flex items-center gap-2 p-2.5 rounded-[10px] bg-[#11141A] border border-white/5 text-slate-300">
-                  <ShieldCheck size={16} className="text-emerald-400 shrink-0" />
+                <div className="flex items-center gap-2 p-2.5 rounded-[10px] bg-emerald-50/70 border border-emerald-200 text-emerald-800 font-medium">
+                  <ShieldCheck size={16} className="text-emerald-600 shrink-0" />
                   <span>Neon pgvector RLS (Row-Level Security Active)</span>
                 </div>
               </div>
@@ -392,14 +368,14 @@ export default function WorkspaceSettingsPage() {
       {/* Tab 2: WhatsApp Review Loop & Auto-Commit */}
       {activeTab === 'whatsapp' && (
         <div className="space-y-6">
-          <div className="p-6 rounded-[16px] bg-[#0B0F14] border border-white/10 space-y-6">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div className="p-6 rounded-[14px] bg-white border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-6">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
               <div>
-                <h3 className="text-base font-sora font-bold text-white flex items-center gap-2">
-                  <Smartphone size={17} className="text-emerald-400" />
+                <h3 className="text-base font-sora font-bold text-[#0B0F14] flex items-center gap-2">
+                  <Smartphone size={17} className="text-emerald-600" />
                   <span>WhatsApp 48-Hour Review Protocol</span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   Control how upcoming campaign contact sheets and voice note revisions reach your phone.
                 </p>
               </div>
@@ -407,7 +383,7 @@ export default function WorkspaceSettingsPage() {
               <button
                 onClick={handleTestWhatsAppPing}
                 disabled={isSendingTestWa}
-                className="px-3.5 py-1.5 rounded-lg bg-emerald-950/70 border border-emerald-500/50 hover:bg-emerald-900/80 text-emerald-300 text-xs font-mono transition flex items-center gap-1.5"
+                className="px-3.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 text-emerald-800 text-xs font-mono font-semibold transition flex items-center gap-1.5 cursor-pointer"
               >
                 {isSendingTestWa ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
                 <span>Send Test Review Card</span>
@@ -416,7 +392,7 @@ export default function WorkspaceSettingsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs font-inter">
               <div>
-                <label className="block text-[11px] font-medium text-slate-300 mb-1.5">
+                <label className="block text-[11px] font-semibold text-gray-700 mb-1.5">
                   WhatsApp Admin Phone Number
                 </label>
                 <input
@@ -424,19 +400,19 @@ export default function WorkspaceSettingsPage() {
                   value={whatsappPhone}
                   onChange={(e) => setWhatsappPhone(e.target.value)}
                   placeholder="+91 98301 24589"
-                  className="w-full bg-[#11141A] border border-white/10 rounded-[10px] px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-[#FF7A00] font-mono transition"
+                  className="w-full bg-[#F9FAFB] border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-[#0B0F14] placeholder-gray-400 focus:outline-none focus:border-[#FF7A00] focus:bg-white font-mono transition"
                 />
-                <p className="text-[10px] text-slate-500 mt-1">Must include country code (e.g. +91 for India). Interactive contact sheets arrive here at T-48h.</p>
+                <p className="text-[10px] text-gray-500 mt-1">Must include country code (e.g. +91 for India). Interactive contact sheets arrive here at T-48h.</p>
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-slate-300 mb-1.5">
+                <label className="block text-[11px] font-semibold text-gray-700 mb-1.5">
                   Review Window Duration
                 </label>
                 <select
                   value={reviewWindowHours}
                   onChange={(e) => setReviewWindowHours(Number(e.target.value))}
-                  className="w-full bg-[#11141A] border border-white/10 rounded-[10px] px-3.5 py-2.5 text-white focus:outline-none focus:border-[#FF7A00] transition"
+                  className="w-full bg-[#F9FAFB] border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-[#0B0F14] focus:outline-none focus:border-[#FF7A00] focus:bg-white transition"
                 >
                   <option value={24}>24 Hours (Fast Turnaround)</option>
                   <option value={48}>48 Hours (Recommended Default)</option>
@@ -446,13 +422,13 @@ export default function WorkspaceSettingsPage() {
             </div>
 
             {/* Auto-Commit Toggle Strip */}
-            <div className="p-4 rounded-[12px] bg-[#11141A] border border-white/5 flex items-center justify-between gap-4">
+            <div className="p-4 rounded-[12px] bg-gray-50 border border-gray-200 flex items-center justify-between gap-4">
               <div className="space-y-0.5">
-                <span className="text-xs font-sora font-semibold text-white flex items-center gap-2">
+                <span className="text-xs font-sora font-bold text-[#0B0F14] flex items-center gap-2">
                   <span>Passive Auto-Commit (&quot;Silence = Consent&quot;)</span>
-                  <span className="text-[9px] font-mono text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800">RECOMMENDED</span>
+                  <span className="text-[9px] font-mono text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300 font-bold">RECOMMENDED</span>
                 </span>
-                <p className="text-[11px] text-slate-400 leading-snug">
+                <p className="text-[11px] text-gray-600 leading-snug">
                   If you take no action during the {reviewWindowHours}-hour review window, KUIRO automatically publishes the scheduled post to maintain 365-day consistency.
                 </p>
               </div>
@@ -460,7 +436,7 @@ export default function WorkspaceSettingsPage() {
               <button
                 type="button"
                 onClick={() => setAutoCommitEnabled(!autoCommitEnabled)}
-                className={`text-2xl transition ${autoCommitEnabled ? 'text-[#FF7A00]' : 'text-slate-600'}`}
+                className={`text-2xl transition cursor-pointer ${autoCommitEnabled ? 'text-[#FF7A00]' : 'text-gray-300'}`}
               >
                 {autoCommitEnabled ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
               </button>
@@ -468,7 +444,7 @@ export default function WorkspaceSettingsPage() {
 
             {/* Language Preferences for Voice Notes */}
             <div className="space-y-2">
-              <label className="block text-[11px] font-medium text-slate-300">
+              <label className="block text-[11px] font-semibold text-gray-700">
                 Supported Voice Note Revision Languages
               </label>
               <div className="flex flex-wrap gap-2 text-xs font-mono">
@@ -485,10 +461,10 @@ export default function WorkspaceSettingsPage() {
                           setSelectedLanguages([...selectedLanguages, lang]);
                         }
                       }}
-                      className={`px-3 py-1.5 rounded-lg border text-xs transition ${
+                      className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition cursor-pointer ${
                         isChecked
-                          ? 'bg-[#FF7A00]/15 border-[#FF7A00] text-[#FF7A00]'
-                          : 'bg-[#11141A] border-white/10 text-slate-400 hover:text-white'
+                          ? 'bg-orange-50 border-[#FF7A00] text-[#FF7A00] shadow-xs'
+                          : 'bg-white border-gray-200 text-gray-600 hover:text-gray-900 hover:border-gray-300'
                       }`}
                     >
                       {isChecked && '✓ '}
@@ -505,20 +481,20 @@ export default function WorkspaceSettingsPage() {
       {/* Tab 3: Subscription & GST Invoicing */}
       {activeTab === 'billing' && (
         <div className="space-y-6">
-          <div className="p-6 rounded-[16px] bg-[#0B0F14] border border-white/10 space-y-6">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4 flex-wrap gap-2">
+          <div className="p-6 rounded-[14px] bg-white border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-6">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4 flex-wrap gap-2">
               <div>
-                <h3 className="text-base font-sora font-bold text-white">Active Plan &amp; GST Tax Invoicing</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Manage your KUIRO subscription tier, tax credentials, and invoices.</p>
+                <h3 className="text-base font-sora font-bold text-[#0B0F14]">Active Plan &amp; GST Tax Invoicing</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Manage your KUIRO subscription tier, tax credentials, and invoices.</p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-600/50 text-emerald-300 text-xs font-mono font-bold">
+                <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-mono font-bold">
                   {subscriptionTier} PLAN • ACTIVE
                 </span>
                 <button
                   type="button"
                   onClick={() => setIsCheckoutModalOpen(true)}
-                  className="px-3 py-1 rounded-lg bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-semibold font-sora transition shadow-sm"
+                  className="px-3.5 py-1.5 rounded-lg bg-[#FF7A00] hover:bg-[#E66E00] text-white text-xs font-semibold font-sora transition shadow-sm cursor-pointer"
                 >
                   Change / Upgrade Plan
                 </button>
@@ -527,30 +503,30 @@ export default function WorkspaceSettingsPage() {
 
             {/* Current Plan Card */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 rounded-[12px] bg-[#11141A] border border-white/5 space-y-1">
-                <span className="text-[10px] font-mono text-slate-400 uppercase">Current Tier</span>
-                <p className="text-base font-sora font-bold text-white">{subscriptionTier === 'STARTER' ? 'Starter (Autopilot Lite)' : subscriptionTier === 'GROWTH' ? 'Growth (Full Autopilot)' : 'Agency / Multi-Brand'}</p>
-                <span className="text-xs text-emerald-400 font-mono">
+              <div className="p-4 rounded-[12px] bg-gray-50 border border-gray-200 space-y-1">
+                <span className="text-[10px] font-mono text-gray-500 uppercase font-bold tracking-wider">Current Tier</span>
+                <p className="text-base font-sora font-bold text-[#0B0F14]">{subscriptionTier === 'STARTER' ? 'Starter (Autopilot Lite)' : subscriptionTier === 'GROWTH' ? 'Growth (Full Autopilot)' : 'Agency / Multi-Brand'}</p>
+                <span className="text-xs text-emerald-700 font-bold font-mono">
                   {subscriptionTier === 'GROWTH' ? '₹2,299 / month (Annual)' : subscriptionTier === 'STARTER' ? '₹999 / month' : '₹9,999 / month'}
                 </span>
               </div>
 
-              <div className="p-4 rounded-[12px] bg-[#11141A] border border-white/5 space-y-1">
-                <span className="text-[10px] font-mono text-slate-400 uppercase">Billing Cycle</span>
-                <p className="text-base font-sora font-bold text-white">Annual (2 Months Free)</p>
-                <span className="text-xs text-slate-400 font-mono">Renews Nov 14, 2027</span>
+              <div className="p-4 rounded-[12px] bg-gray-50 border border-gray-200 space-y-1">
+                <span className="text-[10px] font-mono text-gray-500 uppercase font-bold tracking-wider">Billing Cycle</span>
+                <p className="text-base font-sora font-bold text-[#0B0F14]">Annual (2 Months Free)</p>
+                <span className="text-xs text-gray-500 font-mono">Renews Nov 14, 2027</span>
               </div>
 
-              <div className="p-4 rounded-[12px] bg-[#11141A] border border-white/5 space-y-1">
-                <span className="text-[10px] font-mono text-slate-400 uppercase">Input Tax Credit (ITC)</span>
-                <p className="text-base font-sora font-bold text-emerald-400">GST Eligible (18%)</p>
-                <span className="text-xs text-slate-400 font-mono">Full B2B Invoice Issued</span>
+              <div className="p-4 rounded-[12px] bg-gray-50 border border-gray-200 space-y-1">
+                <span className="text-[10px] font-mono text-gray-500 uppercase font-bold tracking-wider">Input Tax Credit (ITC)</span>
+                <p className="text-base font-sora font-bold text-emerald-700">GST Eligible (18%)</p>
+                <span className="text-xs text-gray-500 font-mono">Full B2B Invoice Issued</span>
               </div>
             </div>
 
             {/* GSTIN Input */}
             <div className="space-y-2">
-              <label className="block text-[11px] font-medium text-slate-300">
+              <label className="block text-[11px] font-semibold text-gray-700">
                 Registered GST Identification Number (GSTIN)
               </label>
               <div className="flex gap-3 max-w-md">
@@ -559,17 +535,17 @@ export default function WorkspaceSettingsPage() {
                   value={gstin}
                   onChange={(e) => setGstin(e.target.value.toUpperCase())}
                   placeholder="e.g. 19AAACS1429B1Z8"
-                  className="flex-1 bg-[#11141A] border border-white/10 rounded-[10px] px-3.5 py-2.5 text-white placeholder-slate-500 font-mono text-xs focus:outline-none focus:border-[#FF7A00] transition"
+                  className="flex-1 bg-[#F9FAFB] border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-[#0B0F14] placeholder-gray-400 font-mono text-xs focus:outline-none focus:border-[#FF7A00] focus:bg-white transition"
                 />
                 <button
                   type="button"
                   onClick={() => showToast('GSTIN verified & saved on invoice manifest!')}
-                  className="px-4 py-2.5 rounded-[10px] bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition"
+                  className="px-4 py-2.5 rounded-[10px] bg-gray-900 hover:bg-black text-white text-xs font-semibold transition cursor-pointer"
                 >
                   Verify
                 </button>
               </div>
-              <p className="text-[10px] text-slate-500">Provide your 15-character Indian GSTIN to receive automated tax invoices claiming 18% Input Tax Credit.</p>
+              <p className="text-[10px] text-gray-500">Provide your 15-character Indian GSTIN to receive automated tax invoices claiming 18% Input Tax Credit.</p>
             </div>
           </div>
         </div>
@@ -578,44 +554,44 @@ export default function WorkspaceSettingsPage() {
       {/* Tab 4: Team & Access Control */}
       {activeTab === 'team' && (
         <div className="space-y-6">
-          <div className="p-6 rounded-[16px] bg-[#0B0F14] border border-white/10 space-y-6">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div className="p-6 rounded-[14px] bg-white border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-6">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
               <div>
-                <h3 className="text-base font-sora font-bold text-white">Team Members &amp; Seats</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Invite marketers, support staff, or agency managers to your workspace.</p>
+                <h3 className="text-base font-sora font-bold text-[#0B0F14]">Team Members &amp; Seats</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Invite marketers, support staff, or agency managers to your workspace.</p>
               </div>
 
               <button
                 onClick={() => setIsInviteModalOpen(true)}
-                className="px-3.5 py-2 rounded-lg bg-[#FF7A00] hover:bg-[#FF881A] text-white text-xs font-sora font-semibold transition flex items-center gap-1.5 shadow-md shadow-[#FF7A00]/20"
+                className="px-3.5 py-2 rounded-lg bg-[#0B0F14] hover:bg-gray-800 text-white text-xs font-sora font-semibold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
               >
-                <Plus size={14} />
+                <Plus size={14} className="text-[#FF7A00]" />
                 <span>Invite Member</span>
               </button>
             </div>
 
             {/* Team List Table */}
-            <div className="divide-y divide-white/5">
+            <div className="divide-y divide-gray-100">
               {teamMembers.map((member) => (
                 <div key={member.id} className="py-3.5 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#FF7A00]/15 border border-[#FF7A00]/30 text-[#FF7A00] font-mono text-xs font-bold flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full bg-orange-100 border border-orange-200 text-[#FF7A00] font-mono text-xs font-bold flex items-center justify-center">
                       {member.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
                     </div>
                     <div>
-                      <p className="text-xs font-sora font-bold text-white">{member.name}</p>
-                      <p className="text-[11px] text-slate-400 font-mono">{member.email}</p>
+                      <p className="text-xs font-sora font-bold text-[#0B0F14]">{member.name}</p>
+                      <p className="text-[11px] text-gray-500 font-mono">{member.email}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-mono uppercase px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-300">
+                    <span className="text-[10px] font-mono uppercase px-2.5 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-gray-700 font-semibold">
                       {member.role}
                     </span>
                     {member.role !== 'Owner' && (
                       <button
                         onClick={() => handleRemoveMember(member.id)}
-                        className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 transition"
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 transition cursor-pointer"
                         title="Remove Member"
                       >
                         <Trash2 size={13} />
@@ -627,27 +603,27 @@ export default function WorkspaceSettingsPage() {
             </div>
 
             {/* Role Permissions Scoping Matrix */}
-            <div className="pt-4 border-t border-white/5 space-y-3">
-              <h4 className="text-xs font-sora font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+            <div className="pt-4 border-t border-gray-100 space-y-3">
+              <h4 className="text-xs font-sora font-bold text-[#0B0F14] uppercase tracking-wider flex items-center gap-1.5">
                 <ShieldCheck size={14} className="text-[#FF7A00]" />
                 <span>Multi-Seat RBAC Scoping Matrix</span>
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-                <div className="p-3 rounded-[12px] bg-[#11141A] border border-white/5 space-y-1">
+                <div className="p-3 rounded-[12px] bg-gray-50 border border-gray-200 space-y-1">
                   <span className="font-bold text-[#FF7A00] block">Owner</span>
-                  <p className="text-[11px] text-slate-400">Full workspace ownership, billing &amp; tax invoicing, RLS policies, brand deletion.</p>
+                  <p className="text-[11px] text-gray-600">Full workspace ownership, billing &amp; tax invoicing, RLS policies, brand deletion.</p>
                 </div>
-                <div className="p-3 rounded-[12px] bg-[#11141A] border border-white/5 space-y-1">
-                  <span className="font-bold text-white block">Admin</span>
-                  <p className="text-[11px] text-slate-400">Campaign management, Brand Brain tuning, collaborator invites, WhatsApp loop.</p>
+                <div className="p-3 rounded-[12px] bg-gray-50 border border-gray-200 space-y-1">
+                  <span className="font-bold text-[#0B0F14] block">Admin</span>
+                  <p className="text-[11px] text-gray-600">Campaign management, Brand Brain tuning, collaborator invites, WhatsApp loop.</p>
                 </div>
-                <div className="p-3 rounded-[12px] bg-[#11141A] border border-white/5 space-y-1">
-                  <span className="font-bold text-white block">Marketer</span>
-                  <p className="text-[11px] text-slate-400">Instant Campaign Composer, 1-Click Creative Kit ZIP exports, visual review.</p>
+                <div className="p-3 rounded-[12px] bg-gray-50 border border-gray-200 space-y-1">
+                  <span className="font-bold text-[#0B0F14] block">Marketer</span>
+                  <p className="text-[11px] text-gray-600">Instant Campaign Composer, 1-Click Creative Kit ZIP exports, visual review.</p>
                 </div>
-                <div className="p-3 rounded-[12px] bg-[#11141A] border border-white/5 space-y-1">
-                  <span className="font-bold text-emerald-400 block">Inbox Agent</span>
-                  <p className="text-[11px] text-slate-400">Omni Inbox messaging only (WhatsApp, IG DMs, Email). Restricted from billing/settings.</p>
+                <div className="p-3 rounded-[12px] bg-gray-50 border border-gray-200 space-y-1">
+                  <span className="font-bold text-emerald-700 block">Inbox Agent</span>
+                  <p className="text-[11px] text-gray-600">Omni Inbox messaging only (WhatsApp, IG DMs, Email). Restricted from billing/settings.</p>
                 </div>
               </div>
             </div>
@@ -657,13 +633,13 @@ export default function WorkspaceSettingsPage() {
 
       {/* Invite Member Modal */}
       {isInviteModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-[18px] bg-[#0B0F14] border border-white/15 p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h4 className="text-base font-sora font-bold text-white">Invite Collaborator</h4>
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-[18px] bg-white border border-gray-200 p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150 text-[#0B0F14]">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h4 className="text-base font-sora font-bold text-[#0B0F14]">Invite Collaborator</h4>
               <button
                 onClick={() => setIsInviteModalOpen(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-gray-400 hover:text-gray-700 p-1 rounded-md cursor-pointer"
               >
                 ✕
               </button>
@@ -671,35 +647,35 @@ export default function WorkspaceSettingsPage() {
 
             <form onSubmit={handleAddMember} className="space-y-4 text-xs font-inter">
               <div>
-                <label className="block text-[11px] font-medium text-slate-300 mb-1">Full Name</label>
+                <label className="block text-[11px] font-semibold text-gray-700 mb-1">Full Name</label>
                 <input
                   type="text"
                   required
                   value={inviteName}
                   onChange={(e) => setInviteName(e.target.value)}
                   placeholder="e.g. Priya Sen"
-                  className="w-full bg-[#11141A] border border-white/10 rounded-[10px] px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-[#FF7A00] transition"
+                  className="w-full bg-[#F9FAFB] border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-[#0B0F14] placeholder-gray-400 focus:outline-none focus:border-[#FF7A00] focus:bg-white transition"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-slate-300 mb-1">Email Address</label>
+                <label className="block text-[11px] font-semibold text-gray-700 mb-1">Email Address</label>
                 <input
                   type="email"
                   required
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   placeholder="colleague@business.in"
-                  className="w-full bg-[#11141A] border border-white/10 rounded-[10px] px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-[#FF7A00] transition"
+                  className="w-full bg-[#F9FAFB] border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-[#0B0F14] placeholder-gray-400 focus:outline-none focus:border-[#FF7A00] focus:bg-white transition"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-slate-300 mb-1">Role &amp; Permissions</label>
+                <label className="block text-[11px] font-semibold text-gray-700 mb-1">Role &amp; Permissions</label>
                 <select
                   value={inviteRole}
                   onChange={(e) => setInviteRole(e.target.value as any)}
-                  className="w-full bg-[#11141A] border border-white/10 rounded-[10px] px-3.5 py-2.5 text-white focus:outline-none focus:border-[#FF7A00] transition"
+                  className="w-full bg-[#F9FAFB] border border-gray-300 rounded-[10px] px-3.5 py-2.5 text-[#0B0F14] focus:outline-none focus:border-[#FF7A00] focus:bg-white transition"
                 >
                   <option value="Admin">Admin (Campaigns, Brand Brain &amp; Invites)</option>
                   <option value="Marketer">Marketer (Composer &amp; Creative Kit ZIP Exports)</option>
@@ -712,13 +688,13 @@ export default function WorkspaceSettingsPage() {
                 <button
                   type="button"
                   onClick={() => setIsInviteModalOpen(false)}
-                  className="px-4 py-2 rounded-[10px] bg-white/5 hover:bg-white/10 text-slate-300 font-semibold"
+                  className="px-4 py-2 rounded-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-[10px] bg-[#FF7A00] hover:bg-[#FF881A] text-white font-sora font-semibold shadow-md shadow-[#FF7A00]/25"
+                  className="px-5 py-2 rounded-[10px] bg-[#FF7A00] hover:bg-[#E66E00] text-white font-sora font-semibold shadow-md shadow-orange-500/25 cursor-pointer"
                 >
                   Send Invitation
                 </button>

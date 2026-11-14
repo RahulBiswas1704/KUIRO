@@ -283,6 +283,7 @@ export default function DashboardLayout({
               {pathname === '/dashboard/inbox' && 'Unified Multi-Channel Inbox & Routing'}
               {pathname === '/dashboard/brand-brain' && 'The Brand Brain Studio'}
               {pathname === '/dashboard/calendar' && '365-Day Indian Cultural Calendar'}
+              {pathname === '/dashboard/settings' && 'Workspace & Platform Settings'}
             </h1>
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium hidden sm:inline">
               Workspace Isolated
