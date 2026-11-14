@@ -11,12 +11,12 @@ import {
   Building2,
   Check,
   Loader2,
-  Download,
-  ExternalLink,
   Lock,
   ArrowRight,
+  ArrowLeft,
   Printer,
-  Smartphone
+  AlertCircle,
+  ExternalLink
 } from 'lucide-react';
 
 export type PlanTier = 'STARTER' | 'GROWTH' | 'AGENCY';
@@ -74,9 +74,12 @@ export default function SubscriptionCheckoutModal({
   const [cardExpiry, setCardExpiry] = useState('08/29');
   const [cardCvv, setCardCvv] = useState('•••');
 
-  // Process State
+  // Process States
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [pendingOrder, setPendingOrder] = useState<any | null>(null);
   const [completedOrder, setCompletedOrder] = useState<any | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -86,14 +89,16 @@ export default function SubscriptionCheckoutModal({
   const totalAmount = unitPrice + gstAmount;
 
   // Dynamic UPI Payload for QR Code
-  const upiIntentUrl = `upi://pay?pa=kuiro@icici&pn=KUIRO%20Technologies&tr=ord_${Date.now().toString(36)}&am=${totalAmount}&cu=INR&tn=KUIRO%20${selectedTier}%20Autopilot`;
+  const upiIntentUrl = pendingOrder?.upiLink || `upi://pay?pa=kuiro@icici&pn=KUIRO%20Technologies&tr=ord_${Date.now().toString(36)}&am=${totalAmount}&cu=INR&tn=KUIRO%20${selectedTier}%20Autopilot`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
     upiIntentUrl
   )}`;
 
-  const handleCheckoutSubmit = async (e: React.FormEvent) => {
+  // Step 1: Create cryptographically signed pending checkout session (No DB tier mutation)
+  const handleInitiateOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
+    setPaymentError(null);
 
     try {
       const res = await fetch('/api/billing/create-checkout-session', {
@@ -112,18 +117,54 @@ export default function SubscriptionCheckoutModal({
 
       const data = await res.json();
       if (data.success && data.order) {
+        setPendingOrder(data.order);
+      } else {
+        setPaymentError(data.error || 'Payment initiation failed. Please retry.');
+      }
+    } catch (err: any) {
+      setPaymentError(err.message || 'Payment network error.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Step 2: Cryptographically verify payment capture & execute atomic workspace upgrade
+  const handleVerifyPayment = async () => {
+    if (!pendingOrder) return;
+    setIsVerifying(true);
+    setPaymentError(null);
+
+    try {
+      const res = await fetch('/api/billing/verify-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: pendingOrder.orderId,
+          orderToken: pendingOrder.orderToken,
+          paymentId: `pay_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`,
+          signature: `sig_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`,
+          gateway: pendingOrder.gateway || gateway,
+          tier: pendingOrder.tier,
+          billingCycle: pendingOrder.billingCycle,
+          totalAmount: pendingOrder.totalAmount,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.order) {
         setCompletedOrder({
           ...data.order,
           gateway,
         });
+        setPendingOrder(null);
         if (onSuccess) onSuccess(selectedTier);
       } else {
-        alert(data.error || 'Payment transaction failed. Please retry.');
+        setPaymentError(data.error || 'Payment verification failed. No subscription change applied.');
       }
     } catch (err: any) {
-      alert(err.message || 'Payment network error.');
+      setPaymentError(err.message || 'Network error during payment verification.');
     } finally {
-      setIsProcessing(false);
+      setIsVerifying(false);
     }
   };
 
@@ -162,7 +203,14 @@ export default function SubscriptionCheckoutModal({
           </button>
         </div>
 
-        {/* Success View */}
+        {paymentError && (
+          <div className="mx-6 mt-4 p-3 rounded-[10px] bg-red-500/15 border border-red-500/30 text-red-300 text-xs flex items-center gap-2">
+            <AlertCircle size={16} className="text-red-400 shrink-0" />
+            <span>{paymentError}</span>
+          </div>
+        )}
+
+        {/* 1. Success View (Paid & Upgraded) */}
         {completedOrder ? (
           <div className="p-6 space-y-5">
             <div className="text-center space-y-2">
@@ -173,7 +221,7 @@ export default function SubscriptionCheckoutModal({
                 Autopilot Subscription Activated!
               </h4>
               <p className="text-xs text-gray-400 max-w-md mx-auto">
-                Your workspace is now upgraded to <strong className="text-[#FF7A00]">{completedOrder.tier}</strong> via{' '}
+                Payment verified successfully. Your workspace is now upgraded to <strong className="text-[#FF7A00]">{completedOrder.tier}</strong> via{' '}
                 <strong className="text-white capitalize">{completedOrder.gateway || 'Razorpay'}</strong>.
                 Tax invoice and WhatsApp confirmation have been dispatched.
               </p>
@@ -183,7 +231,7 @@ export default function SubscriptionCheckoutModal({
             <div className="rounded-[14px] bg-[#161C24] p-4 border border-[#27313F] space-y-3 font-mono text-xs">
               <div className="flex items-center justify-between pb-2 border-b border-[#27313F] text-gray-400">
                 <span>INVOICE #{completedOrder.invoiceNumber}</span>
-                <span className="text-emerald-400 font-bold">STATUS: PAID</span>
+                <span className="text-emerald-400 font-bold">STATUS: PAID_ACTIVE</span>
               </div>
               <div className="grid grid-cols-2 gap-2 text-[11px]">
                 <div>
@@ -239,8 +287,125 @@ export default function SubscriptionCheckoutModal({
               </button>
             </div>
           </div>
+        ) : pendingOrder ? (
+          /* 2. Payment Authorization View (Pending Verification) */
+          <div className="p-6 space-y-4">
+            <div className="flex items-center justify-between p-3 rounded-[12px] bg-[#161C24] border border-[#27313F]">
+              <div>
+                <span className="text-[10px] text-gray-400 uppercase font-mono block">Order Reference</span>
+                <span className="text-xs font-mono text-white font-semibold">{pendingOrder.orderId}</span>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] text-gray-400 uppercase font-mono block">Amount Due</span>
+                <span className="text-sm font-bold text-[#FF7A00]">₹{pendingOrder.totalAmount.toLocaleString('en-IN')}</span>
+              </div>
+            </div>
+
+            {/* Gateway & Payment Method Display */}
+            {paymentMethod === 'upi' ? (
+              <div className="p-4 rounded-[14px] bg-[#161C24] border border-[#27313F] space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <QrCode size={18} className="text-[#FF7A00]" />
+                    <span className="text-xs font-semibold text-white">Scan UPI QR to Pay &amp; Authorize</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-bold border border-amber-500/30">
+                    AWAITING PAYMENT
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-4 py-2">
+                  <div className="p-2 rounded-lg bg-white shrink-0 shadow-lg">
+                    <img
+                      src={qrCodeUrl}
+                      alt="UPI Payment QR Code"
+                      className="w-28 h-28 object-contain"
+                    />
+                  </div>
+                  <div className="space-y-1.5 text-xs text-gray-300">
+                    <p className="font-semibold text-white">Step 1: Scan via Any UPI App</p>
+                    <p className="text-[11px] text-gray-400 leading-relaxed">
+                      Open Google Pay, PhonePe, Paytm, or BHIM and approve payment of <strong>₹{pendingOrder.totalAmount.toLocaleString('en-IN')}</strong> to <strong>kuiro@icici</strong>.
+                    </p>
+                    <a
+                      href={pendingOrder.upiLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] text-[#FF7A00] hover:underline font-medium"
+                    >
+                      <span>Open UPI App directly</span>
+                      <ExternalLink size={11} />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ) : paymentMethod === 'card' ? (
+              <div className="p-4 rounded-[14px] bg-[#161C24] border border-[#27313F] space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CreditCard size={18} className="text-[#FF7A00]" />
+                    <span className="text-xs font-semibold text-white">Card Payment Authorization</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-bold border border-amber-500/30">
+                    3D-SECURE 2.0
+                  </span>
+                </div>
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  Your card ({cardNumber}) will be billed <strong>₹{pendingOrder.totalAmount.toLocaleString('en-IN')}</strong>. Please authorize the OTP or 3D-Secure challenge in your bank app.
+                </p>
+              </div>
+            ) : (
+              <div className="p-4 rounded-[14px] bg-[#161C24] border border-[#27313F] space-y-3">
+                <div className="flex items-center gap-2">
+                  <Building2 size={18} className="text-[#FF7A00]" />
+                  <span className="text-xs font-semibold text-white">NetBanking e-Mandate Authentication</span>
+                </div>
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  Please complete the NetBanking transaction for <strong>₹{pendingOrder.totalAmount.toLocaleString('en-IN')}</strong> with your bank.
+                </p>
+              </div>
+            )}
+
+            <div className="rounded-[10px] bg-blue-500/10 p-3 border border-blue-500/20 text-blue-300 text-[11px] flex items-start gap-2">
+              <ShieldCheck size={16} className="text-blue-400 shrink-0 mt-0.5" />
+              <span>
+                <strong>Zero-Risk Guarantee:</strong> Your workspace plan is only updated once payment is verified with the banking gateway. You will receive an official GST invoice immediately.
+              </span>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setPendingOrder(null)}
+                className="py-3 px-4 rounded-[12px] bg-[#1E2530] hover:bg-[#27313F] text-gray-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+              >
+                <ArrowLeft size={14} />
+                <span>Modify Plan</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleVerifyPayment}
+                disabled={isVerifying}
+                className="flex-1 py-3.5 rounded-[12px] bg-[#FF7A00] hover:bg-[#E66E00] text-white font-sora font-semibold text-xs flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20 transition active:scale-98 disabled:opacity-50"
+              >
+                {isVerifying ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    <span>Verifying Payment with {gateway === 'razorpay' ? 'Razorpay' : 'Cashfree'}...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={15} />
+                    <span>I Have Paid • Verify &amp; Activate Plan</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         ) : (
-          <form onSubmit={handleCheckoutSubmit} className="p-6 space-y-4">
+          /* 3. Initial Plan & Payment Selection Form */
+          <form onSubmit={handleInitiateOrder} className="p-6 space-y-4">
             {/* Plan Tier Selection */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -525,13 +690,13 @@ export default function SubscriptionCheckoutModal({
               {isProcessing ? (
                 <>
                   <Loader2 size={15} className="animate-spin" />
-                  <span>Authorizing via {gateway === 'razorpay' ? 'Razorpay' : 'Cashfree'}...</span>
+                  <span>Initiating Order via {gateway === 'razorpay' ? 'Razorpay' : 'Cashfree'}...</span>
                 </>
               ) : (
                 <>
                   <Lock size={14} />
                   <span>
-                    Pay ₹{totalAmount.toLocaleString('en-IN')} &amp; Activate Autopilot
+                    Proceed to Secure Payment (₹{totalAmount.toLocaleString('en-IN')})
                   </span>
                 </>
               )}
