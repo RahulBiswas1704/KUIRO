@@ -23,8 +23,10 @@ import {
   Tag,
   Clock,
   Layers,
-  Award
+  Award,
+  Download
 } from 'lucide-react';
+import ExecutiveRoiExporterModal from '@/components/dashboard/ExecutiveRoiExporterModal';
 import { WorkspaceRoiSummary, CampaignRoiMetric, AttributedLeadItem } from '@/types';
 
 interface CampaignRoiDashboardProps {
@@ -41,6 +43,7 @@ export default function CampaignRoiDashboard({ onRefreshNeeded }: CampaignRoiDas
   const [customBookingValue, setCustomBookingValue] = useState<string>('5000');
   const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isExporterModalOpen, setIsExporterModalOpen] = useState(false);
 
   const fetchRoiData = async (silent = false) => {
     if (!silent) setIsLoading(true);
@@ -164,7 +167,15 @@ export default function CampaignRoiDashboard({ onRefreshNeeded }: CampaignRoiDas
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setIsExporterModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-orange-50 border border-orange-200 text-[#FF7A00] hover:bg-orange-100 text-xs font-semibold transition shadow-2xs whitespace-nowrap active:scale-95"
+            >
+              <Download size={13} />
+              <span>Export Executive ROI (PDF/CSV)</span>
+            </button>
             <button
               onClick={() => fetchRoiData()}
               className="p-2 rounded-[8px] border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs transition"
@@ -497,6 +508,12 @@ export default function CampaignRoiDashboard({ onRefreshNeeded }: CampaignRoiDas
           </div>
         </div>
       )}
+      {/* Executive ROI Exporter Modal */}
+      <ExecutiveRoiExporterModal
+        isOpen={isExporterModalOpen}
+        onClose={() => setIsExporterModalOpen(false)}
+        roiData={roiData}
+      />
     </div>
   );
 }

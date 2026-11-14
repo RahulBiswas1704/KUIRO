@@ -12,6 +12,7 @@ interface CheckoutRequestBody {
   upiVpa?: string;
   gstin?: string;
   businessName?: string;
+  gateway?: 'razorpay' | 'cashfree';
 }
 
 const TIER_PRICING = {
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getSessionFromRequest(req);
     const body: CheckoutRequestBody = await req.json();
-    const { tier, billingCycle, paymentMethod, upiVpa, gstin, businessName } = body;
+    const { tier, billingCycle, paymentMethod, upiVpa, gstin, businessName, gateway = 'razorpay' } = body;
 
     if (!tier || !TIER_PRICING[tier]) {
       return NextResponse.json({ error: 'Valid subscription tier is required.' }, { status: 400 });
@@ -82,6 +83,7 @@ export async function POST(req: NextRequest) {
         status: 'PAID_ACTIVE',
         activatedAt: new Date().toISOString(),
         paymentMethod,
+        gateway,
         upiLink,
         upiVpa: upiVpa || 'kuiro@icici',
         gstin: gstin || '19AAACS1429B1Z8',
