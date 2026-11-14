@@ -3,8 +3,9 @@ import { db, workspaces, socialConnections } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { authorizeWorkspace } from '@/lib/auth';
 import { DEFAULT_CHANNELS, PlatformKey } from '@/constants/channels';
-import { encryptToken, decryptToken, maskToken } from '@/lib/crypto/vault';
+import { encryptToken, decryptToken, maskToken, ACTIVE_KEY_VERSION } from '@/lib/crypto/vault';
 import { testPlatformConnection, buildAuthorizationUrl, OAUTH_PLATFORMS, validateRedirectUri } from '@/lib/social/oauth';
+import { refreshConnectionToken } from '@/lib/social/tokenRefresh';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,7 +64,9 @@ export async function GET(req: NextRequest) {
           status: currentStatus,
           tokenMasked: maskToken(match.accessTokenEncrypted),
           expiresAt: match.tokenExpiresAt,
-          scopes: def.scopes,
+          scopes: match.grantedScopes?.length ? match.grantedScopes : def.scopes,
+          lastRefreshedAt: match.lastRefreshedAt,
+          lastApiCheckAt: match.lastApiCheckAt,
           isConfigured: currentStatus === 'CONNECTED',
         };
       }
@@ -188,7 +191,47 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Action: Disconnect / Revoke
+    // 3. Action: Proactively Refresh Token via Token Refresh Service
+    if (action === 'refresh') {
+      if (!db) {
+        return NextResponse.json({ success: false, error: 'Database unavailable' }, { status: 503 });
+      }
+
+      const [existing] = await db
+        .select()
+        .from(socialConnections)
+        .where(
+          and(
+            eq(socialConnections.workspaceId, wsId),
+            eq(socialConnections.platform, platformKey)
+          )
+        )
+        .limit(1);
+
+      if (!existing) {
+        return NextResponse.json(
+          { success: false, error: `No connection found for ${platformKey} to refresh.` },
+          { status: 404 }
+        );
+      }
+
+      const refreshResult = await refreshConnectionToken(existing);
+
+      return NextResponse.json(
+        {
+          success: refreshResult.success,
+          action: 'refresh',
+          platform: platformKey,
+          status: refreshResult.status,
+          message: refreshResult.message,
+          expiresAt: refreshResult.newExpiresAt,
+          latencyMs: refreshResult.latencyMs,
+        },
+        { status: refreshResult.success ? 200 : 400 }
+      );
+    }
+
+    // 4. Action: Disconnect / Revoke
     if (action === 'disconnect') {
       if (db) {
         await db
@@ -277,6 +320,13 @@ export async function POST(req: NextRequest) {
             accessTokenEncrypted: encryptedToken,
             tokenExpiresAt: expiresAt,
             status: 'CONNECTED',
+            grantedScopes: testResult.permissions || OAUTH_PLATFORMS[platformKey].defaultScopes,
+            lastRefreshedAt: new Date(),
+            lastApiCheckAt: new Date(),
+            lastError: null,
+            keyVersion: ACTIVE_KEY_VERSION,
+            tokenVersion: existing.tokenVersion + 1,
+            lockedUntil: null,
           })
           .where(eq(socialConnections.id, existing.id))
           .returning();
@@ -290,6 +340,12 @@ export async function POST(req: NextRequest) {
             accessTokenEncrypted: encryptedToken,
             tokenExpiresAt: expiresAt,
             status: 'CONNECTED',
+            grantedScopes: testResult.permissions || OAUTH_PLATFORMS[platformKey].defaultScopes,
+            lastRefreshedAt: new Date(),
+            lastApiCheckAt: new Date(),
+            lastError: null,
+            keyVersion: ACTIVE_KEY_VERSION,
+            tokenVersion: 1,
           })
           .returning();
       }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, socialConnections } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { verifyOAuthState, exchangeOAuthCode, validateRedirectUri } from '@/lib/social/oauth';
-import { encryptToken, maskToken } from '@/lib/crypto/vault';
+import { encryptToken, maskToken, ACTIVE_KEY_VERSION } from '@/lib/crypto/vault';
 import { PlatformKey } from '@/constants/channels';
 
 export const dynamic = 'force-dynamic';
@@ -124,6 +124,13 @@ export async function GET(
             refreshTokenEncrypted: encryptedRefreshToken,
             tokenExpiresAt: expiresAt,
             status: 'CONNECTED',
+            grantedScopes: tokenResult.scopes || [],
+            lastRefreshedAt: new Date(),
+            lastApiCheckAt: new Date(),
+            lastError: null,
+            keyVersion: ACTIVE_KEY_VERSION,
+            tokenVersion: existing.tokenVersion + 1,
+            lockedUntil: null,
           })
           .where(eq(socialConnections.id, existing.id));
       } else {
@@ -137,6 +144,12 @@ export async function GET(
             refreshTokenEncrypted: encryptedRefreshToken,
             tokenExpiresAt: expiresAt,
             status: 'CONNECTED',
+            grantedScopes: tokenResult.scopes || [],
+            lastRefreshedAt: new Date(),
+            lastApiCheckAt: new Date(),
+            lastError: null,
+            keyVersion: ACTIVE_KEY_VERSION,
+            tokenVersion: 1,
           })
           .returning();
         if (inserted) connectionId = inserted.id;

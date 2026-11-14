@@ -174,6 +174,14 @@ export const socialConnections = pgTable('social_connections', {
   status: text('status', { 
     enum: ['CONNECTED', 'EXPIRED', 'REVOKED'] 
   }).default('CONNECTED').notNull(),
+  grantedScopes: text('granted_scopes').array().default([]).notNull(),
+  refreshTokenExpiresAt: timestamp('refresh_token_expires_at', { withTimezone: true }),
+  lastRefreshedAt: timestamp('last_refreshed_at', { withTimezone: true }),
+  lastApiCheckAt: timestamp('last_api_check_at', { withTimezone: true }),
+  lastError: text('last_error'),
+  keyVersion: text('key_version').default('v1').notNull(),
+  tokenVersion: integer('token_version').default(1).notNull(),
+  lockedUntil: timestamp('locked_until', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
