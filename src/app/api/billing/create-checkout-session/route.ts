@@ -1,31 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, workspaces, users } from '@/db';
-import { eq, and } from 'drizzle-orm';
 import { authorizeWorkspace } from '@/lib/auth';
+import { createPendingOrder, PlanTier, BillingCycle, TIER_PRICING } from '@/lib/billing';
 
 export const dynamic = 'force-dynamic';
 
 interface CheckoutRequestBody {
   workspaceId?: string;
-  tier: 'STARTER' | 'GROWTH' | 'AGENCY';
-  billingCycle: 'monthly' | 'annual';
-  paymentMethod: 'upi' | 'card' | 'international';
+  tier: PlanTier;
+  billingCycle: BillingCycle;
+  paymentMethod: 'upi' | 'card' | 'netbanking' | 'international';
   upiVpa?: string;
   gstin?: string;
   businessName?: string;
   gateway?: 'razorpay' | 'cashfree';
 }
 
-const TIER_PRICING = {
-  STARTER: { monthly: 1199, annual: 999 * 12 },
-  GROWTH: { monthly: 2799, annual: 2299 * 12 },
-  AGENCY: { monthly: 11999, annual: 9999 * 12 },
-};
-
+/**
+ * Initiates a secure payment session and generates a cryptographically signed PENDING order.
+ * 
+ * CRITICAL SECURITY GUARDRAIL:
+ * This endpoint strictly generates a PENDING order with server-calculated pricing.
+ * It NEVER modifies workspaces.subscriptionTier in the database.
+ * Upgrades only occur after cryptographic payment signature verification in /api/billing/verify-payment
+ * or upon receiving an HMAC-verified webhook from Razorpay/Stripe.
+ */
 export async function POST(req: NextRequest) {
   try {
     const body: CheckoutRequestBody = await req.json();
-    const { tier, billingCycle, paymentMethod, upiVpa, gstin, businessName, gateway = 'razorpay', workspaceId: customWsId } = body;
+    const {
+      tier,
+      billingCycle = 'monthly',
+      paymentMethod = 'upi',
+      upiVpa,
+      gstin,
+      businessName,
+      gateway = 'razorpay',
+      workspaceId: customWsId,
+    } = body;
 
     const auth = await authorizeWorkspace(req, customWsId);
     if (!auth.authorized) {
@@ -33,66 +44,58 @@ export async function POST(req: NextRequest) {
     }
 
     if (!tier || !TIER_PRICING[tier]) {
-      return NextResponse.json({ error: 'Valid subscription tier is required.' }, { status: 400 });
+      return NextResponse.json({ error: 'Valid subscription tier is required (STARTER, GROWTH, or AGENCY).' }, { status: 400 });
     }
 
-    const baseAmount = billingCycle === 'annual' ? TIER_PRICING[tier].annual : TIER_PRICING[tier].monthly;
-    const gstRate = 0.18; // 18% GST (CGST 9% + SGST 9%)
-    const gstAmount = Math.round(baseAmount * gstRate);
-    const totalAmount = baseAmount + gstAmount;
-
-    // Generate simulated Razorpay Order ID & Transaction ID
-    const orderId = `order_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`;
-    const paymentId = `pay_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 8)}`;
-    const invoiceNumber = `KUIRO/26-27/${Math.floor(1000 + Math.random() * 9000)}`;
-
-    const database = db;
     const wsId = auth.workspaceId!;
 
-    if (database) {
-      // Upgrade workspace tier in Neon PostgreSQL with strict ownership predicate
-      await database
-        .update(workspaces)
-        .set({ subscriptionTier: tier })
-        .where(and(eq(workspaces.id, wsId), eq(workspaces.ownerId, auth.session!.user.id)));
-    }
+    // 1. Create a cryptographically signed pending order (No DB tier mutation)
+    const pendingOrder = createPendingOrder({
+      workspaceId: wsId,
+      tier,
+      billingCycle,
+      paymentMethod,
+      gateway,
+      businessName,
+      gstin,
+    });
 
-    // Dynamic UPI Payment Link (BHIM/PhonePe/GPay QR Compatible)
-    const upiLink = `upi://pay?pa=kuiro@icici&pn=KUIRO%20Technologies&tr=${orderId}&am=${totalAmount}&cu=INR&tn=KUIRO%20${tier}%20Autopilot%20Subscription`;
+    // 2. Dynamic UPI Payment Link (BHIM / PhonePe / GPay QR Compatible)
+    const upiLink = `upi://pay?pa=kuiro@icici&pn=KUIRO%20Technologies&tr=${pendingOrder.orderId}&am=${pendingOrder.totalAmount}&cu=INR&tn=KUIRO%20${tier}%20Autopilot%20Subscription`;
 
+    // 3. Return session order payload for client-side gateway checkout or mandate approval
     return NextResponse.json({
       success: true,
       order: {
-        orderId,
-        paymentId,
-        invoiceNumber,
-        tier,
-        billingCycle,
-        currency: 'INR',
-        baseAmount,
+        orderId: pendingOrder.orderId,
+        orderToken: pendingOrder.orderToken,
+        status: pendingOrder.status, // Always 'PENDING'
+        tier: pendingOrder.tier,
+        billingCycle: pendingOrder.billingCycle,
+        currency: pendingOrder.currency,
+        baseAmount: pendingOrder.baseAmount,
         gstRate: '18%',
-        cgst: Math.round(gstAmount / 2),
-        sgst: Math.round(gstAmount / 2),
-        gstAmount,
-        totalAmount,
-        status: 'PAID_ACTIVE',
-        activatedAt: new Date().toISOString(),
-        paymentMethod,
-        gateway,
+        cgst: Math.round(pendingOrder.gstAmount / 2),
+        sgst: Math.round(pendingOrder.gstAmount / 2),
+        gstAmount: pendingOrder.gstAmount,
+        totalAmount: pendingOrder.totalAmount,
+        paymentMethod: pendingOrder.paymentMethod,
+        gateway: pendingOrder.gateway,
         upiLink,
         upiVpa: upiVpa || 'kuiro@icici',
-        gstin: gstin || '19AAACS1429B1Z8',
-        hsnCode: '998314', // Information technology and AI SaaS services
-        businessName: businessName || 'Valued KUIRO Enterprise',
+        gstin: pendingOrder.gstin,
+        businessName: pendingOrder.businessName,
+        hsnCode: '998314',
+        expiresAt: new Date(pendingOrder.expiresAt).toISOString(),
+        keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_kuiro',
       },
-      message: `Successfully upgraded to KUIRO ${tier} (${billingCycle.toUpperCase()}) tier!`,
+      message: `Payment order ${pendingOrder.orderId} initialized. Complete payment to activate ${tier} subscription.`,
     });
   } catch (error: any) {
-    console.error('Checkout error:', error);
+    console.error('[Checkout Session Error]:', error);
     return NextResponse.json(
       { error: error.message || 'Payment initiation failed' },
       { status: 500 }
     );
   }
 }
-

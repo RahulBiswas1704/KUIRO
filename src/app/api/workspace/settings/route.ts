@@ -120,13 +120,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
     }
 
-    // 1. Update Workspaces table
+    // 1. Update Workspaces table (subscriptionTier is immutable via settings; strictly modified by verified billing)
     const [updatedWs] = await database
       .update(workspaces)
       .set({
         name: name || ws.name,
         whatsappAdminPhone: whatsappAdminPhone || ws.whatsappAdminPhone,
-        subscriptionTier: (subscriptionTier as any) || ws.subscriptionTier,
       })
       .where(and(eq(workspaces.id, ws.id), eq(workspaces.ownerId, session!.user.id)))
       .returning();
