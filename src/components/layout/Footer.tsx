@@ -15,7 +15,7 @@ export default function Footer({ className = '' }: FooterProps) {
         <div className="flex flex-col items-center md:items-start gap-2">
           <KuiroLogo variant="primary" theme="dark" symbolSize={28} showTagline={false} />
           <p className="text-[11px] text-gray-500 mt-1 text-center md:text-left">
-            Your always-on AI marketing employee for Indian SMBs, clinics, and agencies.
+            Your autonomous marketing operating system for SMBs, personal brands, founders, and creators.
           </p>
         </div>
 
@@ -34,4 +34,3 @@ export default function Footer({ className = '' }: FooterProps) {
     </footer>
   );
 }
-

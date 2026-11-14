@@ -51,7 +51,7 @@ export default function ServicesPage() {
       badge: 'Service 01 • Persistent Memory Engine',
       title: 'Persistent Brand Brain',
       subtitle: 'Continuous ingestion of business DNA into zero-retraining vector memory.',
-      description: 'The Brand Brain eliminates generic AI copy forever. By indexing your website, Google Business listing, clinical specialties, doctor degrees, pricing, and visual guidelines into Neon pgvector, KUIRO acts as an employee who knows your business inside and out.',
+      description: 'The Brand Brain eliminates generic AI copy forever. By indexing your website, product catalog, services, verified credentials, pricing, and visual guidelines into Neon pgvector, KUIRO acts as an employee who knows your business or personal brand inside and out.',
       icon: Layers,
       color: '#FF7A00',
       metrics: [
@@ -60,14 +60,14 @@ export default function ServicesPage() {
         { label: 'Brand Compliance', value: '99.4% Pass Rate' }
       ],
       features: [
-        'Automatic website and menu scraping with semantic chunking',
-        'Strict medical & legal guardrails for clinics and pharmacies',
-        'Preserves exact hex color codes (#FF7A00, #0B0F14) and verified logos',
-        'Retains doctor credentials (BDS, MDS, Reg numbers) and emergency contacts',
+        'Automatic website, catalog, and service scraping with semantic chunking',
+        'Industry-specific ethics and regulatory guardrails (retail, B2B, healthcare, creators)',
+        'Preserves exact hex color codes (#FF7A00, #0B0F14) and verified SVG logos',
+        'Retains professional credentials, product USPs, and direct call-to-actions',
         'Zero prompt re-engineering required for ongoing campaigns'
       ],
       workflowSteps: [
-        { step: '01', title: 'Input Ingestion', desc: 'Paste clinic website or Instagram link' },
+        { step: '01', title: 'Input Ingestion', desc: 'Paste business website, catalog, or social profile' },
         { step: '02', title: 'Vector Indexing', desc: 'Embeddings saved with pgvector tenant isolation' },
         { step: '03', title: 'Context Retrieval', desc: 'Retrieved automatically during every campaign generation' }
       ]
@@ -87,14 +87,14 @@ export default function ServicesPage() {
       ],
       features: [
         'Pre-loaded cultural triggers (Diwali, Eid, Pongal, Durga Puja, Onam, Chhath)',
-        'Industry observance days (National Doctors’ Day, World Oral Health Day)',
+        'Industry observance days (National Startup Day, Handloom Day, World Health Day, MSME Day)',
         'State-specific language & cultural nuance mapping',
         'Automatic seasonal sales schedules (Monsoon specials, festive discounts)',
         'Midnight cron execution at 00:00 IST for durable daily scheduling'
       ],
       workflowSteps: [
         { step: '01', title: 'Radar Scan', desc: 'Midnight cron scans events happening in 5 days' },
-        { step: '02', title: 'Regional Filter', desc: 'Matches clinic location with state cultural significance' },
+        { step: '02', title: 'Regional Filter', desc: 'Matches business audience with regional cultural significance' },
         { step: '03', title: 'Queue Generation', desc: 'Campaign dispatched to WhatsApp review queue' }
       ]
     },
@@ -114,7 +114,7 @@ export default function ServicesPage() {
       features: [
         'Headless Chromium worker fallback for Hindi (Devanagari), Bengali, and Tamil ligatures',
         'Multi-format rendering: 1:1 Feed square, 4:5 LinkedIn carousel, 9:16 vertical stories',
-        'XML entity sanitization (safe handling of & in clinic names like Dr. Sharma Dental & Implant)',
+        'XML entity sanitization (safe handling of & in brand names like Kolkata Chai Co. & Sons)',
         '2x2 & 3x2 Contact Sheet generation for single-message WhatsApp reviews',
         'Direct Cloudflare R2 media upload with public HTTPS URLs'
       ],
@@ -129,7 +129,7 @@ export default function ServicesPage() {
       badge: 'Service 04 • Zero-Dashboard Approval',
       title: '48-Hour WhatsApp Auto-Commit',
       subtitle: 'Zero dashboard fatigue. Review, voice-revise, or auto-publish from your phone.',
-      description: 'Business owners and doctors don’t have time to log into complicated social media dashboards. KUIRO sends an interactive WhatsApp contact sheet 48 hours before publication. One tap approves, natural Hindi/English voice notes revise, or silence auto-commits at T-0.',
+      description: 'Founders, creators, and business owners don’t have time to log into complicated social media dashboards. KUIRO sends an interactive WhatsApp contact sheet 48 hours before publication. One tap approves, natural Hindi/English voice notes revise, or silence auto-commits at T-0.',
       icon: Smartphone,
       color: '#10B981',
       metrics: [
@@ -193,11 +193,11 @@ export default function ServicesPage() {
         'Programmatic React video rendering using Remotion and FFmpeg',
         'Natural Indian English & Hindi voiceover narration via ElevenLabs TTS API',
         'Word-level animated karaoke captions for maximum sound-off viewer retention',
-        'Integration of client clinic b-roll, doctor photos, and menu items',
+        'Integration of brand b-roll, product showcases, founder video, and catalog items',
         'Automatic background music ducking behind vocal voiceovers'
       ],
       workflowSteps: [
-        { step: '01', title: 'Script & Audio', desc: 'Generate medical/business script and synthesize voiceover' },
+        { step: '01', title: 'Script & Audio', desc: 'Generate industry-tailored script and synthesize voiceover' },
         { step: '02', title: 'Remotion Render', desc: 'Programmatic 9:16 video rendered with kinetic captions' },
         { step: '03', title: 'Reel Publishing', desc: 'Container polling and upload via Instagram Reels API' }
       ]
@@ -207,7 +207,7 @@ export default function ServicesPage() {
       badge: 'Service 07 • Retention & Retargeting',
       title: 'Autonomous Email Newsletters',
       subtitle: 'Responsive branded newsletters dispatched to customer lists on autopilot.',
-      description: 'Turn one-time visitors into repeat lifelong customers. KUIRO autonomously writes, designs, and schedules festive offers, clinic preventive care advice, and weekly updates formatted in responsive HTML with high deliverability via Resend and Amazon SES.',
+      description: 'Turn one-time visitors into repeat lifelong customers. KUIRO autonomously writes, designs, and schedules festive offers, VIP product drops, educational advice, and weekly updates formatted in responsive HTML with high deliverability via Resend and Amazon SES.',
       icon: Mail,
       color: '#F59E0B',
       metrics: [
@@ -218,8 +218,8 @@ export default function ServicesPage() {
       features: [
         'Zero-effort weekly and festival newsletters auto-synced with your 365 calendar',
         'Responsive dark/light inbox rendering optimized for Apple Mail, Gmail, and Outlook',
-        'Direct patient & client list synchronization from CSV or Google Sheets',
-        'Smart call-to-action buttons linking to WhatsApp booking or your website',
+        'Direct customer, subscriber & client list synchronization from CSV or Google Sheets',
+        'Smart call-to-action buttons linking to WhatsApp, booking pages, or your online store',
         'Automated CAN-SPAM and unsubscribe compliance management'
       ],
       workflowSteps: [
@@ -233,7 +233,7 @@ export default function ServicesPage() {
       badge: 'Service 08 • Customer Conversations Hub',
       title: 'Unified Multi-Channel Inbox & Routing',
       subtitle: 'Brings WhatsApp, Instagram, Messenger, and Email into one collaborative workspace.',
-      description: 'Support and sales teams reply 92% faster, automate routine FAQs with Brand Brain AI, collaborate through private internal notes, and route leads by treatment type and urgency across 4 major channels.',
+      description: 'Sales and support teams reply 92% faster, automate routine FAQs with Brand Brain AI, collaborate through private internal notes, and route leads by inquiry type and urgency across 4 major channels.',
       icon: MessagesSquare,
       color: '#10B981',
       metrics: [
@@ -243,9 +243,9 @@ export default function ServicesPage() {
       ],
       features: [
         'Unified conversation inbox aggregating WhatsApp, Instagram DM, Facebook Messenger, and Email',
-        'Gemini Brand Brain AI co-pilot for 1-click clinical & business compliant auto-replies',
+        'Gemini Brand Brain AI co-pilot for 1-click brand-aligned auto-replies',
         'Private internal team notes (@mention) with zero-collision live presence indicators',
-        'Automated lead qualification and intelligent routing to specialists or reception',
+        'Automated lead qualification and intelligent routing to team members or front desk',
         'Campaign attribution linking every inquiry back to specific WhatsApp or email broadcasts'
       ],
       workflowSteps: [
@@ -277,12 +277,12 @@ export default function ServicesPage() {
           </div>
 
           <h1 className="text-4xl sm:text-6xl font-sora font-bold text-white tracking-tight leading-tight">
-            Seven Autonomous Services. <br />
-            <span className="text-[#FF7A00]">One AI Marketing Employee.</span>
+            Complete Autonomous Suite. <br />
+            <span className="text-[#FF7A00]">Your Marketing On Autopilot.</span>
           </h1>
 
           <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto font-inter leading-relaxed">
-            From persistent knowledge extraction and 365-day regional calendar tracking to studio graphics and WhatsApp auto-commit—explore the six pillars powering KUIRO.
+            From persistent brand memory and 365-day regional calendar tracking to high-DPI studio graphics, WhatsApp auto-commit, and unified conversations—everything SMBs, creators, and founders need to grow.
           </p>
 
           <div className="pt-4 flex flex-wrap items-center justify-center gap-3 text-xs">

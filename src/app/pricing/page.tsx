@@ -139,11 +139,11 @@ export default function PricingPage() {
           <div className="p-8 rounded-[16px] bg-[#0B0F14] border border-white/10 flex flex-col justify-between hover:border-white/20 transition-all">
             <div>
               <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block">
-                Solo Founders & Single Clinics
+                Individuals, Creators, Solopreneurs & Small Shops
               </span>
               <h3 className="font-sora text-xl font-bold text-white mt-1">Starter (Autopilot Lite)</h3>
               <p className="text-xs text-slate-400 font-inter mt-1">
-                For single-location dental clinics, solo doctors, and boutique retail founders.
+                For solopreneurs, independent creators, consultants, boutique stores, and solo founders.
               </p>
 
               <div className="mt-6 flex items-baseline gap-1.5 pb-6 border-b border-white/10">
@@ -212,11 +212,11 @@ export default function PricingPage() {
 
             <div>
               <span className="text-[10px] font-mono uppercase text-[#FF7A00] font-bold block">
-                Active Clinics, Cafes & Brands
+                Growing SMBs, Brands & Consultancies
               </span>
               <h3 className="font-sora text-xl font-bold text-white mt-1">Growth (Full Autopilot)</h3>
               <p className="text-xs text-slate-400 font-inter mt-1">
-                For busy clinics, multi-doctor centers, restaurants, and active D2C brands.
+                For small & medium businesses, retail stores, D2C brands, consulting firms, and active practices.
               </p>
 
               <div className="mt-6 flex items-baseline gap-1.5 pb-6 border-b border-white/10">
@@ -233,7 +233,7 @@ export default function PricingPage() {
                 <p className="text-[11px] font-mono uppercase text-[#FF7A00] font-bold">Everything in Starter, plus:</p>
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 size={16} className="text-[#FF7A00] shrink-0 mt-0.5" />
-                  <span><strong>1 Workspace & 3 Brand Profiles</strong> (e.g. Clinic + Doctor Personal Brand)</span>
+                  <span><strong>1 Workspace & 3 Brand Profiles</strong> (e.g. Business + Founder Personal Brand)</span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 size={16} className="text-[#FF7A00] shrink-0 mt-0.5" />
@@ -285,11 +285,11 @@ export default function PricingPage() {
           <div className="p-8 rounded-[16px] bg-[#0B0F14] border border-white/10 flex flex-col justify-between hover:border-white/20 transition-all">
             <div>
               <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block">
-                Agencies & Hospital Networks
+                Agencies, Multi-Brand & Multi-Location Ventures
               </span>
               <h3 className="font-sora text-xl font-bold text-white mt-1">Agency / Multi-Location</h3>
               <p className="text-xs text-slate-400 font-inter mt-1">
-                For digital marketing agencies managing 10 to 50 client retainers and hospital chains.
+                For digital marketing agencies managing 10 to 50 client retainers, franchises, and multi-brand networks.
               </p>
 
               <div className="mt-6 flex items-baseline gap-1.5 pb-6 border-b border-white/10">

@@ -64,12 +64,12 @@ export default function GetStartedPage() {
 
   // Form State
   const [formData, setFormData] = useState({
-    businessName: user?.businessName || 'Dr. Sharma Dental Clinics',
-    vertical: 'Clinic & Healthcare',
-    websiteUrl: 'https://drsharmadental.in',
+    businessName: user?.businessName || 'My Venture',
+    vertical: 'Small & Medium Business (Retail, Store, E-commerce)',
+    websiteUrl: 'https://mybrand.in',
     whatsappNumber: '+91 98765 43210',
-    ownerName: user?.name || 'Dr. Rajesh Sharma',
-    email: user?.email || 'dr.sharma@apexclinic.in',
+    ownerName: user?.name || 'Founder',
+    email: user?.email || 'founder@mybrand.in',
     language: 'English + Hindi (Bilingual)',
     selectedChannels: ['instagram', 'facebook', 'linkedin', 'x', 'email'] as string[],
     approvalWindow: '48 Hours (Recommended)',
@@ -144,10 +144,10 @@ export default function GetStartedPage() {
         primaryColor: '#0B3B60',
         secondaryColor: '#FF7A00',
         fontFamily: 'Sora',
-        tones: ['Empathetic & Caring', 'Clinically Authoritative', 'Culturally Warm (Indian Values)'],
-        pillars: ['Preventive Care', 'Patient Case Studies', 'Seasonal Indian Festival Greetings'],
-        negativeConstraints: ['Never mention competitor chains', 'No clinical guarantees without medical disclaimer'],
-        credentials: 'BDS, MDS, 14 Yrs Experience',
+        tones: ['Engaging & Authentic', 'Professional & Authoritative', 'Culturally Warm (Indian Values)'],
+        pillars: ['Core Product / Service Value', 'Customer Success Stories', 'Seasonal Indian Festival Greetings'],
+        negativeConstraints: ['Never mention competitor brands', 'No false guarantees or misleading claims'],
+        credentials: 'Verified Brand Identity',
         benchmarkSeconds: '1.2',
       };
       setExtractedData(fallbackData);
@@ -334,13 +334,13 @@ export default function GetStartedPage() {
                 <div className="space-y-4 font-inter text-xs">
                   <div>
                     <label className="block text-slate-300 font-medium mb-1.5">
-                      Business or Clinic Name *
+                      Business, Brand, or Personal Name *
                     </label>
                     <input
                       type="text"
                       value={formData.businessName}
                       onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
-                      placeholder="e.g. Apex Multispecialty & Dental Care"
+                      placeholder="e.g. Kolkata Chai Co. / Studio Apex / Vikram Malhotra"
                       className="w-full px-3.5 py-2.5 rounded-[10px] bg-[#11141A] border border-white/15 text-white focus:outline-none focus:border-[#FF7A00] transition"
                     />
                   </div>
@@ -348,31 +348,33 @@ export default function GetStartedPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-slate-300 font-medium mb-1.5">
-                        Business Category
+                        Category / Venture Type
                       </label>
                       <select
                         value={formData.vertical}
                         onChange={(e) => setFormData({ ...formData, vertical: e.target.value })}
                         className="w-full px-3.5 py-2.5 rounded-[10px] bg-[#11141A] border border-white/15 text-white focus:outline-none focus:border-[#FF7A00] transition"
                       >
-                        <option value="Clinic & Healthcare">Clinic & Healthcare Practice</option>
-                        <option value="Dermatology & Aesthetics">Dermatology & Aesthetics</option>
-                        <option value="Food & Beverage / Cafe">Food & Beverage / Restaurant / Cafe</option>
-                        <option value="Retail & D2C Brand">Retail & D2C Boutique Store</option>
-                        <option value="Marketing Agency">Marketing Agency (Multi-Client)</option>
-                        <option value="Other Business">Other SMB / Founder</option>
+                        <option value="Small & Medium Business (Retail, Store, E-commerce)">Small & Medium Business (Retail, Store, E-commerce)</option>
+                        <option value="Personal Brand & Creator">Personal Brand / Creator / Coach / Freelancer</option>
+                        <option value="Founder / Tech Startup / B2B">Founder / Tech Startup / B2B Company</option>
+                        <option value="Professional Services & Consultancy">Professional Services (Consultancy, Legal, Finance, Real Estate)</option>
+                        <option value="Practice, Clinic & Healthcare">Practice, Clinic & Healthcare (Dentistry, Aesthetics, Wellness)</option>
+                        <option value="Food & Beverage / Cafe / Hospitality">Food & Beverage / Restaurant / Cafe / Hospitality</option>
+                        <option value="Marketing Agency">Marketing Agency (Multi-Client Operator)</option>
+                        <option value="Other Business / Individual">Other Independent Business / Individual</option>
                       </select>
                     </div>
 
                     <div>
                       <label className="block text-slate-300 font-medium mb-1.5">
-                        Owner / Doctor Name *
+                        Founder / Owner / Creator Name *
                       </label>
                       <input
                         type="text"
                         value={formData.ownerName}
                         onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
-                        placeholder="Dr. Rajesh Sharma"
+                        placeholder="e.g. Rohan Sharma"
                         className="w-full px-3.5 py-2.5 rounded-[10px] bg-[#11141A] border border-white/15 text-white focus:outline-none focus:border-[#FF7A00] transition"
                       />
                     </div>
@@ -380,7 +382,7 @@ export default function GetStartedPage() {
 
                   <div>
                     <label className="block text-slate-300 font-medium mb-1.5">
-                      Website URL or Google Business Link
+                      Website URL, Social Link, or Business Page
                     </label>
                     <div className="flex gap-2">
                       <div className="flex-1 flex items-center gap-2 px-3.5 py-2 rounded-[10px] bg-[#11141A] border border-white/15">
@@ -389,7 +391,7 @@ export default function GetStartedPage() {
                           type="url"
                           value={formData.websiteUrl}
                           onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
-                          placeholder="https://drsharmadental.in"
+                          placeholder="https://mybrand.in or your social link"
                           className="w-full bg-transparent text-white focus:outline-none"
                         />
                       </div>
