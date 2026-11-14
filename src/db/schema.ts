@@ -47,6 +47,18 @@ export const sessions = pgTable('sessions', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const verificationTokens = pgTable('verification_tokens', {
+  id: text('id').primaryKey(),
+  identifier: text('identifier').notNull(),
+  token: text('token').notNull(),
+  type: text('type', {
+    enum: ['EMAIL_VERIFICATION', 'PASSWORD_RESET', 'MAGIC_LINK'],
+  }).notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 // 2. Workspaces (Multi-Tenant Isolation)
 export const workspaces = pgTable('workspaces', {
   id: uuid('id').defaultRandom().primaryKey(),

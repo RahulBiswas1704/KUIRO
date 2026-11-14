@@ -5,6 +5,9 @@ import {
   verifyPassword,
   createDatabaseSession,
   ensureDemoUser,
+  checkLoginRateLimit,
+  recordFailedLoginAttempt,
+  clearFailedLoginAttempts,
   SESSION_COOKIE_NAME,
   SESSION_MAX_AGE_DAYS,
 } from '@/lib/auth';
@@ -55,6 +58,8 @@ export async function POST(req: NextRequest) {
       return response;
     }
 
+    const clientIp = ipAddress || 'unknown';
+
     // 2. Strict Credential Validation (Preventing Passwordless Access)
     if (!email || typeof email !== 'string' || !email.trim()) {
       return NextResponse.json(
@@ -72,6 +77,18 @@ export async function POST(req: NextRequest) {
 
     const cleanEmail = email.trim().toLowerCase();
 
+    // 3. Brute Force Rate Limiting
+    const rateCheck = checkLoginRateLimit(cleanEmail, clientIp);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        {
+          error: `Too many login attempts. Account temporarily locked for security. Please retry in ${rateCheck.retryAfterSeconds} seconds.`,
+          retryAfterSeconds: rateCheck.retryAfterSeconds,
+        },
+        { status: 429 }
+      );
+    }
+
     // Find User in Neon DB
     const [userRecord] = await database
       .select()
@@ -79,28 +96,27 @@ export async function POST(req: NextRequest) {
       .where(eq(users.email, cleanEmail))
       .limit(1);
 
-    if (!userRecord) {
+    // Generic error for non-existent account or account without password hash
+    if (!userRecord || !userRecord.passwordHash) {
+      recordFailedLoginAttempt(cleanEmail, clientIp);
       return NextResponse.json(
         { error: 'Invalid email or password.' },
         { status: 401 }
       );
     }
 
-    if (!userRecord.passwordHash) {
-      return NextResponse.json(
-        { error: 'No password is set for this account. Please reset your password or sign up.' },
-        { status: 401 }
-      );
-    }
-
-    // Verify Password Cryptographically (Preventing Mock/Bypass Logins)
+    // Verify Password Cryptographically in Constant Time
     const isValid = verifyPassword(password, userRecord.passwordHash);
     if (!isValid) {
+      recordFailedLoginAttempt(cleanEmail, clientIp);
       return NextResponse.json(
         { error: 'Invalid email or password.' },
         { status: 401 }
       );
     }
+
+    // Reset failed login attempts on successful credentials
+    clearFailedLoginAttempts(cleanEmail, clientIp);
 
     // Find or Provision Primary Workspace for user
     let [workspaceRecord] = await database
