@@ -17,8 +17,10 @@ import {
   Smartphone,
   Share2,
   Zap,
-  BarChart3
+  BarChart3,
+  Download
 } from 'lucide-react';
+import ExecutiveRoiExporterModal from '@/components/dashboard/ExecutiveRoiExporterModal';
 import { useAuth } from '@/context/AuthContext';
 
 interface IndustryPreset {
@@ -80,6 +82,7 @@ export default function CampaignRoiCalculator() {
   const [conversionRate, setConversionRate] = useState<number>(PRESETS.artisan.closeRate);
   const [currentAgencySpend, setCurrentAgencySpend] = useState<number>(PRESETS.artisan.agencySpend);
   const [copiedReport, setCopiedReport] = useState(false);
+  const [isExporterOpen, setIsExporterOpen] = useState(false);
 
   // KUIRO Growth Autopilot Plan Price
   const KUIRO_GROWTH_PRICE = 2299; // INR/month on annual billing
@@ -362,7 +365,7 @@ export default function CampaignRoiCalculator() {
           </div>
 
           {/* CTA Button */}
-          <div className="pt-2">
+          <div className="pt-2 space-y-2">
             <button
               type="button"
               onClick={handleGetStarted}
@@ -370,12 +373,55 @@ export default function CampaignRoiCalculator() {
             >
               {isLoggedIn ? 'Go to Dashboard' : 'Claim 14-Day Free Autopilot Trial'}
             </button>
-            <p className="text-[10px] text-slate-400 mt-2 font-mono">
+            <button
+              type="button"
+              onClick={() => setIsExporterOpen(true)}
+              className="w-full py-2.5 rounded-[12px] bg-white/5 hover:bg-white/10 text-slate-200 border border-white/15 text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Download size={13} className="text-[#FF7A00]" />
+              <span>Export Executive ROI (PDF/CSV)</span>
+            </button>
+            <p className="text-[10px] text-slate-400 mt-2 font-mono text-center">
               No credit card required • 14 days risk-free
             </p>
           </div>
         </div>
       </div>
+
+      {/* Executive ROI Exporter Modal */}
+      <ExecutiveRoiExporterModal
+        isOpen={isExporterOpen}
+        onClose={() => setIsExporterOpen(false)}
+        businessName={`${PRESETS[selectedIndustry]?.name || 'Enterprise'} Studio`}
+        roiData={{
+          totalPipelineValue: monthlyAttributedRevenue,
+          totalRealizedRevenue: Math.round(monthlyAttributedRevenue * 0.75),
+          totalAttributedLeads: inquiriesPerMonth,
+          totalAppointmentsBooked: payingCustomers,
+          estimatedAgencySavings: monthlyAgencySavings,
+          netRoiMultiplier: Number(roiMultiple) || 12.5,
+          campaignBreakdown: [
+            {
+              campaignId: 'calc-1',
+              topicSummary: `${PRESETS[selectedIndustry]?.name || 'Seasonal'} Autonomous Broadcast`,
+              publishAt: 'Scheduled (48h Protocol)',
+              realizedRevenue: Math.round(monthlyAttributedRevenue * 0.6),
+              inquiriesCount: Math.round(inquiriesPerMonth * 0.6),
+              appointmentsBookedCount: Math.round(payingCustomers * 0.6),
+              status: 'AUTO_QUEUED',
+            },
+            {
+              campaignId: 'calc-2',
+              topicSummary: 'WhatsApp High-Intent Lead Conversion Stream',
+              publishAt: 'Daily Automated Trigger',
+              realizedRevenue: Math.round(monthlyAttributedRevenue * 0.4),
+              inquiriesCount: Math.round(inquiriesPerMonth * 0.4),
+              appointmentsBookedCount: Math.round(payingCustomers * 0.4),
+              status: 'PUBLISHED',
+            },
+          ],
+        }}
+      />
     </div>
   );
 }
