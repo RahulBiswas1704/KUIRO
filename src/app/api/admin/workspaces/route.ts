@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, workspaces, users, brandProfiles } from '@/db';
 import { desc, eq } from 'drizzle-orm';
-import { verifyManagementAuth } from '@/lib/adminAuth';
+import { verifyManagementAuth, recordAdminAuditLog } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -163,6 +163,16 @@ export async function POST(req: NextRequest) {
       negativeConstraints: ['No false medical claims'],
     });
 
+    // Record audit log for workspace creation
+    await recordAdminAuditLog({
+      operatorEmail: auth.email || 'operator@kuiro.in',
+      action: 'ADMIN_CREATE_WORKSPACE',
+      resource: `workspace:${newWs.id}`,
+      status: 'SUCCESS',
+      details: { workspaceId: newWs.id, name: newWs.name, subscriptionTier, ownerEmail },
+      req,
+    });
+
     return NextResponse.json({
       success: true,
       message: `Workspace "${newWs.name}" provisioned successfully.`,
@@ -208,6 +218,16 @@ export async function PATCH(req: NextRequest) {
       .where(eq(workspaces.id, id))
       .returning();
 
+    // Record audit log for workspace update
+    await recordAdminAuditLog({
+      operatorEmail: auth.email || 'operator@kuiro.in',
+      action: 'ADMIN_UPDATE_WORKSPACE',
+      resource: `workspace:${id}`,
+      status: 'SUCCESS',
+      details: { workspaceId: id, name, subscriptionTier, whatsappAdminPhone },
+      req,
+    });
+
     return NextResponse.json({
       success: true,
       message: `Workspace updated successfully.`,
@@ -244,6 +264,16 @@ export async function DELETE(req: NextRequest) {
     }
 
     await database.delete(workspaces).where(eq(workspaces.id, id));
+
+    // Record audit log for workspace deletion
+    await recordAdminAuditLog({
+      operatorEmail: auth.email || 'operator@kuiro.in',
+      action: 'ADMIN_DELETE_WORKSPACE',
+      resource: `workspace:${id}`,
+      status: 'SUCCESS',
+      details: { workspaceId: id },
+      req,
+    });
 
     return NextResponse.json({
       success: true,
