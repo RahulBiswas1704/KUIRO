@@ -10,7 +10,6 @@ import {
   CalendarDays,
   Share2,
   Settings,
-  ShieldCheck,
   ChevronDown,
   Sparkles,
   ExternalLink,
@@ -69,12 +68,6 @@ const navItems = [
     href: '/dashboard/settings',
     icon: Settings,
     badge: 'NEW',
-  },
-  {
-    name: 'Admin Command Center',
-    href: '/admin',
-    icon: ShieldCheck,
-    badge: 'CORE',
   },
 ];
 
