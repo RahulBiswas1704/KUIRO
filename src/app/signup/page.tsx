@@ -88,7 +88,7 @@ export default function SignUpPage() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Dr. Rajesh Sharma"
+                  placeholder="e.g. Rajesh Sharma"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="w-full bg-[#11141A] border border-white/10 rounded-[10px] pl-9 pr-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-[#FF7A00] transition"
@@ -104,7 +104,7 @@ export default function SignUpPage() {
                 <Building2 size={15} className="absolute left-3 top-3 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="e.g. Dr. Sharma Dental Care"
+                  placeholder="e.g. Apex Studio / Sharma Retail / Care Clinic"
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
                   className="w-full bg-[#11141A] border border-white/10 rounded-[10px] pl-9 pr-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-[#FF7A00] transition"
@@ -121,7 +121,7 @@ export default function SignUpPage() {
                 <input
                   type="email"
                   required
-                  placeholder="doctor@apexclinic.in"
+                  placeholder="name@business.in"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-[#11141A] border border-white/10 rounded-[10px] pl-9 pr-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-[#FF7A00] transition"
@@ -145,6 +145,17 @@ export default function SignUpPage() {
                 />
               </div>
             </div>
+
+            <p className="text-[10px] text-slate-500 text-center font-inter pt-1">
+              By creating an account, you agree to our{' '}
+              <Link href="/terms" className="text-slate-400 hover:text-white underline">
+                Terms &amp; Conditions
+              </Link>{' '}
+              and{' '}
+              <Link href="/privacy" className="text-slate-400 hover:text-white underline">
+                Privacy Policy
+              </Link>.
+            </p>
 
             <button
               type="submit"

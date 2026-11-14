@@ -83,7 +83,7 @@ export default function LoginPage() {
                   ⚡ 1-Click Demo Sign In
                 </p>
                 <p className="text-[11px] text-emerald-400/80">
-                  Dr. Sharma Dental Clinics (Pre-loaded Workspace)
+                  Apex Clinics &amp; Retail (Pre-loaded Workspace)
                 </p>
               </div>
             </div>
@@ -112,7 +112,7 @@ export default function LoginPage() {
                 <input
                   type="email"
                   required
-                  placeholder="doctor@apexclinic.in"
+                  placeholder="name@business.in"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-[#11141A] border border-white/10 rounded-[10px] pl-9 pr-3 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-[#FF7A00] transition"
