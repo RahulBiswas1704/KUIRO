@@ -653,10 +653,10 @@ export async function PATCH(req: NextRequest) {
         .from(workspaces)
         .where(eq(workspaces.id, camp.workspaceId));
 
-      const businessName = ws?.name || 'Dr. Sharma Dental Clinics';
-      const industry = bp?.industry || 'Healthcare & Preventive Diagnostics';
-      const tones = (bp?.toneOfVoice?.samplePhrases as string[]) || ['Empathetic', 'Clinical'];
-      const pillars = (bp?.contentPillars as any[])?.map((p) => p.name || p) || ['Preventive Care'];
+      const businessName = ws?.name || 'Sharma Heritage Handlooms & Retail';
+      const industry = bp?.industry || 'Retail, Commerce & Professional Services';
+      const tones = (bp?.toneOfVoice?.samplePhrases as string[]) || ['Culturally Warm', 'Authoritative', 'Modern Indian'];
+      const pillars = (bp?.contentPillars as any[])?.map((p) => p.name || p) || ['Artisan Heritage', 'Quality Craftsmanship', 'Festive Offerings'];
       const negativeConstraints = (bp?.negativeConstraints as string[]) || ['No competitor mentions'];
 
       // Generate revised copy incorporating the voice/text revision instruction

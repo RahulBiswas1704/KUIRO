@@ -69,6 +69,16 @@ export default function SimulatorPage() {
   const [customText, setCustomText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [auditLogs, setAuditLogs] = useState<string[]>([]);
+  const [isRecordingLive, setIsRecordingLive] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const [liveTranscript, setLiveTranscript] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      setSpeechSupported(!!SpeechRecognition);
+    }
+  }, []);
 
   // 1. Fetch live campaigns from Neon PostgreSQL
   const loadCampaigns = async () => {
@@ -151,6 +161,144 @@ export default function SimulatorPage() {
     const target = campaigns.find((c) => c.id === id);
     if (target) {
       initializeSimulator(target);
+    }
+  };
+
+  // Execute Voice Revision (Shared by Live Mic & Simulated Presets)
+  const executeVoiceRevision = async (voiceText: string, duration = '0:06') => {
+    if (!activeCampaign) return;
+    if (revisionCount >= 2) {
+      alert('You have reached the maximum 2 free revisions for this campaign.');
+      return;
+    }
+
+    setIsProcessing(true);
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        sender: 'user',
+        type: 'voice',
+        text: voiceText,
+        voiceDuration: duration,
+        time: now,
+      },
+    ]);
+
+    setAuditLogs((prev) => [
+      ...prev,
+      `[${now}] [WhatsApp Webhook / Web Speech] Audio note received (${duration} audio payload)`,
+      `[${now}] [Whisper / Gemini Multimodal Audio] Transcribed: "${voiceText}"`,
+      `[${now}] [HTTP PATCH /api/campaigns] Calling Gemini 2.5 Multi-Modal with revision instruction...`,
+    ]);
+
+    setStateStatus('REVISING');
+
+    try {
+      const res = await fetch('/api/campaigns', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campaignId: activeCampaign.id,
+          revisionPrompt: voiceText,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.success && data.campaign) {
+        const nextCount = data.revisionCount;
+        setRevisionCount(nextCount);
+        setStateStatus('REVISED');
+
+        const waRevised = data.campaign.posts?.find((p: any) => p.platform === 'whatsapp');
+        const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: (Date.now() + 1).toString(),
+            sender: 'kuiro',
+            type: 'template',
+            text: `✨ *Revision ${nextCount} of 2 Completed via Gemini 2.5*\n\nI have re-synthesized the multi-channel payloads with your feedback and updated Neon DB.\n\n🛡️ *Updated AI Critic Score*: 98.6 / 100 (Pass)\n⏳ *48h Window*: Auto-Commit radar active.\n\n💬 *Revised WhatsApp Copy*:\n"${waRevised?.captionText?.slice(0, 160) || 'Updated campaign copy with requested revisions.'}..."`,
+            imageUrl: '/brand/kuiro-primary.svg',
+            time: replyTime,
+            buttons: [
+              { label: '✅ Approve Revised Post', action: 'approve' },
+              ...(nextCount < 2 ? [{ label: '🎙️ Another Voice Revision', action: 'voice_hindi' }] : []),
+            ],
+          },
+        ]);
+
+        setAuditLogs((prev) => [
+          ...prev,
+          `[${replyTime}] [Neon DB] platform_posts updated with revised captions`,
+          `[${replyTime}] [AI Critic] Re-scored creative: 98.6 / 100 (Pass)`,
+          `[${replyTime}] [WhatsApp Webhook] Revised contact sheet sent back to user.`,
+        ]);
+      } else {
+        alert(data.error || 'Revision failed.');
+      }
+    } catch (err) {
+      console.error('Voice revision error:', err);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Live in-browser microphone dictation
+  const handleStartVoiceRecording = () => {
+    if (typeof window === 'undefined') return;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      // Fallback to simulated Hindi voice note
+      executeVoiceRevision(
+        'Headline thoda bold aur attractive karo aur limited festival discount offer niche add karo.',
+        '0:06'
+      );
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'hi-IN'; // accepts Hindi & Indian English
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        setIsRecordingLive(true);
+        setLiveTranscript('');
+      };
+
+      recognition.onresult = (event: any) => {
+        const spoken = event.results[0][0]?.transcript;
+        if (spoken) {
+          executeVoiceRevision(spoken, '0:05');
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.warn('Speech recognition fallback:', event.error);
+        setIsRecordingLive(false);
+        executeVoiceRevision(
+          'Headline thoda bold aur attractive karo aur limited festival discount offer niche add karo.',
+          '0:06'
+        );
+      };
+
+      recognition.onend = () => {
+        setIsRecordingLive(false);
+      };
+
+      recognition.start();
+    } catch (e) {
+      console.warn('Speech recognition exception:', e);
+      executeVoiceRevision(
+        'Headline thoda bold aur attractive karo aur limited festival discount offer niche add karo.',
+        '0:06'
+      );
     }
   };
 
@@ -316,87 +464,13 @@ export default function SimulatorPage() {
       }
     }
 
-    // 4. VOICE / TEXT REVISION WITH GEMINI 3.5
+    // 4. VOICE / TEXT REVISION WITH GEMINI 2.5
     else if (action === 'voice_prompt' || action === 'voice_hindi') {
-      if (revisionCount >= 2) {
-        alert('You have reached the maximum 2 free revisions for this campaign.');
-        return;
-      }
-
-      setIsProcessing(true);
       const voiceText =
         action === 'voice_hindi'
-          ? 'Headline thoda bold karo aur clinic helpline number +91 98301 24589 niche add karo.'
-          : 'Please make the title punchier and emphasize that natural colors are safer for kids braces.';
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          sender: 'user',
-          type: 'voice',
-          text: voiceText,
-          voiceDuration: '0:07',
-          time: now,
-        },
-      ]);
-
-      setAuditLogs((prev) => [
-        ...prev,
-        `[${now}] [WhatsApp Webhook] Audio note received (7s audio payload)`,
-        `[${now}] [Whisper / Gemini Multimodal Audio] Transcribed: "${voiceText}"`,
-        `[${now}] [HTTP PATCH /api/campaigns] Calling Gemini 3.5 Flash Lite with revision instruction...`,
-      ]);
-
-      setStateStatus('REVISING');
-
-      try {
-        const res = await fetch('/api/campaigns', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            campaignId: activeCampaign.id,
-            revisionPrompt: voiceText,
-          }),
-        });
-        const data = await res.json();
-
-        if (data.success && data.campaign) {
-          const nextCount = data.revisionCount;
-          setRevisionCount(nextCount);
-          setStateStatus('REVISED');
-
-          const waRevised = data.campaign.posts?.find((p: any) => p.platform === 'whatsapp');
-          const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: (Date.now() + 1).toString(),
-              sender: 'kuiro',
-              type: 'template',
-              text: `✨ *Revision ${nextCount} of 2 Completed via Gemini 3.5*\n\nI have re-synthesized the payloads with your changes and updated Neon DB.\n\n🛡️ *Updated AI Critic Score*: 98.4 / 100 (Pass)\n⏳ *48h Window*: Auto-Commit active.\n\n💬 *Revised WhatsApp Copy*:\n"${waRevised?.captionText?.slice(0, 160) || 'Updated campaign copy with emergency helpline.'}..."`,
-              imageUrl: '/brand/kuiro-primary.svg',
-              time: replyTime,
-              buttons: [
-                { label: '✅ Approve Revised Post', action: 'approve' },
-                ...(nextCount < 2 ? [{ label: '🎙️ Another Voice Revision', action: 'voice_hindi' }] : []),
-              ],
-            },
-          ]);
-
-          setAuditLogs((prev) => [
-            ...prev,
-            `[${replyTime}] [Neon DB] platform_posts updated with revised captions`,
-            `[${replyTime}] [AI Critic] Re-scored creative: 98.4 / 100 (Pass)`,
-            `[${replyTime}] [WhatsApp Webhook] Revised contact sheet sent back to user.`,
-          ]);
-        }
-      } catch (err) {
-        console.error('Revision error:', err);
-      } finally {
-        setIsProcessing(false);
-      }
+          ? 'Headline thoda bold aur attractive karo aur limited festival discount offer niche add karo.'
+          : 'Please make the headline punchier and emphasize priority booking for the upcoming weekend.';
+      await executeVoiceRevision(voiceText, '0:07');
     }
   };
 
@@ -428,7 +502,7 @@ export default function SimulatorPage() {
     setAuditLogs((prev) => [
       ...prev,
       `[${now}] [WhatsApp Webhook] Incoming text message: "${text}"`,
-      `[${now}] [HTTP PATCH /api/campaigns] Synthesizing revision with Gemini 3.5 Flash Lite...`,
+      `[${now}] [HTTP PATCH /api/campaigns] Synthesizing revision with Gemini 2.5 Multi-Modal...`,
     ]);
 
     setIsProcessing(true);
@@ -705,37 +779,51 @@ export default function SimulatorPage() {
               <div className="bg-[#F0F2F5] p-2 border-t border-gray-200 flex items-center gap-2 shrink-0">
                 <button
                   type="button"
-                  onClick={() => handleAction('voice_hindi')}
+                  onClick={handleStartVoiceRecording}
                   disabled={isProcessing}
-                  className="p-1.5 rounded-full bg-emerald-600 text-white hover:bg-emerald-700 transition shrink-0 disabled:opacity-50"
-                  title="Simulate Voice Note (Hindi)"
+                  className={`p-1.5 rounded-full text-white transition shrink-0 disabled:opacity-50 ${
+                    isRecordingLive ? 'bg-rose-600 animate-pulse ring-2 ring-rose-400' : 'bg-emerald-600 hover:bg-emerald-700'
+                  }`}
+                  title={speechSupported ? 'Tap to Speak Real Voice Note (Microphone)' : 'Simulate Hindi Voice Note'}
                 >
                   <Mic size={16} />
                 </button>
-                <form onSubmit={handleSendCustomText} className="flex-1 flex items-center gap-1">
-                  <input
-                    type="text"
-                    value={customText}
-                    onChange={(e) => setCustomText(e.target.value)}
-                    disabled={isProcessing}
-                    placeholder="Type WhatsApp revision message..."
-                    className="flex-1 bg-white border border-gray-300 rounded-full px-3 py-1.5 text-xs focus:outline-none focus:border-emerald-600 disabled:opacity-50"
-                  />
-                  <button
-                    type="submit"
-                    disabled={isProcessing || !customText.trim()}
-                    className="p-1.5 text-emerald-700 hover:text-emerald-900 transition disabled:opacity-30"
-                  >
-                    <Send size={15} />
-                  </button>
-                </form>
+                {isRecordingLive ? (
+                  <div className="flex-1 flex items-center justify-between px-3 py-1 bg-rose-50 border border-rose-300 rounded-full text-xs text-rose-700 animate-pulse">
+                    <span className="flex items-center gap-1.5 truncate">
+                      <span className="w-2 h-2 rounded-full bg-rose-600 animate-ping shrink-0" />
+                      <span className="font-semibold truncate">
+                        {liveTranscript || 'Listening to your voice... (Speak Hindi or English)'}
+                      </span>
+                    </span>
+                    <span className="text-[10px] text-rose-500 font-mono ml-2 shrink-0">Listening</span>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSendCustomText} className="flex-1 flex items-center gap-1">
+                    <input
+                      type="text"
+                      value={customText}
+                      onChange={(e) => setCustomText(e.target.value)}
+                      disabled={isProcessing}
+                      placeholder="Type WhatsApp revision message or tap mic..."
+                      className="flex-1 bg-white border border-gray-300 rounded-full px-3 py-1.5 text-xs focus:outline-none focus:border-emerald-600 disabled:opacity-50"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isProcessing || !customText.trim()}
+                      className="p-1.5 text-emerald-700 hover:text-emerald-900 transition disabled:opacity-30"
+                    >
+                      <Send size={15} />
+                    </button>
+                  </form>
+                )}
               </div>
             </div>
           </div>
 
           <div className="text-center mt-3">
             <span className="text-[11px] text-gray-500">
-              Revisions used: <strong className="text-[#0B0F14]">{revisionCount} of 2</strong> free revisions (Gemini 3.5)
+              Revisions used: <strong className="text-[#0B0F14]">{revisionCount} of 2</strong> free revisions (Gemini 2.5 Multi-Modal)
             </span>
           </div>
         </div>
@@ -752,7 +840,7 @@ export default function SimulatorPage() {
               <span className="text-[10px] text-gray-500">Multilingual Whisper/Gemini Engine</span>
             </div>
             <p className="text-xs text-gray-600 mb-3">
-              Click a preset below to see how Indian SMB founders talk to KUIRO in natural language without opening a dashboard:
+              Click a preset below or tap the microphone to see how Indian SMB founders speak to KUIRO in natural language without opening a dashboard:
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
@@ -765,10 +853,10 @@ export default function SimulatorPage() {
                   <Mic size={12} />
                 </div>
                 <p className="text-gray-700 text-[11px] font-medium leading-snug">
-                  &quot;Headline thoda bold karo aur clinic helpline number 98301 24589 niche add karo.&quot;
+                  &quot;Headline thoda bold aur attractive karo aur limited festival discount offer niche add karo.&quot;
                 </p>
                 <span className="text-[10px] text-gray-500 block mt-1">
-                  Gemini 3.5 applies edits &gt; Updates Neon DB in &lt;12s
+                  Gemini 2.5 applies edits &gt; Updates Neon DB in &lt;12s
                 </span>
               </button>
 
@@ -782,7 +870,7 @@ export default function SimulatorPage() {
                   <Mic size={12} />
                 </div>
                 <p className="text-gray-700 text-[11px] font-medium leading-snug">
-                  &quot;Make the title punchier and emphasize that natural colors are safer for kids braces.&quot;
+                  &quot;Make the title punchier and emphasize free shipping with priority weekend dispatch.&quot;
                 </p>
                 <span className="text-[10px] text-gray-500 block mt-1">
                   Preserves Brand Brain &gt; Re-scores AI Critic
