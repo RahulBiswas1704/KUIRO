@@ -42,8 +42,11 @@ import {
   X,
   Radio,
   Volume2,
-  RefreshCw
+  RefreshCw,
+  CreditCard
 } from 'lucide-react';
+import InChatPaymentModal, { GeneratedPaymentData } from '@/components/inbox/InChatPaymentModal';
+import DynamicSnippetManagerModal, { QuickSnippetItem, DEFAULT_SNIPPETS } from '@/components/inbox/DynamicSnippetManagerModal';
 import {
   ConversationChannel,
   ConversationStatus,
@@ -771,9 +774,46 @@ export default function UnifiedInboxPage() {
     showToast('Automation rule status updated!');
   };
 
-  // Quick Snippet Insert
+  // Dynamic Snippets & In-Chat Payment Generator State
+  const [snippets, setSnippets] = useState<QuickSnippetItem[]>(DEFAULT_SNIPPETS);
+  const [isPayModalOpen, setIsPayModalOpen] = useState(false);
+  const [isSnippetModalOpen, setIsSnippetModalOpen] = useState(false);
+
+  // Quick Snippet Insert & Action Trigger
   const handleInsertSnippet = (snippet: string) => {
     setMessageText((prev) => (prev ? `${prev} ${snippet}` : snippet));
+  };
+
+  const handleSelectSnippet = (snip: QuickSnippetItem) => {
+    if (snip.isSystemAction && snip.trigger === '!pay-link') {
+      setIsPayModalOpen(true);
+      return;
+    }
+    handleInsertSnippet(snip.text);
+  };
+
+  const handleInsertPaymentLink = (data: GeneratedPaymentData) => {
+    setMessageText((prev) => (prev ? `${prev}\n\n${data.formattedMessage}` : data.formattedMessage));
+
+    // Dynamically update customer's CRM spend to reflect this transaction
+    setConversations((prev) =>
+      prev.map((c) => {
+        if (c.id === activeConversation.id) {
+          const rawNum = parseInt(String(c.crmData.totalSpend || '').replace(/[^0-9]/g, ''), 10) || 0;
+          const newTotal = rawNum + data.amount;
+          return {
+            ...c,
+            crmData: {
+              ...c.crmData,
+              totalSpend: `₹${newTotal.toLocaleString('en-IN')}`,
+            },
+          };
+        }
+        return c;
+      })
+    );
+
+    showToast(`💳 Payment link generated for ₹${data.amount.toLocaleString('en-IN')} & attached!`);
   };
 
   return (
@@ -1271,25 +1311,34 @@ export default function UnifiedInboxPage() {
             </div>
 
             {/* Quick Reply Snippets */}
-            <div className="px-3.5 py-1.5 bg-gray-50 border-t border-gray-200 flex items-center gap-1.5 overflow-x-auto scrollbar-none text-[11px]">
-              <span className="text-gray-400 text-[10px] shrink-0 font-mono">Quick Snippets:</span>
+            <div className="px-3.5 py-1.5 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-1.5 overflow-x-auto scrollbar-none text-[11px]">
+              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
+                <span className="text-gray-400 text-[10px] shrink-0 font-mono">Quick Snippets:</span>
+                {snippets.map((snip) => (
+                  <button
+                    key={snip.id}
+                    type="button"
+                    onClick={() => handleSelectSnippet(snip)}
+                    title={snip.label}
+                    className={`px-2 py-0.5 rounded border text-[10px] whitespace-nowrap transition flex items-center gap-1 ${
+                      snip.trigger === '!pay-link'
+                        ? 'bg-orange-50 border-orange-300 text-[#FF7A00] font-semibold hover:bg-orange-100 hover:border-orange-400 shadow-2xs'
+                        : 'bg-white border-gray-200 text-gray-700 hover:border-gray-400'
+                    }`}
+                  >
+                    {snip.trigger === '!pay-link' && <CreditCard size={10} />}
+                    <span>{snip.trigger}</span>
+                  </button>
+                ))}
+              </div>
               <button
-                onClick={() => handleInsertSnippet('Saturday 11:30 AM studio visit confirmed! Flagship map: https://maps.app.goo.gl/kuiro')}
-                className="px-2 py-0.5 rounded bg-white border border-gray-200 text-gray-700 hover:border-gray-400 whitespace-nowrap text-[10px]"
+                type="button"
+                onClick={() => setIsSnippetModalOpen(true)}
+                className="px-2 py-0.5 rounded text-[10px] font-semibold text-gray-500 hover:text-gray-900 hover:bg-gray-200 border border-transparent whitespace-nowrap shrink-0 flex items-center gap-1 transition"
+                title="Manage canned shortcuts"
               >
-                !booking-confirm
-              </button>
-              <button
-                onClick={() => handleInsertSnippet('Our studio timings are Mon-Sat, 9:30 AM to 8:00 PM. Walk-ins and private appointments welcome.')}
-                className="px-2 py-0.5 rounded bg-white border border-gray-200 text-gray-700 hover:border-gray-400 whitespace-nowrap text-[10px]"
-              >
-                !studio-hours
-              </button>
-              <button
-                onClick={() => handleInsertSnippet('Bespoke handloom bridal sets start at ₹28,000 including custom fitting, artisan certificates, and insured dispatch.')}
-                className="px-2 py-0.5 rounded bg-white border border-gray-200 text-gray-700 hover:border-gray-400 whitespace-nowrap text-[10px]"
-              >
-                !bespoke-quote
+                <Plus size={11} />
+                <span>Manage</span>
               </button>
             </div>
 
@@ -1346,12 +1395,21 @@ export default function UnifiedInboxPage() {
 
               {/* Submit & Attachment Actions */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-gray-400">
+                <div className="flex items-center gap-1.5 text-gray-400">
                   <button type="button" className="hover:text-gray-600 p-1" title="Attach Media">
                     <Paperclip size={15} />
                   </button>
                   <button type="button" className="hover:text-gray-600 p-1" title="Emoji">
                     <Smile size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsPayModalOpen(true)}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-orange-50 text-[#FF7A00] border border-orange-200 hover:bg-orange-100 transition text-[11px] font-semibold active:scale-95"
+                    title="Generate instant UPI payment link"
+                  >
+                    <CreditCard size={12} />
+                    <span>Pay Link</span>
                   </button>
                 </div>
 
@@ -1828,6 +1886,27 @@ export default function UnifiedInboxPage() {
           </div>
         </div>
       )}
+      {/* Dynamic Snippet Manager Modal */}
+      <DynamicSnippetManagerModal
+        isOpen={isSnippetModalOpen}
+        onClose={() => setIsSnippetModalOpen(false)}
+        snippets={snippets}
+        onSaveSnippets={(updated) => {
+          setSnippets(updated);
+          showToast('Quick snippets library updated!');
+        }}
+        onSelectSnippet={handleSelectSnippet}
+      />
+
+      {/* In-Chat Payment / UPI Generator Modal */}
+      <InChatPaymentModal
+        isOpen={isPayModalOpen}
+        onClose={() => setIsPayModalOpen(false)}
+        customerName={activeConversation.customerName}
+        customerHandle={activeConversation.customerHandle}
+        channel={activeConversation.channel}
+        onInsertPaymentLink={handleInsertPaymentLink}
+      />
     </div>
   );
 }
