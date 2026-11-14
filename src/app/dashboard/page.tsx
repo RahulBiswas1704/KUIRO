@@ -33,6 +33,7 @@ import {
   Lock
 } from 'lucide-react';
 import ConnectedChannelsModal, { PlatformKey } from '@/components/dashboard/ConnectedChannelsModal';
+import { CampaignRoiDashboard } from '@/components/dashboard';
 
 interface PlatformPost {
   id: string;
@@ -407,6 +408,9 @@ export default function DashboardPage() {
           </p>
         </div>
       </div>
+
+      {/* Campaign ROI & Lead Attribution Section */}
+      <CampaignRoiDashboard onRefreshNeeded={() => fetchCampaigns(true)} />
 
       {/* Main Campaign Queue / Spotlight Card */}
       {loading ? (
