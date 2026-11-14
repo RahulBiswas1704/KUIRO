@@ -40,6 +40,10 @@ export default function SignUpPage() {
       setErrorMessage('Please provide your name and business email.');
       return;
     }
+    if (!password || password.length < 8) {
+      setErrorMessage('Password must be at least 8 characters long.');
+      return;
+    }
     setErrorMessage('');
     setIsSubmitting(true);
     try {
@@ -138,6 +142,7 @@ export default function SignUpPage() {
                 <input
                   type="password"
                   required
+                  minLength={8}
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

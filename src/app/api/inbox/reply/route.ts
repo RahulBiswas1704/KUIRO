@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, conversations, inboxMessages } from '@/db';
-import { eq } from 'drizzle-orm';
+import { db, conversations, inboxMessages, workspaces } from '@/db';
+import { eq, and } from 'drizzle-orm';
 import { sendAutonomousEmailNewsletter } from '@/lib/email/publisher';
 import { getSessionFromRequest } from '@/lib/auth';
 import { publishInboxEvent } from '@/lib/inbox/eventHub';
@@ -10,9 +10,13 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     const session = await getSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
+    }
+
     const body = await req.json();
     const { conversationId, content, isInternalNote = false } = body;
-    const senderName = body.senderName || session?.user.name || 'Rajesh Sharma';
+    const senderName = body.senderName || session.user.name || 'Agent';
 
     if (!conversationId || !content?.trim()) {
       return NextResponse.json({ error: 'conversationId and content are required' }, { status: 400 });
@@ -20,40 +24,10 @@ export async function POST(req: NextRequest) {
 
     const database = db;
     if (!database) {
-      const mockMsg = {
-        id: `msg_mock_${Date.now()}`,
-        conversationId,
-        channel: 'whatsapp' as const,
-        sender: 'agent' as const,
-        senderName,
-        content: content.trim(),
-        isInternalNote,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        status: 'sent' as const,
-      };
-
-      publishInboxEvent({
-        type: 'new_message',
-        conversationId,
-        data: {
-          message: mockMsg,
-          conversation: {
-            id: conversationId,
-            lastMessage: isInternalNote ? `[Internal Note]: ${content.trim()}` : content.trim(),
-            lastMessageTime: 'Just now',
-            unreadCount: 0,
-          },
-        },
-      });
-
-      return NextResponse.json({
-        success: true,
-        source: 'mock',
-        message: mockMsg,
-      });
+      return NextResponse.json({ error: 'Database service is temporarily unavailable.' }, { status: 503 });
     }
 
-    // 1. Fetch target conversation
+    // 1. Fetch target conversation and verify workspace authorization
     const [conv] = await database
       .select()
       .from(conversations)
@@ -61,6 +35,18 @@ export async function POST(req: NextRequest) {
 
     if (!conv) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+    }
+
+    if (conv.workspaceId !== session.workspace.id) {
+      const [owned] = await database
+        .select()
+        .from(workspaces)
+        .where(and(eq(workspaces.id, conv.workspaceId), eq(workspaces.ownerId, session.user.id)))
+        .limit(1);
+
+      if (!owned) {
+        return NextResponse.json({ error: 'Forbidden: You do not have permission to reply to this conversation.' }, { status: 403 });
+      }
     }
 
     // 2. Insert message into Neon PostgreSQL

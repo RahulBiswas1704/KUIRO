@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   Smartphone,
@@ -77,10 +77,18 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { user, logout, switchPersona } = useAuth();
+  const router = useRouter();
+  const { user, isLoggedIn, isLoading, logout, switchPersona } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isPersonaMenuOpen, setIsPersonaMenuOpen] = useState(false);
   const [isSwitchingPersona, setIsSwitchingPersona] = useState(false);
+
+  // Client-side authentication guard
+  useEffect(() => {
+    if (!isLoading && !isLoggedIn && !user) {
+      router.push(`/login?from=${encodeURIComponent(pathname)}`);
+    }
+  }, [isLoading, isLoggedIn, user, router, pathname]);
 
   const getActivePersonaKey = (): 'sharma' | 'sengupta' | 'mehta' => {
     const email = user?.email?.toLowerCase() || '';

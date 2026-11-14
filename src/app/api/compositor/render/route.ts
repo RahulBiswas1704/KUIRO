@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { compositeBrandOverlay, generateContactSheetGrid, containsIndicScript } from '@/lib/media/compositor';
+import { getSessionFromRequest } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
+    }
+
     const body = await req.json();
     const { 
       type = 'single', 

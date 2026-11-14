@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendAutonomousEmailNewsletter } from '@/lib/email/publisher';
+import { getSessionFromRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
+    }
+
     const body = await req.json();
     const { to, subject, headline, bodyContentHtml, brandName } = body;
 
@@ -32,6 +38,11 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const session = await getSessionFromRequest(req);
+  if (!session) {
+    return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
+  }
+
   const { searchParams } = new URL(req.url);
   const to = searchParams.get('to');
 

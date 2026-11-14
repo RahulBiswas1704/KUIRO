@@ -18,8 +18,8 @@ export async function POST(req: NextRequest) {
     const ipAddress = req.headers.get('x-forwarded-for') || undefined;
     const userAgent = req.headers.get('user-agent') || undefined;
 
-    // 1. Fast 1-Click Demo Login (Dr. Rajesh Sharma)
-    if (isDemo || email?.toLowerCase().includes('dr.sharma@apexclinic.in')) {
+    // 1. Explicit 1-Click Demo Login (Dr. Rajesh Sharma)
+    if (isDemo === true) {
       const demoData = await ensureDemoUser();
       const { token, expiresAt } = await createDatabaseSession(demoData.user.id, {
         ipAddress,
@@ -47,10 +47,17 @@ export async function POST(req: NextRequest) {
       return response;
     }
 
-    // 2. Regular Credential or Passwordless Login
-    if (!email) {
+    // 2. Strict Credential Validation (Preventing Passwordless Access)
+    if (!email || typeof email !== 'string' || !email.trim()) {
       return NextResponse.json(
         { error: 'Email address is required.' },
+        { status: 400 }
+      );
+    }
+
+    if (!password || typeof password !== 'string' || !password.trim()) {
+      return NextResponse.json(
+        { error: 'Password is required to sign in.' },
         { status: 400 }
       );
     }
@@ -59,38 +66,10 @@ export async function POST(req: NextRequest) {
     const database = db;
 
     if (!database) {
-      // Offline fallback
-      const mockUser = {
-        id: `usr_${Date.now()}`,
-        name: cleanEmail.split('@')[0],
-        email: cleanEmail,
-        role: 'Founder',
-        emailVerified: true,
-      };
-      const mockWorkspace = {
-        id: `ws_${Date.now()}`,
-        name: `${mockUser.name}'s Workspace`,
-        subscriptionTier: 'GROWTH',
-        whatsappAdminPhone: null,
-      };
-
-      const response = NextResponse.json({
-        success: true,
-        user: mockUser,
-        workspace: mockWorkspace,
-        sessionToken: `mock_sess_${Date.now()}`,
-      });
-
-      response.cookies.set({
-        name: SESSION_COOKIE_NAME,
-        value: `mock_sess_${Date.now()}`,
-        path: '/',
-        httpOnly: true,
-        sameSite: 'lax',
-        maxAge: SESSION_MAX_AGE_DAYS * 24 * 60 * 60,
-      });
-
-      return response;
+      return NextResponse.json(
+        { error: 'Database service is temporarily unavailable. Please try again shortly.' },
+        { status: 503 }
+      );
     }
 
     // Find User in Neon DB
@@ -102,23 +81,28 @@ export async function POST(req: NextRequest) {
 
     if (!userRecord) {
       return NextResponse.json(
-        { error: 'No account found with this email. Please create an account.' },
+        { error: 'Invalid email or password.' },
         { status: 401 }
       );
     }
 
-    // Verify Password if user has a password set and password is provided
-    if (userRecord.passwordHash && password) {
-      const isValid = verifyPassword(password, userRecord.passwordHash);
-      if (!isValid) {
-        return NextResponse.json(
-          { error: 'Invalid email or password.' },
-          { status: 401 }
-        );
-      }
+    if (!userRecord.passwordHash) {
+      return NextResponse.json(
+        { error: 'No password is set for this account. Please reset your password or sign up.' },
+        { status: 401 }
+      );
     }
 
-    // Find or Auto-provision Workspace for user
+    // Verify Password Cryptographically (Preventing Mock/Bypass Logins)
+    const isValid = verifyPassword(password, userRecord.passwordHash);
+    if (!isValid) {
+      return NextResponse.json(
+        { error: 'Invalid email or password.' },
+        { status: 401 }
+      );
+    }
+
+    // Find or Provision Primary Workspace for user
     let [workspaceRecord] = await database
       .select()
       .from(workspaces)
@@ -180,4 +164,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

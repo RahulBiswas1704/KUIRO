@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, conversations, inboxMessages, workspaces, users } from '@/db';
 import { desc, asc, eq } from 'drizzle-orm';
 import { ConversationChannel, ConversationStatus, ConversationPriority } from '@/types';
-import { getSessionFromRequest } from '@/lib/auth';
+import { getSessionFromRequest, authorizeWorkspace } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,33 +17,20 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Resolve scoped workspace from session or param
-    const session = await getSessionFromRequest(req);
+    // Authorize workspace access (Strict Multi-Tenant Isolation)
     const workspaceIdParam = req.nextUrl.searchParams.get('workspaceId');
-    const targetWorkspaceId = workspaceIdParam || session?.workspace.id;
+    const auth = await authorizeWorkspace(req, workspaceIdParam);
+    if (!auth.authorized) {
+      return NextResponse.json(
+        { success: false, error: auth.error },
+        { status: auth.status }
+      );
+    }
 
-    let ws;
-    if (targetWorkspaceId) {
-      [ws] = await database.select().from(workspaces).where(eq(workspaces.id, targetWorkspaceId)).limit(1);
-    }
+    const wsId = auth.workspaceId!;
+    const [ws] = await database.select().from(workspaces).where(eq(workspaces.id, wsId)).limit(1);
     if (!ws) {
-      [ws] = await database.select().from(workspaces).limit(1);
-    }
-    if (!ws) {
-      let [u] = await database.select().from(users).limit(1);
-      if (!u) {
-        [u] = await database.insert(users).values({
-          name: 'KUIRO Administrator',
-          email: 'admin@kuiro.in',
-          emailVerified: true,
-        }).returning();
-      }
-      [ws] = await database.insert(workspaces).values({
-        name: 'Apex Studio & Retail',
-        ownerId: u.id,
-        subscriptionTier: 'GROWTH',
-        whatsappAdminPhone: '+919876543210',
-      }).returning();
+      return NextResponse.json({ success: false, error: 'Workspace not found' }, { status: 404 });
     }
 
     // 1. Fetch conversations scoped to this workspace from Neon PostgreSQL
@@ -223,10 +210,11 @@ export async function GET(req: NextRequest) {
       ]);
     }
 
-    // 3. Re-fetch all conversations from Neon PostgreSQL
+    // 3. Re-fetch all conversations for this workspace from Neon PostgreSQL
     convList = await database
       .select()
       .from(conversations)
+      .where(eq(conversations.workspaceId, ws.id))
       .orderBy(desc(conversations.updatedAt));
 
     // 4. Fetch messages for each conversation and map to Conversation format

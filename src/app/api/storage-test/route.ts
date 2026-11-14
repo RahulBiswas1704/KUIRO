@@ -1,9 +1,18 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { uploadToR2, getStorageProvider, getPresignedDownloadUrl } from '@/lib/storage/r2';
+import { getSessionFromRequest } from '@/lib/auth';
+import { verifyManagementAuth } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const adminAuth = await verifyManagementAuth(req);
+  const session = await getSessionFromRequest(req);
+
+  if (!adminAuth.authorized && !session) {
+    return NextResponse.json({ error: 'Unauthorized: Clearance or session required.' }, { status: 401 });
+  }
+
   const startTime = Date.now();
   const provider = getStorageProvider();
 

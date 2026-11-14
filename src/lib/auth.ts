@@ -35,6 +35,19 @@ export function hashPassword(password: string): string {
 }
 
 /**
+ * Validates minimum password strength
+ */
+export function validatePasswordStrength(password: string): { valid: boolean; error?: string } {
+  if (!password || typeof password !== 'string') {
+    return { valid: false, error: 'Password is required.' };
+  }
+  if (password.length < 8) {
+    return { valid: false, error: 'Password must be at least 8 characters in length.' };
+  }
+  return { valid: true };
+}
+
+/**
  * Verify a plain text password against stored salt:hash
  */
 export function verifyPassword(password: string, storedHash: string): boolean {
@@ -184,6 +197,75 @@ export async function getSessionFromRequest(req: NextRequest | Request): Promise
 
   if (!token) return null;
   return getSession(token);
+}
+
+export interface AuthorizationResult {
+  authorized: boolean;
+  session?: SessionData;
+  workspaceId?: string;
+  error?: string;
+  status: number;
+}
+
+/**
+ * Enforces API-level authentication and multi-tenant workspace authorization.
+ * Verifies that the requester has an active, valid session AND that they have permission
+ * to read/write to the requested workspace (preventing BOLA / IDOR attacks).
+ */
+export async function authorizeWorkspace(
+  req: NextRequest | Request,
+  requestedWorkspaceId?: string | null
+): Promise<AuthorizationResult> {
+  const session = await getSessionFromRequest(req);
+  if (!session) {
+    return {
+      authorized: false,
+      error: 'Authentication required. Active session token missing or expired.',
+      status: 401,
+    };
+  }
+
+  const primaryWorkspaceId = session.workspace.id;
+
+  // If a specific workspace was requested and differs from the user's current session workspace
+  if (requestedWorkspaceId && requestedWorkspaceId !== primaryWorkspaceId) {
+    const database = db;
+    if (!database) {
+      return {
+        authorized: false,
+        error: 'Database connection unavailable for workspace authorization check.',
+        status: 503,
+      };
+    }
+
+    const [matchingWorkspace] = await database
+      .select()
+      .from(workspaces)
+      .where(and(eq(workspaces.id, requestedWorkspaceId), eq(workspaces.ownerId, session.user.id)))
+      .limit(1);
+
+    if (!matchingWorkspace) {
+      return {
+        authorized: false,
+        error: 'Forbidden: You do not have permission to access or modify this workspace.',
+        status: 403,
+      };
+    }
+
+    return {
+      authorized: true,
+      session,
+      workspaceId: matchingWorkspace.id,
+      status: 200,
+    };
+  }
+
+  return {
+    authorized: true,
+    session,
+    workspaceId: primaryWorkspaceId,
+    status: 200,
+  };
 }
 
 /**

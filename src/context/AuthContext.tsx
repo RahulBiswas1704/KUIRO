@@ -112,94 +112,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * Log In an existing user -> Calls Neon DB /api/auth/login -> Redirects to /dashboard
    */
   const login = async (email: string, password?: string): Promise<boolean> => {
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Login failed');
-      }
-
-      const loggedInUser: AuthUser = {
-        id: data.user.id,
-        name: data.user.name,
-        email: data.user.email,
-        businessName: data.workspace?.name || 'My Business',
-        workspaceId: data.workspace?.id,
-        hasCompletedOnboarding: true,
-        role: data.user.role || 'Owner',
-        emailVerified: data.user.emailVerified,
-      };
-
-      saveSession(loggedInUser);
-      setIsAuthModalOpen(false);
-      router.push('/dashboard');
-      return true;
-    } catch (err: any) {
-      // Graceful offline fallback
-      console.warn('[AuthContext] Remote login error, attempting offline login:', err.message);
-      const existingName = email.includes('sharma') ? 'Rajesh Sharma' : email.split('@')[0];
-      const fallbackUser: AuthUser = {
-        id: `usr_${Date.now()}`,
-        name: existingName.charAt(0).toUpperCase() + existingName.slice(1),
-        email,
-        businessName: email.includes('sharma') ? 'Sharma Heritage Retail & Studio' : 'Vanguard Ventures & Growth',
-        hasCompletedOnboarding: true,
-        role: 'Owner',
-      };
-      saveSession(fallbackUser);
-      setIsAuthModalOpen(false);
-      router.push('/dashboard');
-      return true;
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Login failed');
     }
+
+    const loggedInUser: AuthUser = {
+      id: data.user.id,
+      name: data.user.name,
+      email: data.user.email,
+      businessName: data.workspace?.name || 'My Business',
+      workspaceId: data.workspace?.id,
+      hasCompletedOnboarding: true,
+      role: data.user.role || 'Owner',
+      emailVerified: data.user.emailVerified,
+    };
+
+    saveSession(loggedInUser);
+    setIsAuthModalOpen(false);
+    router.push('/dashboard');
+    return true;
   };
 
   /**
    * 1-Click Fast Demo Login (Rajesh Sharma) -> Powered by Neon DB
    */
   const loginDemoUser = async () => {
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isDemo: true }),
-      });
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isDemo: true }),
+    });
 
-      if (res.ok) {
-        const data = await res.json();
-        const demoUser: AuthUser = {
-          id: data.user.id,
-          name: data.user.name,
-          email: data.user.email,
-          businessName: data.workspace?.name || 'Sharma Heritage Retail & Studio',
-          workspaceId: data.workspace?.id,
-          hasCompletedOnboarding: true,
-          role: data.user.role || 'Founder & Retail Director',
-          emailVerified: true,
-        };
-        saveSession(demoUser);
-        setIsAuthModalOpen(false);
-        router.push('/dashboard');
-        return;
-      }
-    } catch (err) {
-      console.warn('[AuthContext] Demo login remote call failed, using local demo profile:', err);
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Demo login failed');
     }
 
-    // Static fallback
-    const staticDemo: AuthUser = {
-      id: 'usr_demo_101',
-      name: 'Rajesh Sharma',
-      email: 'rajesh@sharmaheritage.in',
-      businessName: 'Sharma Heritage Retail & Studio',
+    const demoUser: AuthUser = {
+      id: data.user.id,
+      name: data.user.name,
+      email: data.user.email,
+      businessName: data.workspace?.name || 'Sharma Heritage Retail & Studio',
+      workspaceId: data.workspace?.id,
       hasCompletedOnboarding: true,
-      role: 'Founder & Retail Director',
+      role: data.user.role || 'Founder & Retail Director',
+      emailVerified: true,
     };
-    saveSession(staticDemo);
+    saveSession(demoUser);
     setIsAuthModalOpen(false);
     router.push('/dashboard');
   };
@@ -251,53 +217,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     email: string,
     password?: string
   ): Promise<boolean> => {
-    try {
-      const res = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          businessName,
-          email,
-          password,
-        }),
-      });
+    const res = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        businessName,
+        email,
+        password,
+      }),
+    });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Registration failed');
-      }
-
-      const newUser: AuthUser = {
-        id: data.user.id,
-        name: data.user.name,
-        businessName: data.workspace?.name || businessName.trim() || 'My Business',
-        email: data.user.email,
-        workspaceId: data.workspace?.id,
-        hasCompletedOnboarding: false, // New account has not finalized Brand Brain yet!
-        role: data.user.role || 'Founder',
-        emailVerified: data.user.emailVerified,
-      };
-
-      saveSession(newUser);
-      setIsAuthModalOpen(false);
-      router.push('/get-started');
-      return true;
-    } catch (err: any) {
-      console.warn('[AuthContext] Signup remote error, using fallback:', err.message);
-      const fallbackUser: AuthUser = {
-        id: `usr_${Date.now()}`,
-        name: name.trim() || 'New Founder',
-        businessName: businessName.trim() || 'My Business',
-        email: email.trim(),
-        hasCompletedOnboarding: false,
-        role: 'Founder',
-      };
-      saveSession(fallbackUser);
-      setIsAuthModalOpen(false);
-      router.push('/get-started');
-      return true;
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Registration failed');
     }
+
+    const newUser: AuthUser = {
+      id: data.user.id,
+      name: data.user.name,
+      businessName: data.workspace?.name || businessName.trim() || 'My Business',
+      email: data.user.email,
+      workspaceId: data.workspace?.id,
+      hasCompletedOnboarding: false, // New account has not finalized Brand Brain yet!
+      role: data.user.role || 'Founder',
+      emailVerified: data.user.emailVerified,
+    };
+
+    saveSession(newUser);
+    setIsAuthModalOpen(false);
+    router.push('/get-started');
+    return true;
   };
 
   /**

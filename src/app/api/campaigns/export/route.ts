@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, scheduledCampaigns, platformPosts, workspaces, brandProfiles } from '@/db';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 import JSZip from 'jszip';
 import { compositeBrandOverlay } from '@/lib/media/compositor';
+import { getSessionFromRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Database not connected' }, { status: 500 });
     }
 
+    const session = await getSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const campaignIdParam = searchParams.get('campaignId');
 
@@ -32,18 +38,29 @@ export async function GET(req: NextRequest) {
         .from(scheduledCampaigns)
         .where(eq(scheduledCampaigns.id, campaignIdParam))
         .limit(1);
-    }
-
-    if (!campaign) {
+    } else {
       [campaign] = await database
         .select()
         .from(scheduledCampaigns)
+        .where(eq(scheduledCampaigns.workspaceId, session.workspace.id))
         .orderBy(desc(scheduledCampaigns.createdAt))
         .limit(1);
     }
 
     if (!campaign) {
       return NextResponse.json({ success: false, error: 'No campaign found to export' }, { status: 404 });
+    }
+
+    if (campaign.workspaceId !== session.workspace.id) {
+      const [owned] = await database
+        .select()
+        .from(workspaces)
+        .where(and(eq(workspaces.id, campaign.workspaceId), eq(workspaces.ownerId, session.user.id)))
+        .limit(1);
+
+      if (!owned) {
+        return NextResponse.json({ error: 'Forbidden: You do not have permission to export this campaign.' }, { status: 403 });
+      }
     }
 
     // 1. Fetch Posts

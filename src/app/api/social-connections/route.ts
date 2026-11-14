@@ -1,17 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, workspaces, socialConnections } from '@/db';
 import { eq, and } from 'drizzle-orm';
-import { getSessionFromRequest } from '@/lib/auth';
+import { getSessionFromRequest, authorizeWorkspace } from '@/lib/auth';
 import { DEFAULT_CHANNELS, PlatformKey } from '@/constants/channels';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getSessionFromRequest(req);
     const { searchParams } = new URL(req.url);
     const workspaceIdParam = searchParams.get('workspaceId');
-    const targetWorkspaceId = workspaceIdParam || session?.workspace.id;
+
+    const auth = await authorizeWorkspace(req, workspaceIdParam);
+    if (!auth.authorized) {
+      return NextResponse.json(
+        { success: false, error: auth.error },
+        { status: auth.status }
+      );
+    }
 
     if (!db) {
       return NextResponse.json({
@@ -21,19 +27,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    let wsId = targetWorkspaceId;
-    if (!wsId) {
-      const [firstWs] = await db.select().from(workspaces).limit(1);
-      wsId = firstWs?.id;
-    }
-
-    if (!wsId) {
-      return NextResponse.json({
-        success: true,
-        source: 'unassigned',
-        connections: DEFAULT_CHANNELS,
-      });
-    }
+    const wsId = auth.workspaceId!;
 
     // Query Neon DB social_connections
     const dbConnections = await db
@@ -83,7 +77,6 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSessionFromRequest(req);
     const body = await req.json();
     const {
       platform,
@@ -94,16 +87,20 @@ export async function POST(req: NextRequest) {
       workspaceId: customWsId,
     } = body;
 
+    const auth = await authorizeWorkspace(req, customWsId);
+    if (!auth.authorized) {
+      return NextResponse.json(
+        { success: false, error: auth.error },
+        { status: auth.status }
+      );
+    }
+
     if (!platform) {
       return NextResponse.json({ error: 'Platform is required' }, { status: 400 });
     }
 
-    // Resolve target workspace
-    let wsId = customWsId || session?.workspace.id;
-    if (!wsId && db) {
-      const [firstWs] = await db.select().from(workspaces).limit(1);
-      wsId = firstWs?.id;
-    }
+    // Resolved & verified target workspace
+    const wsId = auth.workspaceId!;
 
     // 1. Action: Test Handshake / Verify Credentials
     if (action === 'test') {

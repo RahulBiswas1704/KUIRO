@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, workspaces, brandProfiles, users } from '@/db';
 import { eq } from 'drizzle-orm';
-import { getSessionFromRequest } from '@/lib/auth';
+import { getSessionFromRequest, authorizeWorkspace } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getSessionFromRequest(req);
     const database = db;
 
     if (!database) {
@@ -33,17 +32,17 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Resolve workspace
-    let wsId = session?.workspace.id;
-    let ws;
-
-    if (wsId) {
-      [ws] = await database.select().from(workspaces).where(eq(workspaces.id, wsId)).limit(1);
-    }
-    if (!ws) {
-      [ws] = await database.select().from(workspaces).limit(1);
+    // Authorize workspace access (Strict Multi-Tenant Isolation)
+    const { searchParams } = new URL(req.url);
+    const workspaceIdParam = searchParams.get('workspaceId');
+    const auth = await authorizeWorkspace(req, workspaceIdParam);
+    if (!auth.authorized) {
+      return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
     }
 
+    const wsId = auth.workspaceId!;
+    const session = auth.session;
+    const [ws] = await database.select().from(workspaces).where(eq(workspaces.id, wsId)).limit(1);
     if (!ws) {
       return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
     }
@@ -107,17 +106,17 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Resolve workspace
-    let wsId = session?.workspace.id;
-    let ws;
-
-    if (wsId) {
-      [ws] = await database.select().from(workspaces).where(eq(workspaces.id, wsId)).limit(1);
-    }
-    if (!ws) {
-      [ws] = await database.select().from(workspaces).limit(1);
+    // Authorize workspace access (Strict Multi-Tenant Isolation)
+    const { searchParams } = new URL(req.url);
+    const workspaceIdParam = searchParams.get('workspaceId') || (body as any)?.workspaceId;
+    const auth = await authorizeWorkspace(req, workspaceIdParam);
+    if (!auth.authorized) {
+      return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
     }
 
+    const wsId = auth.workspaceId!;
+    const session = auth.session;
+    const [ws] = await database.select().from(workspaces).where(eq(workspaces.id, wsId)).limit(1);
     if (!ws) {
       return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
     }

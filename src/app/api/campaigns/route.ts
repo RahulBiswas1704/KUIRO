@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, workspaces, brandProfiles, scheduledCampaigns, platformPosts, users } from '@/db';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 import { inngest } from '@/lib/inngest/client';
 import { evaluateCampaignWithCritic } from '@/lib/ai/critic';
-import { getSessionFromRequest } from '@/lib/auth';
+import { getSessionFromRequest, authorizeWorkspace } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -269,39 +269,20 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, count: 0, campaigns: [] });
     }
 
-    // 1. Ensure scoped workspace exists
-    const session = await getSessionFromRequest(req);
+    // 1. Authorize workspace access (Strict Multi-Tenant Isolation)
     const workspaceIdParam = req.nextUrl.searchParams.get('workspaceId');
-    const targetWorkspaceId = workspaceIdParam || session?.workspace.id;
+    const auth = await authorizeWorkspace(req, workspaceIdParam);
+    if (!auth.authorized) {
+      return NextResponse.json(
+        { success: false, error: auth.error },
+        { status: auth.status }
+      );
+    }
 
-    let ws;
-    if (targetWorkspaceId) {
-      [ws] = await database.select().from(workspaces).where(eq(workspaces.id, targetWorkspaceId)).limit(1);
-    }
+    const wsId = auth.workspaceId!;
+    const [ws] = await database.select().from(workspaces).where(eq(workspaces.id, wsId)).limit(1);
     if (!ws) {
-      [ws] = await database.select().from(workspaces).limit(1);
-    }
-    if (!ws) {
-      let [u] = await database.select().from(users).limit(1);
-      if (!u) {
-        [u] = await database
-          .insert(users)
-          .values({
-            name: 'KUIRO Administrator',
-            email: 'admin@kuiro.in',
-            emailVerified: true,
-          })
-          .returning();
-      }
-      [ws] = await database
-        .insert(workspaces)
-        .values({
-          name: 'Sharma Heritage Handlooms & Retail',
-          ownerId: u.id,
-          subscriptionTier: 'GROWTH',
-          whatsappAdminPhone: '+919876543210',
-        })
-        .returning();
+      return NextResponse.json({ success: false, error: 'Workspace not found' }, { status: 404 });
     }
 
     // 2. Query campaigns for this workspace
@@ -465,23 +446,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Database not connected' }, { status: 500 });
     }
 
-    // 1. Get scoped workspace and brand profile
-    const session = await getSessionFromRequest(req);
-    const targetWorkspaceId = body.workspaceId || session?.workspace.id;
+    // 1. Authorize workspace access (Strict Multi-Tenant Isolation)
+    const auth = await authorizeWorkspace(req, body.workspaceId);
+    if (!auth.authorized) {
+      return NextResponse.json(
+        { success: false, error: auth.error },
+        { status: auth.status }
+      );
+    }
 
-    let ws;
-    if (targetWorkspaceId) {
-      [ws] = await database.select().from(workspaces).where(eq(workspaces.id, targetWorkspaceId)).limit(1);
-    }
+    const wsId = auth.workspaceId!;
+    const [ws] = await database.select().from(workspaces).where(eq(workspaces.id, wsId)).limit(1);
     if (!ws) {
-      [ws] = await database.select().from(workspaces).limit(1);
-    }
-    if (!ws) {
-      let [u] = await database.select().from(users).limit(1);
-      if (!u) {
-        [u] = await database.insert(users).values({ name: 'KUIRO Administrator', email: 'admin@kuiro.in' }).returning();
-      }
-      [ws] = await database.insert(workspaces).values({ name: 'Sharma Heritage Handlooms & Retail', ownerId: u.id }).returning();
+      return NextResponse.json({ success: false, error: 'Workspace not found' }, { status: 404 });
     }
 
     const [bp] = await database
@@ -623,6 +600,33 @@ export async function PATCH(req: NextRequest) {
     const database = db;
     if (!database) {
       return NextResponse.json({ success: false, error: 'Database not connected' }, { status: 500 });
+    }
+
+    const session = await getSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
+    }
+
+    const [campRecord] = await database
+      .select()
+      .from(scheduledCampaigns)
+      .where(eq(scheduledCampaigns.id, campaignId))
+      .limit(1);
+
+    if (!campRecord) {
+      return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+    }
+
+    if (campRecord.workspaceId !== session.workspace.id) {
+      const [owned] = await database
+        .select()
+        .from(workspaces)
+        .where(and(eq(workspaces.id, campRecord.workspaceId), eq(workspaces.ownerId, session.user.id)))
+        .limit(1);
+
+      if (!owned) {
+        return NextResponse.json({ error: 'Forbidden: You do not have permission to modify this campaign.' }, { status: 403 });
+      }
     }
 
     // 1. Handle Voice / Text Revision Request with Gemini AI
