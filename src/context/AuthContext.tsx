@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export interface AuthUser {
@@ -13,6 +13,7 @@ export interface AuthUser {
   avatar?: string;
   role?: string;
   emailVerified?: boolean;
+  isDemo?: boolean;
 }
 
 interface AuthContextType {
@@ -36,7 +37,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'kuiro_auth_session';
+const LEGACY_STORAGE_KEY = 'kuiro_auth_session';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -45,28 +46,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('signup');
 
-  const saveSession = useCallback((userData: AuthUser | null) => {
-    setUser(userData);
-    if (typeof window !== 'undefined') {
-      if (userData) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
-      } else {
-        localStorage.removeItem(STORAGE_KEY);
-      }
-    }
-  }, []);
-
-  // Check persistent Neon DB session on mount via /api/auth/me
+  // Verify server-side session strictly through /api/auth/me on mount
+  // NEVER use localStorage as proof of authentication
   useEffect(() => {
     let isMounted = true;
 
-    async function checkSession() {
+    async function checkServerSession() {
       try {
-        const res = await fetch('/api/auth/me');
+        const res = await fetch('/api/auth/me', {
+          method: 'GET',
+          headers: { 'Cache-Control': 'no-cache' },
+          cache: 'no-store',
+        });
+
         if (res.ok) {
           const data = await res.json();
           if (data.authenticated && data.user && isMounted) {
-            const restoredUser: AuthUser = {
+            const verifiedUser: AuthUser = {
               id: data.user.id,
               name: data.user.name,
               email: data.user.email,
@@ -75,33 +71,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               hasCompletedOnboarding: true,
               role: data.user.role || 'Founder',
               emailVerified: data.user.emailVerified,
+              isDemo: !!data.user.isDemo,
             };
-            setUser(restoredUser);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(restoredUser));
+            setUser(verifiedUser);
             setIsLoading(false);
             return;
           }
         }
       } catch (err) {
-        console.warn('[AuthContext] Session check failed, falling back to cached state:', err);
+        console.warn('[AuthContext] Verification against /api/auth/me failed:', err);
       }
 
-      // Fallback to local storage cache if network fails
-      try {
-        if (typeof window !== 'undefined') {
-          const stored = localStorage.getItem(STORAGE_KEY);
-          if (stored && isMounted) {
-            setUser(JSON.parse(stored));
-          }
+      // If server verification fails or unauthenticated, user is strictly null!
+      // Purge any legacy localStorage cache to prevent spoofing
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem(LEGACY_STORAGE_KEY);
+        } catch {
+          // ignore storage error
         }
-      } catch (e) {
-        console.error('[AuthContext] Failed to parse local session:', e);
-      } finally {
-        if (isMounted) setIsLoading(false);
+      }
+
+      if (isMounted) {
+        setUser(null);
+        setIsLoading(false);
       }
     }
 
-    checkSession();
+    checkServerSession();
 
     return () => {
       isMounted = false;
@@ -109,18 +106,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   /**
-   * Log In an existing user -> Calls Neon DB /api/auth/login -> Redirects to /dashboard
+   * Log In an existing user -> Strictly validates with Neon DB /api/auth/login
+   * No local fallback, no fake users. Fails if server or database is unavailable.
    */
   const login = async (email: string, password?: string): Promise<boolean> => {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
+    let res: Response;
+    try {
+      res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+    } catch {
+      throw new Error('Network error: Unable to connect to the authentication server. Please check your connection.');
+    }
 
-    const data = await res.json();
+    let data: any;
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error(`Authentication server error (${res.status}). Please try again later.`);
+    }
+
     if (!res.ok) {
-      throw new Error(data.error || 'Login failed');
+      throw new Error(data?.error || 'Invalid credentials or login failed.');
+    }
+
+    if (!data.user || !data.workspace) {
+      throw new Error('Authentication failed: Incomplete session returned by server.');
     }
 
     const loggedInUser: AuthUser = {
@@ -132,40 +145,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       hasCompletedOnboarding: true,
       role: data.user.role || 'Owner',
       emailVerified: data.user.emailVerified,
+      isDemo: false,
     };
 
-    saveSession(loggedInUser);
+    setUser(loggedInUser);
     setIsAuthModalOpen(false);
     router.push('/dashboard');
     return true;
   };
 
   /**
-   * 1-Click Fast Demo Login (Rajesh Sharma) -> Powered by Neon DB
+   * 1-Click Fast Demo Login (Rajesh Sharma) -> Powered strictly by Neon DB
+   * Rejects immediately if database is unavailable. No local mock account created.
    */
   const loginDemoUser = async () => {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ isDemo: true }),
-    });
+    let res: Response;
+    try {
+      res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isDemo: true }),
+      });
+    } catch {
+      throw new Error('Network error: Unable to reach demo authentication service. Please check your connection.');
+    }
 
-    const data = await res.json();
+    let data: any;
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error(`Demo authentication failed (Server error ${res.status}).`);
+    }
+
     if (!res.ok) {
-      throw new Error(data.error || 'Demo login failed');
+      throw new Error(data?.error || 'Demo session provision failed on server.');
+    }
+
+    if (!data.user || !data.workspace) {
+      throw new Error('Demo initialization failed: Incomplete demo session returned by server.');
     }
 
     const demoUser: AuthUser = {
       id: data.user.id,
       name: data.user.name,
       email: data.user.email,
-      businessName: data.workspace?.name || 'Sharma Heritage Retail & Studio',
+      businessName: data.workspace?.name || 'Sharma Heritage Retail & Studio (Demo Sandbox)',
       workspaceId: data.workspace?.id,
       hasCompletedOnboarding: true,
-      role: data.user.role || 'Founder & Retail Director',
+      role: data.user.role || 'Demo Founder',
       emailVerified: true,
+      isDemo: true,
     };
-    saveSession(demoUser);
+
+    setUser(demoUser);
     setIsAuthModalOpen(false);
     router.push('/dashboard');
   };
@@ -193,8 +225,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           hasCompletedOnboarding: true,
           role: data.user.role,
           emailVerified: true,
+          isDemo: true,
         };
-        saveSession(switchedUser);
+        setUser(switchedUser);
         if (typeof window !== 'undefined') {
           window.location.reload();
         }
@@ -209,7 +242,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   /**
-   * Sign Up a new user -> Neon DB /api/auth/signup -> Directs to onboarding wizard (/get-started)
+   * Sign Up a new user -> Strictly registers with Neon DB /api/auth/signup
+   * Directs to onboarding wizard (/get-started). Fails if server or database is unavailable.
    */
   const signup = async (
     name: string,
@@ -217,20 +251,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     email: string,
     password?: string
   ): Promise<boolean> => {
-    const res = await fetch('/api/auth/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name,
-        businessName,
-        email,
-        password,
-      }),
-    });
+    let res: Response;
+    try {
+      res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          businessName,
+          email,
+          password,
+        }),
+      });
+    } catch {
+      throw new Error('Network error: Unable to connect to the registration server. Please check your connection.');
+    }
 
-    const data = await res.json();
+    let data: any;
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error(`Registration server error (${res.status}). Please try again later.`);
+    }
+
     if (!res.ok) {
-      throw new Error(data.error || 'Registration failed');
+      throw new Error(data?.error || 'Registration failed');
+    }
+
+    if (!data.user || !data.workspace) {
+      throw new Error('Registration failed: Incomplete account details returned by server.');
     }
 
     const newUser: AuthUser = {
@@ -239,12 +288,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       businessName: data.workspace?.name || businessName.trim() || 'My Business',
       email: data.user.email,
       workspaceId: data.workspace?.id,
-      hasCompletedOnboarding: false, // New account has not finalized Brand Brain yet!
+      hasCompletedOnboarding: false,
       role: data.user.role || 'Founder',
       emailVerified: data.user.emailVerified,
+      isDemo: false,
     };
 
-    saveSession(newUser);
+    setUser(newUser);
     setIsAuthModalOpen(false);
     router.push('/get-started');
     return true;
@@ -255,8 +305,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    */
   const completeOnboarding = () => {
     if (user) {
-      const updated = { ...user, hasCompletedOnboarding: true };
-      saveSession(updated);
+      setUser({ ...user, hasCompletedOnboarding: true });
     }
     router.push('/dashboard');
   };
@@ -270,7 +319,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.warn('[AuthContext] Logout fetch failed:', err);
     }
-    saveSession(null);
+    setUser(null);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(LEGACY_STORAGE_KEY);
+      } catch {
+        // ignore
+      }
+    }
     router.push('/');
   };
 
@@ -286,7 +342,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   /**
    * Smart Get Started click handler:
    * - If user is already logged in -> redirects directly to /dashboard
-   * - If not logged in -> opens modal or options choice
+   * - If not logged in -> opens modal
    */
   const handleGetStarted = () => {
     if (user) {

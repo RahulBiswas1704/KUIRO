@@ -15,9 +15,14 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    const isDemo =
+      session.user.email?.toLowerCase().includes('sharmaheritage.in') ||
+      session.user.role === 'Demo Founder' ||
+      session.workspace.name?.includes('Sharma Heritage');
+
     return NextResponse.json({
       authenticated: true,
-      user: session.user,
+      user: { ...session.user, isDemo },
       workspace: session.workspace,
       sessionToken: session.token,
       expiresAt: session.expiresAt,

@@ -74,6 +74,18 @@ export default function AuthModal() {
     }
   };
 
+  const handleDemoLogin = async () => {
+    setErrorMessage('');
+    setIsSubmitting(true);
+    try {
+      await loginDemoUser();
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : 'Demo sign in failed. Database unavailable.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop */}
@@ -154,8 +166,9 @@ export default function AuthModal() {
         {authModalMode === 'login' && (
           <button
             type="button"
-            onClick={loginDemoUser}
-            className="w-full p-3 rounded-[12px] bg-gradient-to-r from-emerald-950/60 to-[#121A15] border border-emerald-500/40 hover:border-emerald-500/80 text-left transition flex items-center justify-between group"
+            onClick={handleDemoLogin}
+            disabled={isSubmitting}
+            className="w-full p-3 rounded-[12px] bg-gradient-to-r from-emerald-950/60 to-[#121A15] border border-emerald-500/40 hover:border-emerald-500/80 text-left transition flex items-center justify-between group disabled:opacity-50"
           >
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">

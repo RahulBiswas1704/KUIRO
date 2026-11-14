@@ -76,21 +76,23 @@ export async function createDatabaseSession(
   userId: string,
   options?: { ipAddress?: string; userAgent?: string }
 ): Promise<{ token: string; expiresAt: Date }> {
+  const database = db;
+  if (!database) {
+    throw new Error('Database service unavailable. Cannot persist authentication session.');
+  }
+
   const token = generateSessionToken();
   const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_DAYS * 24 * 60 * 60 * 1000);
   const sessionId = `sess_${crypto.randomUUID()}`;
 
-  const database = db;
-  if (database) {
-    await database.insert(sessions).values({
-      id: sessionId,
-      userId,
-      token,
-      expiresAt,
-      ipAddress: options?.ipAddress || null,
-      userAgent: options?.userAgent || null,
-    });
-  }
+  await database.insert(sessions).values({
+    id: sessionId,
+    userId,
+    token,
+    expiresAt,
+    ipAddress: options?.ipAddress || null,
+    userAgent: options?.userAgent || null,
+  });
 
   return { token, expiresAt };
 }
@@ -276,7 +278,8 @@ export async function destroySession(token: string): Promise<boolean> {
 }
 
 /**
- * Ensures the pre-configured Demo Account (Dr. Rajesh Sharma) exists in Neon DB
+ * Ensures the pre-configured Demo Account (Rajesh Sharma) exists in Neon DB.
+ * Strictly requires database connection; throws error if database is unavailable.
  */
 export async function ensureDemoUser(): Promise<{
   user: {
@@ -297,21 +300,7 @@ export async function ensureDemoUser(): Promise<{
   const demoEmail = 'rajesh@sharmaheritage.in';
 
   if (!database) {
-    return {
-      user: {
-        id: 'usr_demo_101',
-        name: 'Rajesh Sharma',
-        email: demoEmail,
-        role: 'Founder & Retail Director',
-        emailVerified: true,
-      },
-      workspace: {
-        id: 'ws-sharma-101',
-        name: 'Sharma Heritage Retail & Studio',
-        subscriptionTier: 'GROWTH',
-        whatsappAdminPhone: '+919876543210',
-      },
-    };
+    throw new Error('Database service unavailable. Cannot initialize demo environment.');
   }
 
   // 1. Check if user already exists
