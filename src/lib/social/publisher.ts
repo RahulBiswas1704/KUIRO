@@ -233,7 +233,7 @@ export async function publishToAllChannels(payload: PublishPayload): Promise<Cha
   if (payload.emailSubject) {
     tasks.push(
       sendAutonomousEmailNewsletter({
-        to: payload.subscriberList || ['subscribers@drsharmadental.in'],
+        to: payload.subscriberList || ['subscribers@sharmaheritage.in'],
         subject: payload.emailSubject,
         brandName: payload.brandName || 'Brand Autopilot',
         headline: payload.emailSubject,

@@ -96,7 +96,7 @@ export default function AdminPage() {
     ownerEmail: '',
     subscriptionTier: 'GROWTH',
     whatsappAdminPhone: '+919876543210',
-    industry: 'Healthcare & Preventive Diagnostics',
+    industry: 'Retail, Commerce & Professional Services',
   });
 
   // Users Data
@@ -267,7 +267,7 @@ export default function AdminPage() {
         ownerEmail: '',
         subscriptionTier: 'GROWTH',
         whatsappAdminPhone: '+919876543210',
-        industry: 'Healthcare & Preventive Diagnostics',
+        industry: 'Retail, Commerce & Professional Services',
       });
       loadWorkspaces();
       loadOverview();

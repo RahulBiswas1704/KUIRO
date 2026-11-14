@@ -173,7 +173,7 @@ export default function BrandBrainPage() {
         );
       }
     } catch {
-      setExtractedNotice('Offline fallback: Loaded Dr. Sharma Dental profile with 3 pre-built sample posts.');
+      setExtractedNotice('Offline fallback: Loaded Sharma Heritage brand profile with pre-built sample posts.');
     } finally {
       setIsExtracting(false);
     }
@@ -356,10 +356,10 @@ export default function BrandBrainPage() {
           <span className="text-[11px] text-gray-500 font-medium">1-Click AI Test Examples:</span>
           <button
             type="button"
-            onClick={() => handleExtract('https://drsharmadental.in')}
+            onClick={() => handleExtract('https://sharmaheritage.in')}
             className="px-2.5 py-1 rounded-md bg-gray-50 hover:bg-orange-50 hover:text-[#FF7A00] text-[11px] font-medium text-gray-700 transition border border-gray-200"
           >
-            🦷 Dr. Sharma Dental Clinic
+            🛍️ Sharma Heritage Handlooms & Retail
           </button>
           <button
             type="button"
@@ -370,10 +370,10 @@ export default function BrandBrainPage() {
           </button>
           <button
             type="button"
-            onClick={() => handleExtract('https://apollodiagnostics.in')}
+            onClick={() => handleExtract('https://senadvisory.in')}
             className="px-2.5 py-1 rounded-md bg-gray-50 hover:bg-orange-50 hover:text-[#FF7A00] text-[11px] font-medium text-gray-700 transition border border-gray-200"
           >
-            🩺 Apollo Diagnostics
+            🚀 Arjun Sen Advisory & Studio
           </button>
         </div>
 

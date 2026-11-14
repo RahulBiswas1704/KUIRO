@@ -26,8 +26,8 @@ export * from './schema';
 export const mockDb = {
   workspaces: [
     {
-      id: 'ws-apex-101',
-      name: 'Apex Diagnostic & Wellness Clinic',
+      id: 'ws-sharma-101',
+      name: 'Sharma Heritage Retail & Studio',
       subscriptionTier: 'GROWTH',
       whatsappAdminPhone: '+919876543210',
       createdAt: new Date().toISOString(),
@@ -35,17 +35,17 @@ export const mockDb = {
   ],
   brandProfiles: [
     {
-      id: 'bp-apex-101',
-      workspaceId: 'ws-apex-101',
-      industry: 'Healthcare & Preventive Diagnostics',
-      websiteUrl: 'https://apexdiagnostics.in',
+      id: 'bp-sharma-101',
+      workspaceId: 'ws-sharma-101',
+      industry: 'Retail, Commerce & Professional Services',
+      websiteUrl: 'https://sharmaheritage.in',
       toneOfVoice: {
-        style: 'clinical_empathetic',
+        style: 'professional_warm',
         formality: 'semi-formal',
-        archetype: 'compassionate_caregiver',
+        archetype: 'trusted_craftsman_and_advisor',
         samplePhrases: [
-          'Early diagnosis turns anxieties into peace of mind.',
-          'Your health journey matters to our doctors.',
+          'Artisanal handlooms woven with timeless Indian heritage.',
+          'Bespoke craftsmanship tailored for your family celebrations.',
         ],
       },
       visualIdentity: {
@@ -57,23 +57,23 @@ export const mockDb = {
         watermarkOpacity: 0.95,
       },
       contentPillars: [
-        { name: 'Preventive Screenings & Health Packages', weight: 40 },
-        { name: 'Regional & Cultural Festival Wellness', weight: 30 },
-        { name: 'Doctor Insights & Clinical FAQ', weight: 30 },
+        { name: 'Pure Silk & Handcrafted Weaves', weight: 40 },
+        { name: 'Regional & Cultural Festival Lookbooks', weight: 30 },
+        { name: 'Behind the Loom & Artisan Stories', weight: 30 },
       ],
       negativeConstraints: [
-        'Never mention competitor clinics (e.g. Apollo, Lal Pathlabs)',
-        'Never promise 100% cure guarantees',
-        'Maintain medical ethics and patient privacy guidelines',
+        'Never denigrate competitors or publish unverified claims',
+        'Ensure all pricing and offers carry explicit validity terms',
+        'Maintain authentic artisan handloom quality guidelines',
       ],
     },
   ],
   campaigns: [
     {
       id: 'camp-dh-2026',
-      workspaceId: 'ws-apex-101',
+      workspaceId: 'ws-sharma-101',
       triggerType: 'FESTIVAL',
-      topicSummary: 'Dhanteras & Diwali Preventive Health Awareness Campaign',
+      topicSummary: 'Dhanteras & Diwali Festive Pure Silk & Heritage Weaves Showcase',
       status: 'AUTO_QUEUED',
       revisionCount: 0,
       generateAt: new Date(Date.now() - 10 * 3600 * 1000).toISOString(),

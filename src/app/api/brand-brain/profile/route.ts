@@ -51,42 +51,42 @@ export async function GET(req: NextRequest) {
       .where(eq(brandProfiles.workspaceId, ws.id));
 
     if (!bp) {
-      // Seed default profile for Apex Clinic
+      // Seed default profile for Sharma Heritage
       [bp] = await db
         .insert(brandProfiles)
         .values({
           workspaceId: ws.id,
-          industry: 'Healthcare & Preventive Diagnostics',
-          websiteUrl: 'https://drsharmadental.in',
+          industry: 'Retail, Commerce & Professional Services',
+          websiteUrl: 'https://sharmaheritage.in',
           toneOfVoice: {
-            style: 'clinical_empathetic',
+            style: 'professional_warm',
             formality: 'semi-formal',
-            archetype: 'compassionate_caregiver',
+            archetype: 'trusted_craftsman_and_advisor',
             samplePhrases: [
-              'Empathetic & Caring',
-              'Clinically Authoritative',
-              'Jargon-Free',
-              'Culturally Warm (Indian Family Values)',
+              'Artisanal & Authentic',
+              'Customer-First & Transparent',
+              'Jargon-Free Clarity',
+              'Culturally Warm & Celebratory (Festivals & Milestones)',
             ],
           },
           visualIdentity: {
-            primaryHex: '#0B3B60',
+            primaryHex: '#0B0F14',
             secondaryHex: '#FF7A00',
             accentHex: '#10B981',
             fontFamily: 'Sora',
             logoUrl: '/brand/kuiro-primary.svg',
           },
           contentPillars: [
-            { name: 'Preventive Care & Diagnostics', weight: 40 },
-            { name: 'Treatment Options & Clear Aligners', weight: 30 },
-            { name: 'Indian Festival Greetings & Health Tips', weight: 15 },
-            { name: 'Patient Case Studies & Myths Busted', weight: 15 },
+            { name: 'Product Spotlights & Craftsmanship', weight: 40 },
+            { name: 'Customer Stories & Client Case Studies', weight: 30 },
+            { name: 'Indian Festivals & Seasonal Celebrations', weight: 15 },
+            { name: 'Behind the Scenes & Masterclasses', weight: 15 },
           ],
           negativeConstraints: [
-            'Never mention competitor chains or compare pricing',
-            'No clinical guarantees without medical disclaimer',
-            'Place links on X in the first reply to avoid API link post fees',
-            'Keep graphics clean and avoid cluttered stock photos',
+            'Never denigrate competitors or publish unverified claims',
+            'Ensure all pricing and promotional offers carry explicit validity terms',
+            'Place external links on X/Twitter in the first reply to avoid algorithm penalties',
+            'Keep graphics clean, modern, and aligned with brand guidelines',
           ],
         })
         .returning();

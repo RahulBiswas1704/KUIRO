@@ -142,12 +142,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err: any) {
       // Graceful offline fallback
       console.warn('[AuthContext] Remote login error, attempting offline login:', err.message);
-      const existingName = email.includes('sharma') ? 'Dr. Rajesh Sharma' : email.split('@')[0];
+      const existingName = email.includes('sharma') ? 'Rajesh Sharma' : email.split('@')[0];
       const fallbackUser: AuthUser = {
         id: `usr_${Date.now()}`,
         name: existingName.charAt(0).toUpperCase() + existingName.slice(1),
         email,
-        businessName: email.includes('sharma') ? 'Dr. Sharma Dental Clinics' : 'Apex Health & Care',
+        businessName: email.includes('sharma') ? 'Sharma Heritage Retail & Studio' : 'Vanguard Ventures & Growth',
         hasCompletedOnboarding: true,
         role: 'Owner',
       };
@@ -159,7 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   /**
-   * 1-Click Fast Demo Login (Dr. Rajesh Sharma) -> Powered by Neon DB
+   * 1-Click Fast Demo Login (Rajesh Sharma) -> Powered by Neon DB
    */
   const loginDemoUser = async () => {
     try {
@@ -175,10 +175,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           id: data.user.id,
           name: data.user.name,
           email: data.user.email,
-          businessName: data.workspace?.name || 'Dr. Sharma Dental Clinics',
+          businessName: data.workspace?.name || 'Sharma Heritage Retail & Studio',
           workspaceId: data.workspace?.id,
           hasCompletedOnboarding: true,
-          role: data.user.role || 'Founder & Clinic Director',
+          role: data.user.role || 'Founder & Retail Director',
           emailVerified: true,
         };
         saveSession(demoUser);
@@ -193,11 +193,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Static fallback
     const staticDemo: AuthUser = {
       id: 'usr_demo_101',
-      name: 'Dr. Rajesh Sharma',
-      email: 'dr.sharma@apexclinic.in',
-      businessName: 'Dr. Sharma Dental Clinics',
+      name: 'Rajesh Sharma',
+      email: 'rajesh@sharmaheritage.in',
+      businessName: 'Sharma Heritage Retail & Studio',
       hasCompletedOnboarding: true,
-      role: 'Founder & Clinic Director',
+      role: 'Founder & Retail Director',
     };
     saveSession(staticDemo);
     setIsAuthModalOpen(false);

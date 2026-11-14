@@ -18,7 +18,7 @@ export const DEFAULT_CHANNELS: ChannelConfig[] = [
   {
     platform: 'instagram',
     name: 'Instagram Graph API',
-    handle: '@drsharma.dental',
+    handle: '@sharmaheritage',
     platformAccountId: 'act_ig_948271',
     status: 'CONNECTED',
     scopes: ['instagram_basic', 'instagram_content_publish', 'pages_read_engagement'],
@@ -31,7 +31,7 @@ export const DEFAULT_CHANNELS: ChannelConfig[] = [
   {
     platform: 'linkedin',
     name: 'LinkedIn Company Page',
-    handle: 'Dr. Sharma Dental Clinics',
+    handle: 'Sharma Heritage Retail & Studio',
     platformAccountId: 'urn:li:organization:8472910',
     status: 'CONNECTED',
     scopes: ['w_organization_social', 'r_organization_social'],
@@ -44,7 +44,7 @@ export const DEFAULT_CHANNELS: ChannelConfig[] = [
   {
     platform: 'x',
     name: 'X (Twitter) Developer App',
-    handle: '@sharmadental_in',
+    handle: '@sharmaheritage_in',
     platformAccountId: 'x_app_2984102',
     status: 'CONNECTED',
     scopes: ['tweet.read', 'tweet.write', 'users.read', 'zero_link_surcharge_guard'],
@@ -78,7 +78,7 @@ export const DEFAULT_CHANNELS: ChannelConfig[] = [
     isConfigured: true,
     color: 'text-amber-400',
     badge: 'DKIM Pass',
-    description: 'Sends clinic newsletters, patient reminders, and event announcements using authenticated domain credentials.',
+    description: 'Sends branded newsletters, customer product drops, and announcement updates using authenticated domain credentials.',
   },
 ];
 
