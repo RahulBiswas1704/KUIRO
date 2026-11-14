@@ -36,10 +36,7 @@ yarn-error.log*
 .env
 !.env.example
 
-# Vercel & Inngest
+# Deployment & Serverless Platforms
 .vercel
 .inngest
 .neon
-
-.vercel
-.env*
