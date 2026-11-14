@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, workspaces, users, brandProfiles } from '@/db';
 import { desc, eq } from 'drizzle-orm';
+import { verifyManagementAuth } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
+    const auth = await verifyManagementAuth(req);
+    if (!auth.authorized) {
+      return NextResponse.json(
+        { success: false, error: 'Access Denied: KUIRO Executive Management Clearance Required.' },
+        { status: 403 }
+      );
+    }
     const database = db;
     if (!database) {
       return NextResponse.json({ success: true, count: 0, workspaces: [] });
@@ -83,6 +91,13 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = await verifyManagementAuth(req);
+    if (!auth.authorized) {
+      return NextResponse.json(
+        { success: false, error: 'Access Denied: KUIRO Executive Management Clearance Required.' },
+        { status: 403 }
+      );
+    }
     const database = db;
     if (!database) {
       return NextResponse.json({ error: 'Database not connected' }, { status: 500 });
@@ -164,6 +179,13 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
+    const auth = await verifyManagementAuth(req);
+    if (!auth.authorized) {
+      return NextResponse.json(
+        { success: false, error: 'Access Denied: KUIRO Executive Management Clearance Required.' },
+        { status: 403 }
+      );
+    }
     const database = db;
     if (!database) {
       return NextResponse.json({ error: 'Database not connected' }, { status: 500 });
@@ -202,6 +224,13 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const auth = await verifyManagementAuth(req);
+    if (!auth.authorized) {
+      return NextResponse.json(
+        { success: false, error: 'Access Denied: KUIRO Executive Management Clearance Required.' },
+        { status: 403 }
+      );
+    }
     const database = db;
     if (!database) {
       return NextResponse.json({ error: 'Database not connected' }, { status: 500 });

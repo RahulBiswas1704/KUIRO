@@ -2,11 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, scheduledCampaigns, platformPosts, workspaces, brandProfiles } from '@/db';
 import { desc, eq } from 'drizzle-orm';
 import { inngest } from '@/lib/inngest/client';
+import { verifyManagementAuth } from '@/lib/adminAuth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
+    const auth = await verifyManagementAuth(req);
+    if (!auth.authorized) {
+      return NextResponse.json(
+        { success: false, error: 'Access Denied: KUIRO Executive Management Clearance Required.' },
+        { status: 403 }
+      );
+    }
     const database = db;
     if (!database) {
       return NextResponse.json({ success: true, count: 0, campaigns: [] });
@@ -91,6 +99,13 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
+    const auth = await verifyManagementAuth(req);
+    if (!auth.authorized) {
+      return NextResponse.json(
+        { success: false, error: 'Access Denied: KUIRO Executive Management Clearance Required.' },
+        { status: 403 }
+      );
+    }
     const database = db;
     if (!database) {
       return NextResponse.json({ error: 'Database not connected' }, { status: 500 });
@@ -144,6 +159,13 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const auth = await verifyManagementAuth(req);
+    if (!auth.authorized) {
+      return NextResponse.json(
+        { success: false, error: 'Access Denied: KUIRO Executive Management Clearance Required.' },
+        { status: 403 }
+      );
+    }
     const database = db;
     if (!database) {
       return NextResponse.json({ error: 'Database not connected' }, { status: 500 });
