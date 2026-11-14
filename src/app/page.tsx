@@ -12,7 +12,6 @@ import {
   FloatingEmailNewsletterCard
 } from '@/components/marketing/HeroMockups';
 import InteractiveFestivalGenerator from '@/components/marketing/InteractiveFestivalGenerator';
-import SmbVerticalUseCases from '@/components/marketing/SmbVerticalUseCases';
 import WorkflowTimeline from '@/components/marketing/WorkflowTimeline';
 import {
   CheckCircle2,
@@ -33,7 +32,6 @@ import {
   Instagram,
   Linkedin,
   Twitter,
-  MessageSquare,
   Clock,
   Zap,
   Lock,
@@ -58,7 +56,14 @@ import {
   UtensilsCrossed,
   ShoppingBag,
   HelpCircle,
-  PhoneCall
+  PhoneCall,
+  Download,
+  Archive,
+  BarChart3,
+  DollarSign,
+  Monitor,
+  Activity,
+  FileText
 } from 'lucide-react';
 
 export default function RedesignedHomePage() {
@@ -71,17 +76,24 @@ export default function RedesignedHomePage() {
   const [extractionStep, setExtractionStep] = useState(0);
 
   // 2. Interactive Product Showcase Tab State
-  const [showcaseTab, setShowcaseTab] = useState<'omni' | 'whatsapp' | 'inbox'>('omni');
+  const [showcaseTab, setShowcaseTab] = useState<'omni' | 'whatsapp' | 'roi' | 'export'>('roi');
 
   // 3. WhatsApp 48-Hour Approval Simulator State
   const [approvalStatus, setApprovalStatus] = useState<'AUTO_QUEUED' | 'APPROVED' | 'REVISED'>('AUTO_QUEUED');
   const [simulatedVoiceNote, setSimulatedVoiceNote] = useState(false);
   const [voiceNotePlayed, setVoiceNotePlayed] = useState(false);
 
-  // 4. Interactive Retainer ROI Calculator State
+  // 4. Creative Kit Asset Exporter Simulator State
+  const [isExportingZip, setIsExportingZip] = useState(false);
+  const [zipExported, setZipExported] = useState(false);
+
+  // 5. Multi-Tenant Persona Simulator State
+  const [activePersona, setActivePersona] = useState<'dental' | 'derma' | 'yoga'>('dental');
+
+  // 6. Interactive Retainer ROI Calculator State
   const [monthlySpend, setMonthlySpend] = useState<number>(45000);
 
-  // 5. FAQ Accordion State
+  // 7. FAQ Accordion State
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   // Brand Brain Extraction Simulator Handler
@@ -91,13 +103,13 @@ export default function RedesignedHomePage() {
     setExtractedSuccess(false);
     setExtractionStep(1);
 
-    setTimeout(() => setExtractionStep(2), 600);
-    setTimeout(() => setExtractionStep(3), 1200);
+    setTimeout(() => setExtractionStep(2), 500);
+    setTimeout(() => setExtractionStep(3), 1000);
     setTimeout(() => {
       setIsExtracting(false);
       setExtractedSuccess(true);
       setExtractionStep(4);
-    }, 1800);
+    }, 1500);
   };
 
   // WhatsApp Voice Note Simulation Handler
@@ -107,7 +119,17 @@ export default function RedesignedHomePage() {
     setTimeout(() => {
       setSimulatedVoiceNote(false);
       setApprovalStatus('REVISED');
-    }, 2000);
+    }, 1800);
+  };
+
+  // 1-Click Creative Kit Download Simulation
+  const handleSimulateExport = () => {
+    setIsExportingZip(true);
+    setZipExported(false);
+    setTimeout(() => {
+      setIsExportingZip(false);
+      setZipExported(true);
+    }, 1400);
   };
 
   // ROI Calculator Calculations
@@ -115,27 +137,74 @@ export default function RedesignedHomePage() {
   const monthlySavings = Math.max(0, monthlySpend - kuiroMonthlyCost);
   const annualSavings = monthlySavings * 12;
 
+  // Persona Data Profiles
+  const personas = {
+    dental: {
+      name: 'Dr. Rajesh Sharma',
+      clinic: 'Apex Dental & Implant Center',
+      city: 'Kolkata, WB',
+      niche: 'Healthcare & Dental',
+      specialties: 'Invisalign • Dental Implants • Smile Design',
+      colors: ['#FF7A00', '#0B0F14'],
+      sampleCampaign: 'Diwali Festive Smiles & Painless Implants',
+      attributedLeads: 42,
+      attributedPipeline: '₹1,40,000',
+      indicQuote: 'শুভ দীপাবলি ও সুন্দর হাসি!',
+      script: 'Bengali / Devanagari'
+    },
+    derma: {
+      name: 'Dr. Priyadarshini Sengupta',
+      clinic: 'Sengupta Aesthetic & Skin Clinic',
+      city: 'Salt Lake, Kolkata',
+      niche: 'Cosmetology & Dermatology',
+      specialties: 'HydraFacials • Laser Rejuvenation • Anti-Pigmentation',
+      colors: ['#EC4899', '#0F172A'],
+      sampleCampaign: 'Durga Puja Bridal Glow Masterclass',
+      attributedLeads: 38,
+      attributedPipeline: '₹1,14,000',
+      indicQuote: 'উৎসবের আলোয় উজ্জ্বল ত্বক!',
+      script: 'Bengali Typography'
+    },
+    yoga: {
+      name: 'Aarav Mehta',
+      clinic: 'Mehta Yoga & Holistic Wellness',
+      city: 'Bandra, Mumbai',
+      niche: 'Fitness & Corporate Wellness',
+      specialties: 'Sound Bath Therapy • Corporate Mindfulness • Hatha Yoga',
+      colors: ['#10B981', '#064E3B'],
+      sampleCampaign: 'International Yoga Day Corporate Retreat',
+      attributedLeads: 29,
+      attributedPipeline: '₹95,000',
+      indicQuote: 'योगः कर्मसु कौशलम्',
+      script: 'Devanagari / English'
+    }
+  };
+
   // FAQ List
   const faqs = [
     {
-      q: 'Do I have to log in to a dashboard every day to publish marketing?',
-      a: 'Zero dashboard logins required. 48 hours before any festival, business milestone, or campaign, KUIRO generates your complete multi-channel visual assets and delivers an interactive contact sheet directly to your WhatsApp. One tap approves, voice notes revise, or doing nothing auto-commits at scheduled peak times.',
+      q: 'Do I really never have to log into a marketing dashboard?',
+      a: 'Zero mandatory dashboard logins. 48 hours before any festival, health milestone, or clinic campaign, KUIRO generates your complete multi-channel graphics and delivers an interactive contact sheet directly to your WhatsApp. One tap approves, voice notes revise, or doing nothing auto-commits at scheduled peak times.',
     },
     {
-      q: 'What happens if I forget or am too busy to reply on WhatsApp?',
-      a: 'Silence equals consent! If no changes are requested within the 48-hour passive window, KUIRO automatically commits and publishes your verified campaign at T-0h. You never miss Diwali, Holi, or a seasonal promotion because you were in surgery or in client meetings.',
+      q: 'How does the new Campaign ROI & Inbound Lead Attribution work?',
+      a: 'Every campaign links to your clinic’s verified WhatsApp Cloud API number with unique tracking tags and UTM parameters. When a patient clicks "Book Consultation" or messages your clinic from an Instagram ad or WhatsApp status, KUIRO automatically tags the lead, logs their treatment interest (e.g. Invisalign ₹1,40,000 or Laser Facial ₹12,000), and displays your net return on investment in real time.',
     },
     {
-      q: 'How does the new Unified Multi-Channel Inbox work?',
-      a: 'When prospective patients or buyers respond to your WhatsApp campaigns, Instagram posts, Facebook ads, or email newsletters, their replies stream into one shared workspace. Your team can reply faster, collaborate with private internal notes, and automate routine FAQs with Brand Brain AI.',
+      q: 'What is included in the 1-Click Creative Kit Asset Exporter?',
+      a: 'When you click "Export Creative Kit" (or via API), KUIRO compiles a ready-to-use ZIP bundle containing: 1) High-DPI 4:5 visual (1080x1350) for Instagram and reception TV displays, 2) 1:1 WhatsApp Broadcast and status card (1080x1080), 3) LinkedIn thought leadership post, 4) Responsive HTML email newsletter, 5) Captions & hashtags markdown file, and 6) Staff front-desk instructions (README_FOR_CLINIC_STAFF.txt).',
     },
     {
-      q: 'Can KUIRO handle regional Indian languages like Hindi and Bengali?',
-      a: 'Yes! KUIRO includes native Indic font rendering and ligature shaping (via Satori and Google Noto fonts) for Devanagari, Bengali, Tamil, Telugu, and Kannada, complete with regional cultural nuance across 28 Indian states.',
+      q: 'How does KUIRO comply with Medical and NMC Advertising Regulations?',
+      a: 'KUIRO is designed specifically for healthcare practitioners and ethical SMBs. It strictly respects National Medical Commission (NMC) guidelines: all generated content focuses on patient education, preventive health awareness, and verified factual credentials, eliminating sensational claims, misleading discounts, or non-compliant before-and-after guarantees.',
     },
     {
-      q: 'Does KUIRO use official social media and WhatsApp APIs?',
-      a: '100% official APIs. We integrate via official Meta Cloud WhatsApp API, Instagram Graph API, LinkedIn UGC v2, and X (Twitter) v2 API with built-in first-reply link placement guardrails to protect your organic reach.',
+      q: 'Can KUIRO handle regional Indian languages with proper typography?',
+      a: 'Yes! Unlike generic AI image generators that produce broken, scrambled Indian text, KUIRO uses a specialized layout compositor with pre-shaped Google Noto Sans fonts for Devanagari (Hindi, Marathi), Bengali, Tamil, Telugu, and Kannada, rendering crisp festive greetings like "শুভ নববর্ষ" or "शुभ दीपावली" with perfect ligature shaping.',
+    },
+    {
+      q: 'What is the Zero-Link Surcharge Guard on X / Twitter?',
+      a: 'X (Twitter) v2 charges elevated API fees and algorithmically suppresses posts containing external destination links by up to 40%. KUIRO automatically posts your high-DPI image and headline first, then instantly attaches your booking link in the first reply thread—saving $0.200 per tweet while maximizing organic engagement.',
     },
   ];
 
@@ -143,20 +212,20 @@ export default function RedesignedHomePage() {
     <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans selection:bg-[#FF7A00] selection:text-white">
       {/* 1. Top Announcement Notification Bar */}
       <AnnouncementBar
-        badge="Autonomous Protocol 2.0"
+        badge="Autonomous 2.0"
         tagline="Create / Approve / Grow."
-        subtitle="— Now with Unified Customer Inbox for WhatsApp, IG & Email."
+        subtitle="— Campaign ROI & 1-Click Creative Kit Exporter Now Live."
       />
 
       {/* 2. Unified Sticky Navbar */}
-      <Navbar activeRoute="home" badgeText="AI Marketing Co-Pilot" statusText="Channels Online" />
+      <Navbar activeRoute="home" badgeText="AI Marketing Co-Pilot" statusText="Autonomous Cron Online" />
 
-      {/* 3. Hero Section: The Autonomous AI Marketing Employee */}
+      {/* 3. Hero Section: The Autonomous AI Marketing Engine */}
       <section className="relative overflow-hidden pt-12 pb-20 md:pt-20 md:pb-28">
         {/* Ambient Glow Orbs */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[650px] h-[350px] bg-[#FF7A00]/10 blur-[140px] rounded-full pointer-events-none -z-10" />
-        <div className="absolute top-10 right-10 w-72 h-72 bg-emerald-500/5 blur-[100px] rounded-full pointer-events-none -z-10" />
-        <div className="absolute bottom-10 left-10 w-72 h-72 bg-blue-500/5 blur-[120px] rounded-full pointer-events-none -z-10" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[380px] bg-[#FF7A00]/12 blur-[150px] rounded-full pointer-events-none -z-10" />
+        <div className="absolute top-10 right-10 w-80 h-80 bg-emerald-500/8 blur-[120px] rounded-full pointer-events-none -z-10" />
+        <div className="absolute bottom-10 left-10 w-80 h-80 bg-blue-500/8 blur-[130px] rounded-full pointer-events-none -z-10" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto space-y-6">
@@ -164,23 +233,23 @@ export default function RedesignedHomePage() {
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FF7A00]/10 border border-[#FF7A00]/30 text-[#FF7A00] text-xs font-semibold tracking-wide shadow-sm shadow-[#FF7A00]/5">
               <Sparkles size={14} className="animate-spin text-[#FF7A00]" />
               <span className="font-mono uppercase tracking-wider text-[11px]">
-                Autonomous Social Engine + Unified Chat Inbox
+                Autonomous Marketing OS • 365 Cultural Radar + ROI Attribution
               </span>
               <span className="w-1 h-1 rounded-full bg-[#FF7A00]" />
-              <span>For Indian SMBs, Clinics & Founders</span>
+              <span className="text-slate-300 font-normal">For Indian Clinics & SMBs</span>
             </div>
 
             {/* Main Sora Headline */}
             <h1 className="font-sora text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white leading-[1.12]">
               Create. Approve. Grow. <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF7A00] via-[#FFA34D] to-[#FF7A00]">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF7A00] via-[#FFA34D] to-emerald-400">
                 Your marketing. On autopilot.
               </span>
             </h1>
 
             {/* Value Proposition */}
-            <p className="text-base sm:text-lg text-slate-300 font-inter max-w-2xl mx-auto leading-relaxed">
-              KUIRO replaces chaotic marketing retainers with an autonomous AI employee living on WhatsApp. We index your Brand Brain in vector memory, monitor 100+ cultural moments across 28 states, composite studio graphics, and bring customer chats into one shared inbox.
+            <p className="text-base sm:text-lg text-slate-300 font-inter max-w-3xl mx-auto leading-relaxed">
+              KUIRO turns WhatsApp into your marketing command center. We index your Brand Brain in vector memory, monitor 100+ cultural moments across 28 states, composite studio graphics, auto-commit at peak hours, and attribute real inbound clinical revenue.
             </p>
 
             {/* Primary Action Buttons */}
@@ -208,7 +277,7 @@ export default function RedesignedHomePage() {
                 className="w-full sm:w-auto px-5 py-3.5 rounded-[12px] bg-emerald-950/40 hover:bg-emerald-950/60 text-emerald-300 text-sm font-medium border border-emerald-500/30 transition-all flex items-center justify-center gap-2"
               >
                 <Smartphone size={16} className="text-emerald-400" />
-                <span>WhatsApp Demo</span>
+                <span>WhatsApp Live Demo</span>
               </a>
             </div>
 
@@ -216,7 +285,7 @@ export default function RedesignedHomePage() {
             <div className="pt-4 flex flex-wrap items-center justify-center gap-y-2 gap-x-6 text-xs text-slate-400">
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 size={14} className="text-emerald-400" />
-                <span>Zero Dashboard Logins Needed</span>
+                <span>Zero Dashboard Logins Required</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 size={14} className="text-emerald-400" />
@@ -224,11 +293,11 @@ export default function RedesignedHomePage() {
               </div>
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 size={14} className="text-emerald-400" />
-                <span>Unified Multi-Channel Inbox</span>
+                <span>Campaign ROI & Inbound Leads</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 size={14} className="text-emerald-400" />
-                <span>Neon pgvector Tenant Isolation</span>
+                <span>1-Click Creative Kit ZIP Export</span>
               </div>
             </div>
           </div>
@@ -270,7 +339,7 @@ export default function RedesignedHomePage() {
 
               {/* Extraction Progress Feedback */}
               {isExtracting && (
-                <div className="mt-3 p-3 rounded-[10px] bg-white/[0.02] border border-white/5 space-y-2 animate-fade-in">
+                <div className="mt-3 p-3 rounded-[10px] bg-white/[0.02] border border-white/5 space-y-2 animate-fade-in text-left">
                   <div className="flex items-center justify-between text-xs text-slate-300 font-mono">
                     <span className="flex items-center gap-2 text-[#FF7A00]">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#FF7A00] animate-ping" />
@@ -291,7 +360,7 @@ export default function RedesignedHomePage() {
 
               {/* Extraction Success Card */}
               {extractedSuccess && (
-                <div className="mt-3 p-3.5 rounded-[12px] bg-emerald-950/30 border border-emerald-500/30 flex flex-col sm:flex-row items-center justify-between gap-3 animate-fade-in">
+                <div className="mt-3 p-3.5 rounded-[12px] bg-emerald-950/30 border border-emerald-500/30 flex flex-col sm:flex-row items-center justify-between gap-3 animate-fade-in text-left">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
                       <CheckCircle2 size={18} />
@@ -322,7 +391,7 @@ export default function RedesignedHomePage() {
         </div>
       </section>
 
-      {/* 4. Interactive 3-Tab Product Showcase (Omni Broadcast, 48h WhatsApp, Unified Inbox) */}
+      {/* 4. Interactive 4-Tab Product Showcase (Omni Studio, 48h WhatsApp, ROI & Attribution, 1-Click Creative Kit) */}
       <section className="py-16 border-t border-white/[0.08] bg-[#060a12]/80 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-10 space-y-3">
@@ -332,82 +401,351 @@ export default function RedesignedHomePage() {
             </div>
             <h2 className="font-sora text-3xl sm:text-5xl font-bold text-white tracking-tight">
               One Closed Loop. <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF7A00] to-emerald-400">
-                From Broadcast to Customer Conversion.
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF7A00] via-emerald-400 to-sky-400">
+                From Studio Broadcast to Patient Revenue.
               </span>
             </h2>
             <p className="text-sm text-slate-300 font-inter">
-              Switch between our 3 core interactive engines: Omni-Channel Social Broadcast, the 48-Hour WhatsApp Review Loop, and the Unified Customer Inbox.
+              Explore our four core production engines: Omni-Channel Publishing, the 48-Hour WhatsApp Review Loop, Live Campaign ROI Attribution, and the 1-Click Creative Kit Exporter.
             </p>
 
-            {/* 3 Showcase Tabs */}
+            {/* 4 Showcase Tabs */}
             <div className="pt-4 flex items-center justify-center gap-2 flex-wrap">
               <button
-                onClick={() => setShowcaseTab('omni')}
+                onClick={() => setShowcaseTab('roi')}
                 className={`px-4 py-2.5 rounded-[12px] text-xs font-sora font-semibold transition flex items-center gap-2 border ${
-                  showcaseTab === 'omni'
+                  showcaseTab === 'roi'
+                    ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-600/25'
+                    : 'bg-[#0B0F14] text-slate-300 border-white/10 hover:border-white/20'
+                }`}
+              >
+                <TrendingUp size={14} />
+                <span>1. Campaign ROI & Leads (NEW)</span>
+              </button>
+
+              <button
+                onClick={() => setShowcaseTab('export')}
+                className={`px-4 py-2.5 rounded-[12px] text-xs font-sora font-semibold transition flex items-center gap-2 border ${
+                  showcaseTab === 'export'
                     ? 'bg-[#FF7A00] text-white border-[#FF7A00] shadow-lg shadow-[#FF7A00]/25'
                     : 'bg-[#0B0F14] text-slate-300 border-white/10 hover:border-white/20'
                 }`}
               >
-                <Share2 size={14} />
-                <span>1. Omni Broadcast (5 Channels)</span>
+                <Archive size={14} />
+                <span>2. 1-Click Creative Kit (NEW)</span>
               </button>
 
               <button
                 onClick={() => setShowcaseTab('whatsapp')}
                 className={`px-4 py-2.5 rounded-[12px] text-xs font-sora font-semibold transition flex items-center gap-2 border ${
                   showcaseTab === 'whatsapp'
-                    ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-600/25'
+                    ? 'bg-emerald-700 text-white border-emerald-600 shadow-lg shadow-emerald-700/25'
                     : 'bg-[#0B0F14] text-slate-300 border-white/10 hover:border-white/20'
                 }`}
               >
                 <Smartphone size={14} />
-                <span>2. 48-Hour WhatsApp Loop</span>
+                <span>3. 48-Hour WhatsApp Loop</span>
               </button>
 
               <button
-                onClick={() => setShowcaseTab('inbox')}
+                onClick={() => setShowcaseTab('omni')}
                 className={`px-4 py-2.5 rounded-[12px] text-xs font-sora font-semibold transition flex items-center gap-2 border ${
-                  showcaseTab === 'inbox'
+                  showcaseTab === 'omni'
                     ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-600/25'
                     : 'bg-[#0B0F14] text-slate-300 border-white/10 hover:border-white/20'
                 }`}
               >
-                <MessagesSquare size={14} />
-                <span>3. Unified Team Inbox (NEW)</span>
+                <Share2 size={14} />
+                <span>4. Omni Studio (5 Channels)</span>
               </button>
             </div>
           </div>
 
-          {/* TAB 1: Omni-Channel Synchronized Previews */}
-          {showcaseTab === 'omni' && (
-            <div className="space-y-4 animate-fade-in">
-              <div className="sm:hidden text-center text-[10px] text-slate-500 font-mono mb-2 flex items-center justify-center gap-1">
-                <span>← Swipe cards horizontally to view all 5 channels →</span>
-              </div>
+          {/* TAB 1: Real-Time Campaign ROI & Lead Attribution (NEW) */}
+          {showcaseTab === 'roi' && (
+            <div className="max-w-6xl mx-auto rounded-[20px] bg-[#0B0F14] border border-white/15 p-6 sm:p-8 shadow-2xl animate-fade-in text-left">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                <div className="lg:col-span-5 space-y-4">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-bold">
+                    <TrendingUp size={14} />
+                    <span>Live Attributed Treatment Revenue</span>
+                  </div>
+                  <h3 className="font-sora text-2xl sm:text-3xl font-bold text-white leading-tight">
+                    Don’t just track likes. <br />
+                    <span className="text-emerald-400">Track actual clinical pipeline.</span>
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-300 font-inter leading-relaxed">
+                    When prospective patients message your clinic via WhatsApp or click on Instagram ads, KUIRO attributes their booked treatments directly to the underlying campaign. Real-time net ROI calculation shows founders exactly which festival or health day generated revenue.
+                  </p>
+                  
+                  <div className="space-y-2.5 text-xs text-slate-200">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />
+                      <span>WhatsApp Cloud API webhook auto-parses inbound lead symptoms</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />
+                      <span>Calculates net ROI against KUIRO’s flat ₹2,799/mo subscription</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />
+                      <span>Exports full CSV and treatment logs for clinic front-desk follow-up</span>
+                    </div>
+                  </div>
 
-              <div className="flex overflow-x-auto sm:grid sm:grid-cols-2 lg:grid-cols-5 gap-4 max-w-7xl mx-auto pb-4 sm:pb-0 snap-x snap-mandatory scrollbar-none">
-                <div className="min-w-[280px] sm:min-w-0 snap-center shrink-0 sm:shrink">
-                  <FloatingInstagramCard className="w-full" />
+                  <div className="pt-2">
+                    <Link
+                      href="/dashboard#roi"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold font-sora transition shadow-lg shadow-emerald-500/25"
+                    >
+                      <span>Explore Live ROI Engine</span>
+                      <ArrowRight size={14} />
+                    </Link>
+                  </div>
                 </div>
-                <div className="min-w-[280px] sm:min-w-0 snap-center shrink-0 sm:shrink">
-                  <FloatingLinkedInCard className="w-full" />
-                </div>
-                <div className="min-w-[280px] sm:min-w-0 snap-center shrink-0 sm:shrink">
-                  <FloatingWhatsAppCard className="w-full" />
-                </div>
-                <div className="min-w-[280px] sm:min-w-0 snap-center shrink-0 sm:shrink">
-                  <FloatingXCard className="w-full" />
-                </div>
-                <div className="min-w-[280px] sm:min-w-0 snap-center shrink-0 sm:shrink">
-                  <FloatingEmailNewsletterCard className="w-full" />
+
+                {/* Live ROI Dashboard Card Preview */}
+                <div className="lg:col-span-7 bg-[#111620] rounded-[16px] border border-white/10 p-5 space-y-4 shadow-xl">
+                  {/* Top Metric Strip */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3 rounded-[10px] bg-white/[0.03] border border-white/10">
+                      <span className="text-[10px] font-mono text-slate-400 uppercase block">Attributed Pipeline</span>
+                      <span className="text-lg font-bold font-sora text-white">₹1,03,500</span>
+                      <span className="text-[9px] text-emerald-400 flex items-center gap-1 font-mono">
+                        <TrendingUp size={10} /> +38% MoM
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-[10px] bg-white/[0.03] border border-white/10">
+                      <span className="text-[10px] font-mono text-slate-400 uppercase block">Net Closed</span>
+                      <span className="text-lg font-bold font-sora text-emerald-400">₹78,000</span>
+                      <span className="text-[9px] text-slate-400 font-mono">5 Commenced</span>
+                    </div>
+                    <div className="p-3 rounded-[10px] bg-white/[0.03] border border-white/10">
+                      <span className="text-[10px] font-mono text-slate-400 uppercase block">Inbound Leads</span>
+                      <span className="text-lg font-bold font-sora text-white">42</span>
+                      <span className="text-[9px] text-emerald-400 font-mono">31 WhatsApp</span>
+                    </div>
+                    <div className="p-3 rounded-[10px] bg-white/[0.03] border border-white/10">
+                      <span className="text-[10px] font-mono text-slate-400 uppercase block">Net Blended ROI</span>
+                      <span className="text-lg font-bold font-sora text-[#FF7A00]">42.8x</span>
+                      <span className="text-[9px] text-slate-400 font-mono">vs ₹2,799 fee</span>
+                    </div>
+                  </div>
+
+                  {/* Attributed Inbound Leads Stream */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs pb-1 border-b border-white/10">
+                      <span className="font-bold text-white font-sora flex items-center gap-1.5">
+                        <Smartphone size={14} className="text-emerald-400" />
+                        Live WhatsApp Lead Conversions
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-400">Auto-Attributed</span>
+                    </div>
+
+                    <div className="space-y-2 text-xs">
+                      <div className="p-2.5 rounded-[8px] bg-white/[0.02] border border-white/5 flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white">Ananya Mukherjee</span>
+                            <span className="text-[9px] font-mono bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">
+                              WhatsApp Status
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400">Invisalign Clear Aligners • Diwali Promo</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-bold text-emerald-400 font-mono">₹1,40,000</span>
+                          <span className="text-[9px] text-slate-500 block">Consult Scheduled</span>
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 rounded-[8px] bg-white/[0.02] border border-white/5 flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white">Rohit Verma</span>
+                            <span className="text-[9px] font-mono bg-pink-500/20 text-pink-300 px-1.5 py-0.5 rounded">
+                              Instagram Ad
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400">Teeth Whitening & Clean • Festive Offer</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-bold text-emerald-400 font-mono">₹18,000</span>
+                          <span className="text-[9px] text-emerald-400 block font-semibold">Treatment Commenced</span>
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 rounded-[8px] bg-white/[0.02] border border-white/5 flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white">Pooja Sengupta</span>
+                            <span className="text-[9px] font-mono bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded">
+                              Email Newsletter
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-slate-400">Porcelain Veneers (4 Units)</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs font-bold text-emerald-400 font-mono">₹45,000</span>
+                          <span className="text-[9px] text-slate-500 block">In Discussion</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Channel Breakdown */}
+                  <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                    <span>WhatsApp 48%</span>
+                    <span>Instagram 32%</span>
+                    <span>Email 14%</span>
+                    <span>LinkedIn 6%</span>
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* TAB 2: Interactive WhatsApp 48-Hour Phone Simulator */}
+          {/* TAB 2: 1-Click Creative Kit Asset Exporter (NEW) */}
+          {showcaseTab === 'export' && (
+            <div className="max-w-6xl mx-auto rounded-[20px] bg-[#0B0F14] border border-white/15 p-6 sm:p-8 shadow-2xl animate-fade-in text-left">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                <div className="lg:col-span-5 space-y-4">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF7A00]/15 text-[#FF7A00] border border-[#FF7A00]/30 text-xs font-mono font-bold">
+                    <Archive size={14} />
+                    <span>Omni-Asset Production Engine</span>
+                  </div>
+                  <h3 className="font-sora text-2xl sm:text-3xl font-bold text-white leading-tight">
+                    Beyond Social Media. <br />
+                    <span className="text-[#FF7A00]">Your Reception TV & Front Desk.</span>
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-300 font-inter leading-relaxed">
+                    Doctors and brick-and-mortar founders don't just market online—they need assets for their waiting room TV displays, front-desk staff printouts, WhatsApp status updates, and email blasts. KUIRO packages everything into a standardized ZIP file in 1 second.
+                  </p>
+
+                  <div className="space-y-2 text-xs text-slate-300">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 size={15} className="text-[#FF7A00] shrink-0" />
+                      <span><strong>High-DPI 4:5 Visual (1080x1350)</strong> for Instagram & Waiting Room TV</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 size={15} className="text-[#FF7A00] shrink-0" />
+                      <span><strong>1:1 Square Card (1080x1080)</strong> for WhatsApp Status & LinkedIn</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 size={15} className="text-[#FF7A00] shrink-0" />
+                      <span><strong>Responsive HTML Newsletter</strong> with zero code required</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 size={15} className="text-[#FF7A00] shrink-0" />
+                      <span><strong>README_FOR_CLINIC_STAFF.txt</strong> with front-desk talking points</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      onClick={handleSimulateExport}
+                      disabled={isExportingZip}
+                      className="px-6 py-3 rounded-[10px] bg-[#FF7A00] hover:bg-[#FF881A] disabled:opacity-75 text-white text-xs font-bold font-sora transition shadow-lg shadow-[#FF7A00]/25 flex items-center gap-2"
+                    >
+                      {isExportingZip ? (
+                        <>
+                          <RefreshCw size={14} className="animate-spin" />
+                          <span>Assembling ZIP Archive...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download size={14} />
+                          <span>Simulate 1-Click ZIP Export</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Exporter Visual File Tree & Manifest */}
+                <div className="lg:col-span-7 bg-[#111620] rounded-[16px] border border-white/10 p-5 space-y-4 shadow-xl">
+                  <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                    <div className="flex items-center gap-2">
+                      <Archive size={16} className="text-[#FF7A00]" />
+                      <span className="text-xs font-bold text-white font-mono">
+                        KUIRO_CREATIVE_KIT_CAMPAIGN_2026.zip
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-400">Total Size: 3.42 MB</span>
+                  </div>
+
+                  {/* File Manifest List */}
+                  <div className="space-y-2 text-xs">
+                    <div className="p-2.5 rounded-[8px] bg-white/[0.03] border border-white/5 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded bg-[#FF7A00]/20 text-[#FF7A00] flex items-center justify-center font-bold text-[10px]">
+                          PNG
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">01_VISUAL_4x5_HIGH_DPI.png</p>
+                          <p className="text-[10px] text-slate-400">1080 x 1350 • Clinic Reception TV & Instagram Feed</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono text-emerald-400">1.84 MB</span>
+                    </div>
+
+                    <div className="p-2.5 rounded-[8px] bg-white/[0.03] border border-white/5 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-[10px]">
+                          PNG
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">02_WHATSAPP_CARD_1x1.png</p>
+                          <p className="text-[10px] text-slate-400">1080 x 1080 • WhatsApp Status, Broadcast & LinkedIn</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono text-emerald-400">1.12 MB</span>
+                    </div>
+
+                    <div className="p-2.5 rounded-[8px] bg-white/[0.03] border border-white/5 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-[10px]">
+                          HTML
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">04_EMAIL_NEWSLETTER.html</p>
+                          <p className="text-[10px] text-slate-400">Standalone Responsive Template • Ready for Resend / SES</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono text-emerald-400">24.2 KB</span>
+                    </div>
+
+                    <div className="p-2.5 rounded-[8px] bg-white/[0.03] border border-white/5 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-[10px]">
+                          TXT
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">06_README_FOR_CLINIC_STAFF.txt</p>
+                          <p className="text-[10px] text-slate-400">Reception SOP, Patient Inbound Script & Hashtags</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono text-emerald-400">4.8 KB</span>
+                    </div>
+                  </div>
+
+                  {zipExported && (
+                    <div className="p-3 rounded-[10px] bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-between text-xs animate-fade-in">
+                      <div className="flex items-center gap-2 text-emerald-300">
+                        <CheckCircle2 size={16} className="text-emerald-400" />
+                        <span>ZIP successfully packaged! Available for instant download.</span>
+                      </div>
+                      <span className="text-[10px] font-mono bg-emerald-500 text-black px-2 py-0.5 rounded font-bold">
+                        READY (3.42 MB)
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: Interactive WhatsApp 48-Hour Phone Simulator */}
           {showcaseTab === 'whatsapp' && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center max-w-5xl mx-auto animate-fade-in">
               {/* Phone Frame */}
@@ -423,7 +761,7 @@ export default function RedesignedHomePage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold">KUIRO Bot</span>
+                          <span className="text-xs font-bold">KUIRO Co-Pilot</span>
                           <CheckCheck size={14} className="text-emerald-400" />
                         </div>
                         <span className="text-[10px] text-emerald-400 font-mono">Official Cloud API</span>
@@ -433,7 +771,7 @@ export default function RedesignedHomePage() {
                   </div>
 
                   {/* Body */}
-                  <div className="bg-[#0B141A] p-3 rounded-[16px] border border-white/5 space-y-3 text-xs">
+                  <div className="bg-[#0B141A] p-3 rounded-[16px] border border-white/5 space-y-3 text-xs text-left">
                     <div className="bg-[#1F2C34] p-3 rounded-[12px] rounded-tl-none text-slate-200 space-y-2 border border-white/5">
                       <div className="flex items-center justify-between text-[10px] text-[#FF7A00] font-mono">
                         <span>CAMPAIGN #2026-DIWALI</span>
@@ -445,10 +783,10 @@ export default function RedesignedHomePage() {
                       </p>
 
                       <div className="p-2 rounded-[8px] bg-black/40 border border-white/10 space-y-1.5">
-                        <div className="aspect-[4/3] rounded bg-gradient-to-br from-[#1A1208] via-[#2A1D0E] to-[#1A1208] p-2 flex flex-col justify-between border border-[#FF7A00]/20">
+                        <div className="aspect-[4/3] rounded bg-gradient-to-br from-[#1A1208] via-[#2A1D0E] to-[#1A1208] p-2.5 flex flex-col justify-between border border-[#FF7A00]/20">
                           <div className="flex items-center justify-between">
                             <span className="text-[9px] font-bold text-[#FF7A00]">DIWALI SPECIAL</span>
-                            <span className="text-[8px] font-mono text-slate-400">1:1 & 9:16</span>
+                            <span className="text-[8px] font-mono text-slate-400">1080x1350 High-DPI</span>
                           </div>
                           <p className="text-[11px] font-bold text-white">
                             "Light Up Smiles, Not Just Diyas ✨"
@@ -480,7 +818,7 @@ export default function RedesignedHomePage() {
                           className="w-full py-2 rounded-[8px] bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-medium border border-white/10 flex items-center justify-center gap-1.5 transition"
                         >
                           <Mic size={14} className={simulatedVoiceNote ? 'text-red-400 animate-pulse' : 'text-[#FF7A00]'} />
-                          <span>{simulatedVoiceNote ? 'Transcribing Hindi Audio...' : 'Simulate Hindi Voice Note'}</span>
+                          <span>{simulatedVoiceNote ? 'Transcribing Audio...' : 'Simulate Voice Note Revision'}</span>
                         </button>
                       </div>
                     </div>
@@ -495,7 +833,7 @@ export default function RedesignedHomePage() {
                           <span className="text-[9px] font-mono text-emerald-200">0:04</span>
                         </div>
                         <p className="text-[10px] text-emerald-100 italic">
-                          "Doctor credentials bold karo aur contact number add karo."
+                          "Doctor credentials bold karo aur clinic helpline number add karo."
                         </p>
                       </div>
                     )}
@@ -509,10 +847,10 @@ export default function RedesignedHomePage() {
                   Zero Dashboard Logins Needed
                 </span>
                 <h3 className="font-sora text-2xl sm:text-3xl font-bold text-white">
-                  Review and approve from the app you already check 50 times a day.
+                  Review and approve from the app you check 50 times a day.
                 </h3>
                 <p className="text-sm text-slate-300 font-inter leading-relaxed">
-                  Indian doctors and founders don't want to log into bloated enterprise dashboards. KUIRO turns WhatsApp into your command center. Send a Hindi voice note in the car between appointments, and Gemini updates the studio composite in 12 seconds.
+                  Indian doctors and founders don't want to log into bloated marketing tools. KUIRO turns WhatsApp into your command center. Send a Hindi voice note in the car between appointments, and Gemini updates the studio composite in 12 seconds.
                 </p>
                 <div className="space-y-2.5 text-xs text-slate-200">
                   <div className="flex items-center gap-2">
@@ -525,93 +863,35 @@ export default function RedesignedHomePage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 size={16} className="text-emerald-400" />
-                    <span>Passive consent: if you take zero action, it auto-commits at T-0</span>
+                    <span>Silence = Consent: if you take zero action, it auto-commits at T-0</span>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* TAB 3: Unified Customer Conversations Inbox Showcase */}
-          {showcaseTab === 'inbox' && (
-            <div className="max-w-5xl mx-auto rounded-[20px] bg-[#0B0F14] border border-white/15 p-6 sm:p-8 shadow-2xl animate-fade-in text-left">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                <div className="lg:col-span-6 space-y-4">
-                  <span className="text-xs font-mono font-bold px-3 py-1 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30">
-                    Shared Conversations Workspace
-                  </span>
-                  <h3 className="font-sora text-2xl sm:text-3xl font-bold text-white">
-                    Every WhatsApp, Instagram & Email chat. One unified inbox.
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-300 font-inter leading-relaxed">
-                    When your marketing broadcast launches, inquiries flood in. KUIRO unifies WhatsApp chats, Instagram DMs, Facebook messages, and customer emails into one shared workspace—with AI smart routing and internal team collaboration notes.
-                  </p>
-                  <div className="grid grid-cols-2 gap-3 pt-2">
-                    <div className="p-3 rounded-[10px] bg-white/[0.03] border border-white/10">
-                      <span className="text-base font-bold font-sora text-white block">1m 42s</span>
-                      <span className="text-[10px] text-slate-400">First Response Time</span>
-                    </div>
-                    <div className="p-3 rounded-[10px] bg-white/[0.03] border border-white/10">
-                      <span className="text-base font-bold font-sora text-emerald-400 block">68.4%</span>
-                      <span className="text-[10px] text-slate-400">AI Auto-Resolution</span>
-                    </div>
-                  </div>
-                  <Link
-                    href="/dashboard/inbox"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] bg-[#FF7A00] hover:bg-[#FF881A] text-white text-xs font-semibold font-sora transition shadow-md shadow-[#FF7A00]/25"
-                  >
-                    <span>Test-Drive Live Inbox</span>
-                    <ArrowRight size={14} />
-                  </Link>
+          {/* TAB 4: Omni-Channel Synchronized Previews */}
+          {showcaseTab === 'omni' && (
+            <div className="space-y-4 animate-fade-in">
+              <div className="sm:hidden text-center text-[10px] text-slate-500 font-mono mb-2 flex items-center justify-center gap-1">
+                <span>← Swipe cards horizontally to view all 5 channels →</span>
+              </div>
+
+              <div className="flex overflow-x-auto sm:grid sm:grid-cols-2 lg:grid-cols-5 gap-4 max-w-7xl mx-auto pb-4 sm:pb-0 snap-x snap-mandatory scrollbar-none">
+                <div className="min-w-[280px] sm:min-w-0 snap-center shrink-0 sm:shrink">
+                  <FloatingInstagramCard className="w-full" />
                 </div>
-
-                {/* Inbox Visual Mini-Frame */}
-                <div className="lg:col-span-6 bg-[#11141A] rounded-[16px] border border-white/10 p-4 space-y-3">
-                  <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
-                    <div className="flex items-center gap-2">
-                      <MessagesSquare size={16} className="text-[#FF7A00]" />
-                      <span className="text-xs font-bold text-white font-sora">Live Inbound Stream</span>
-                    </div>
-                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded">
-                      Zero Collision Active
-                    </span>
-                  </div>
-
-                  <div className="space-y-2 text-xs">
-                    <div className="p-2.5 rounded-[10px] bg-white/5 border border-white/5 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <Smartphone size={14} className="text-emerald-400" />
-                        <div>
-                          <p className="text-white font-semibold text-[11px]">Ananya Mukherjee (WhatsApp)</p>
-                          <p className="text-slate-400 text-[10px]">"Can I schedule Invisalign consultation?"</p>
-                        </div>
-                      </div>
-                      <span className="text-[9px] font-mono text-[#FF7A00] bg-[#FF7A00]/15 px-2 py-0.5 rounded">
-                        #VIP Lead
-                      </span>
-                    </div>
-
-                    <div className="p-2.5 rounded-[10px] bg-white/5 border border-white/5 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <Instagram size={14} className="text-pink-400" />
-                        <div>
-                          <p className="text-white font-semibold text-[11px]">Rohit Verma (Instagram DM)</p>
-                          <p className="text-slate-400 text-[10px]">"Chipped tooth playing football. Open today?"</p>
-                        </div>
-                      </div>
-                      <span className="text-[9px] font-mono text-rose-400 bg-rose-950/80 px-2 py-0.5 rounded font-bold">
-                        URGENT
-                      </span>
-                    </div>
-
-                    <div className="p-2.5 rounded-[10px] bg-amber-950/30 border border-amber-500/20 text-amber-200 text-[11px] space-y-1">
-                      <div className="flex items-center gap-1 font-bold text-[10px]">
-                        <Lock size={10} />
-                        <span>INTERNAL NOTE: Dr. Sharma prepped Operatory 2</span>
-                      </div>
-                      <p className="text-[10px] text-amber-300/80">Visible only to clinic team members.</p>
-                    </div>
-                  </div>
+                <div className="min-w-[280px] sm:min-w-0 snap-center shrink-0 sm:shrink">
+                  <FloatingLinkedInCard className="w-full" />
+                </div>
+                <div className="min-w-[280px] sm:min-w-0 snap-center shrink-0 sm:shrink">
+                  <FloatingWhatsAppCard className="w-full" />
+                </div>
+                <div className="min-w-[280px] sm:min-w-0 snap-center shrink-0 sm:shrink">
+                  <FloatingXCard className="w-full" />
+                </div>
+                <div className="min-w-[280px] sm:min-w-0 snap-center shrink-0 sm:shrink">
+                  <FloatingEmailNewsletterCard className="w-full" />
                 </div>
               </div>
             </div>
@@ -619,153 +899,229 @@ export default function RedesignedHomePage() {
         </div>
       </section>
 
-      {/* 5. Deterministic Workflow Timeline (The 48-Hour Protocol) */}
-      <section id="workflow" className="py-20 border-t border-white/[0.08] relative overflow-hidden">
-        <WorkflowTimeline />
-      </section>
-
-      {/* 6. Interactive Satori Festival Generator (Live in Browser) */}
-      <section id="visual-generator" className="py-20 border-t border-white/[0.08] bg-[#060a12]/70 relative">
-        <InteractiveFestivalGenerator />
-      </section>
-
-      {/* 7. The 8-Service Autonomous Suite */}
+      {/* 5. Multi-Tenant Persona Simulator (Healthcare, Aesthetic Dermatology, Holistic Wellness) */}
       <section className="py-20 border-t border-white/[0.08] relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-10">
+          <div className="max-w-3xl mx-auto space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
+              <Users size={14} />
+              <span>Multi-Tenant Persona Simulator</span>
+            </div>
+            <h2 className="font-sora text-3xl sm:text-5xl font-bold text-white tracking-tight">
+              Built for India’s Speciality Verticals
+            </h2>
+            <p className="text-sm text-slate-300 font-inter">
+              See how KUIRO customizes cultural moments, verified clinical credentials, and regional Indic scripts for different business types.
+            </p>
+
+            {/* Persona Switcher Buttons */}
+            <div className="pt-3 flex items-center justify-center gap-3 flex-wrap">
+              <button
+                onClick={() => setActivePersona('dental')}
+                className={`px-4 py-2 rounded-[10px] text-xs font-sora font-semibold transition border ${
+                  activePersona === 'dental'
+                    ? 'bg-[#FF7A00] text-white border-[#FF7A00] shadow-md shadow-[#FF7A00]/25'
+                    : 'bg-[#0B0F14] text-slate-300 border-white/10 hover:border-white/20'
+                }`}
+              >
+                1. Dr. Sharma (Dental & Healthcare)
+              </button>
+              <button
+                onClick={() => setActivePersona('derma')}
+                className={`px-4 py-2 rounded-[10px] text-xs font-sora font-semibold transition border ${
+                  activePersona === 'derma'
+                    ? 'bg-pink-600 text-white border-pink-500 shadow-md shadow-pink-600/25'
+                    : 'bg-[#0B0F14] text-slate-300 border-white/10 hover:border-white/20'
+                }`}
+              >
+                2. Dr. Sengupta (Aesthetic Dermatology)
+              </button>
+              <button
+                onClick={() => setActivePersona('yoga')}
+                className={`px-4 py-2 rounded-[10px] text-xs font-sora font-semibold transition border ${
+                  activePersona === 'yoga'
+                    ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-600/25'
+                    : 'bg-[#0B0F14] text-slate-300 border-white/10 hover:border-white/20'
+                }`}
+              >
+                3. Mehta Yoga (Holistic & Wellness)
+              </button>
+            </div>
+          </div>
+
+          {/* Active Persona Card Display */}
+          <div className="max-w-4xl mx-auto rounded-[20px] bg-[#0B0F14] border border-white/15 p-6 sm:p-8 shadow-2xl text-left animate-fade-in">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+              <div className="md:col-span-7 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold font-sora text-sm"
+                    style={{ backgroundColor: personas[activePersona].colors[0] }}
+                  >
+                    {personas[activePersona].name.split(' ').map((n) => n[0]).join('')}
+                  </div>
+                  <div>
+                    <h3 className="font-sora text-lg font-bold text-white">{personas[activePersona].name}</h3>
+                    <p className="text-xs text-slate-400 font-mono">
+                      {personas[activePersona].clinic} • {personas[activePersona].city}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <div className="p-2.5 rounded-[8px] bg-white/[0.03] border border-white/5 space-y-1">
+                    <span className="text-[10px] font-mono text-slate-400 uppercase font-bold block">
+                      Indexed Clinical Services:
+                    </span>
+                    <p className="text-slate-200">{personas[activePersona].specialties}</p>
+                  </div>
+
+                  <div className="p-2.5 rounded-[8px] bg-white/[0.03] border border-white/5 space-y-1">
+                    <span className="text-[10px] font-mono text-[#FF7A00] uppercase font-bold block">
+                      Regional Indic Script Output ({personas[activePersona].script}):
+                    </span>
+                    <p className="text-base font-bold text-white">{personas[activePersona].indicQuote}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Persona Revenue Metrics */}
+              <div className="md:col-span-5 bg-[#121720] rounded-[14px] p-5 border border-white/10 space-y-3">
+                <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block">
+                  Autopilot Attribution ({personas[activePersona].niche}):
+                </span>
+                <div className="text-3xl font-bold font-sora text-emerald-400">
+                  {personas[activePersona].attributedPipeline}
+                  <span className="text-xs text-slate-400 font-mono font-normal"> Pipeline</span>
+                </div>
+                <div className="text-xs text-slate-300 space-y-1.5 pt-2 border-t border-white/10">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Inbound Leads:</span>
+                    <span className="font-mono text-white font-bold">{personas[activePersona].attributedLeads} inquiries</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Active Campaign:</span>
+                    <span className="font-mono text-emerald-400 font-semibold">{personas[activePersona].sampleCampaign}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. The 5 Unfair Architectural Moats */}
+      <section className="py-20 border-t border-white/[0.08] bg-[#060a12]/70 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF7A00]/10 border border-[#FF7A00]/30 text-[#FF7A00] text-xs font-semibold">
               <Cpu size={14} />
-              <span>Full-Stack Capabilities</span>
+              <span>Defensible Technology</span>
             </div>
             <h2 className="font-sora text-3xl sm:text-5xl font-bold text-white tracking-tight">
-              The 8-Service Autonomous Suite
+              The 5 Unfair Architectural Moats
             </h2>
             <p className="text-sm text-slate-300 font-inter">
-              Everything required to run an enterprise-grade digital marketing agency on autopilot.
+              Why generic ChatGPT wrappers and freelance marketing agencies cannot match KUIRO.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-5 rounded-[14px] bg-[#0B0F14] border border-white/10 hover:border-[#FF7A00]/50 transition group space-y-2.5">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
+            {/* Moat 1 */}
+            <div className="p-6 rounded-[16px] bg-[#0B0F14] border border-white/10 hover:border-[#FF7A00]/50 transition group space-y-3">
               <div className="w-10 h-10 rounded-lg bg-[#FF7A00]/15 text-[#FF7A00] flex items-center justify-center font-bold">
                 <Layers size={18} />
               </div>
-              <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">Service 01</span>
+              <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">Moat 01</span>
               <h3 className="font-sora text-base font-bold text-white group-hover:text-[#FF7A00] transition">
                 Persistent Brand Brain
               </h3>
               <p className="text-xs text-slate-400 font-inter leading-relaxed">
-                Vector memory in Neon pgvector storing your doctor degrees, pricing, services, and ethical guardrails.
+                Stores your clinical credentials, doctor degrees (BDS, MDS, MD), verified colors, pricing, and ethical guidelines in isolated Neon pgvector memory. Zero hallucinations or repeated prompts.
               </p>
             </div>
 
-            <div className="p-5 rounded-[14px] bg-[#0B0F14] border border-white/10 hover:border-emerald-500/50 transition group space-y-2.5">
+            {/* Moat 2 */}
+            <div className="p-6 rounded-[16px] bg-[#0B0F14] border border-white/10 hover:border-emerald-500/50 transition group space-y-3">
               <div className="w-10 h-10 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-bold">
                 <Calendar size={18} />
               </div>
-              <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">Service 02</span>
+              <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">Moat 02</span>
               <h3 className="font-sora text-base font-bold text-white group-hover:text-emerald-400 transition">
-                365 Cultural Radar
+                365 Cultural Radar (Cron)
               </h3>
               <p className="text-xs text-slate-400 font-inter leading-relaxed">
-                Automated cron tracking 100+ festivals across 28 Indian states, regional health days, and local milestones.
+                Autonomous daily Vercel Cron (0 0 * * *) scans 100+ Indian regional festivals across 28 states at T-48h, dispatches previews to WhatsApp, and triggers fail-safe publishing at T-0h.
               </p>
             </div>
 
-            <div className="p-5 rounded-[14px] bg-[#0B0F14] border border-white/10 hover:border-amber-500/50 transition group space-y-2.5">
+            {/* Moat 3 */}
+            <div className="p-6 rounded-[16px] bg-[#0B0F14] border border-white/10 hover:border-amber-500/50 transition group space-y-3">
               <div className="w-10 h-10 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center font-bold">
                 <Flame size={18} />
               </div>
-              <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">Service 03</span>
+              <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">Moat 03</span>
               <h3 className="font-sora text-base font-bold text-white group-hover:text-amber-400 transition">
-                Satori High-DPI Studio
+                Indic Typography Engine
               </h3>
               <p className="text-xs text-slate-400 font-inter leading-relaxed">
-                Proprietary SVG-to-PNG compositor with verified logos, crisp typography, and zero generative hallucinations.
+                Pre-shaped Google Noto Sans fonts for Bengali, Devanagari, Tamil, and Telugu eliminate broken glyphs and bad kerning, producing authentic regional language greetings for every state.
               </p>
             </div>
 
-            <div className="p-5 rounded-[14px] bg-[#0B0F14] border border-white/10 hover:border-emerald-500/50 transition group space-y-2.5">
+            {/* Moat 4 */}
+            <div className="p-6 rounded-[16px] bg-[#0B0F14] border border-white/10 hover:border-emerald-500/50 transition group space-y-3">
               <div className="w-10 h-10 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-bold">
                 <Smartphone size={18} />
               </div>
-              <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">Service 04</span>
+              <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">Moat 04</span>
               <h3 className="font-sora text-base font-bold text-white group-hover:text-emerald-400 transition">
-                48h WhatsApp Review
+                WhatsApp "Silence = Consent"
               </h3>
               <p className="text-xs text-slate-400 font-inter leading-relaxed">
-                One-tap approve on WhatsApp, revise with Hindi voice notes, or rely on deterministic passive auto-commit.
+                If a busy surgeon or founder is with patients and takes zero action during the 48-hour preview window, KUIRO automatically commits and publishes on schedule. You never miss a holiday.
               </p>
             </div>
 
-            <div className="p-5 rounded-[14px] bg-[#0B0F14] border border-white/10 hover:border-blue-500/50 transition group space-y-2.5">
+            {/* Moat 5 */}
+            <div className="p-6 rounded-[16px] bg-[#0B0F14] border border-white/10 hover:border-blue-500/50 transition group space-y-3">
               <div className="w-10 h-10 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center font-bold">
-                <Share2 size={18} />
+                <ShieldCheck size={18} />
               </div>
-              <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">Service 05</span>
+              <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">Moat 05</span>
               <h3 className="font-sora text-base font-bold text-white group-hover:text-blue-400 transition">
-                Multi-Channel Publishing
+                Zero-Link Surcharge Guard
               </h3>
               <p className="text-xs text-slate-400 font-inter leading-relaxed">
-                Official API broadcasting to Instagram, Facebook, LinkedIn, and X with first-reply link placement guardrails.
+                X charges $0.200 per external URL and penalizes organic reach by 40%. KUIRO places links in the first reply thread automatically, protecting your reach and saving hundreds on API costs.
               </p>
             </div>
 
-            <div className="p-5 rounded-[14px] bg-[#0B0F14] border border-white/10 hover:border-pink-500/50 transition group space-y-2.5">
-              <div className="w-10 h-10 rounded-lg bg-pink-500/15 text-pink-400 flex items-center justify-center font-bold">
-                <Sparkles size={18} />
+            {/* Moat 6 */}
+            <div className="p-6 rounded-[16px] bg-[#0B0F14] border border-white/10 hover:border-purple-500/50 transition group space-y-3">
+              <div className="w-10 h-10 rounded-lg bg-purple-500/15 text-purple-400 flex items-center justify-center font-bold">
+                <TrendingUp size={18} />
               </div>
-              <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">Service 06</span>
-              <h3 className="font-sora text-base font-bold text-white group-hover:text-pink-400 transition">
-                Programmatic Video & Reels
+              <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">Moat 06</span>
+              <h3 className="font-sora text-base font-bold text-white group-hover:text-purple-400 transition">
+                End-to-End Clinical ROI
               </h3>
               <p className="text-xs text-slate-400 font-inter leading-relaxed">
-                Remotion 9:16 vertical video engine paired with ElevenLabs Indian English and Hindi voiceovers.
+                Inbound WhatsApp inquiries are attributed directly to treatments (Clear Aligners, Dental Implants, Lasers), proving tangible ₹1,03,500+ pipeline value rather than vanity metrics.
               </p>
             </div>
-
-            <div className="p-5 rounded-[14px] bg-[#0B0F14] border border-white/10 hover:border-amber-500/50 transition group space-y-2.5">
-              <div className="w-10 h-10 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center font-bold">
-                <Mail size={18} />
-              </div>
-              <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">Service 07</span>
-              <h3 className="font-sora text-base font-bold text-white group-hover:text-amber-400 transition">
-                Autonomous Email Newsletters
-              </h3>
-              <p className="text-xs text-slate-400 font-inter leading-relaxed">
-                Branded HTML email builder dispatched automatically to patient and customer lists via Resend and Amazon SES.
-              </p>
-            </div>
-
-            <div className="p-5 rounded-[14px] bg-[#0B0F14] border border-white/10 hover:border-emerald-500/50 transition group space-y-2.5">
-              <div className="w-10 h-10 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-bold">
-                <MessagesSquare size={18} />
-              </div>
-              <span className="text-[10px] font-mono text-slate-500 uppercase font-bold block">Service 08 • NEW</span>
-              <h3 className="font-sora text-base font-bold text-white group-hover:text-emerald-400 transition">
-                Unified Customer Inbox
-              </h3>
-              <p className="text-xs text-slate-400 font-inter leading-relaxed">
-                Single workspace for WhatsApp, Instagram, Messenger, and Email chats with AI routing and internal notes.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-10 text-center">
-            <Link
-              href="/services"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-[12px] bg-white/[0.05] hover:bg-white/10 text-white text-xs font-semibold border border-white/10 transition"
-            >
-              <span>View Deep-Dive Architectural Breakdown of All 8 Services</span>
-              <ArrowRight size={14} />
-            </Link>
           </div>
         </div>
       </section>
 
-      {/* 8. Industry Verticals Tailored for India */}
-      <section className="py-20 border-t border-white/[0.08] bg-[#060a12]/70 relative">
-        <SmbVerticalUseCases />
+      {/* 7. Deterministic Workflow Timeline (The 48-Hour Protocol) */}
+      <section id="workflow" className="py-20 border-t border-white/[0.08] relative overflow-hidden">
+        <WorkflowTimeline />
+      </section>
+
+      {/* 8. Interactive Satori Festival Generator (Live in Browser) */}
+      <section id="visual-generator" className="py-20 border-t border-white/[0.08] bg-[#060a12]/70 relative">
+        <InteractiveFestivalGenerator />
       </section>
 
       {/* 9. Interactive Retainer ROI Savings Calculator */}
@@ -776,7 +1132,7 @@ export default function RedesignedHomePage() {
               <div className="lg:col-span-7 space-y-5 text-left">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF7A00]/15 text-[#FF7A00] text-xs font-semibold">
                   <Calculator size={14} />
-                  <span>Retainer Savings Calculator</span>
+                  <span>Agency Retainer Savings Calculator</span>
                 </div>
 
                 <h2 className="text-2xl sm:text-4xl font-sora font-bold text-white tracking-tight">
@@ -790,7 +1146,7 @@ export default function RedesignedHomePage() {
                 {/* Range Slider */}
                 <div className="space-y-4 pt-2">
                   <div className="flex items-center justify-between text-xs font-mono">
-                    <span className="text-slate-400">Current Monthly Spend:</span>
+                    <span className="text-slate-400">Current Monthly Agency Spend:</span>
                     <span className="text-lg font-bold text-white">
                       ₹{monthlySpend.toLocaleString('en-IN')} / mo
                     </span>
@@ -846,6 +1202,12 @@ export default function RedesignedHomePage() {
                     <span className="text-slate-400">WhatsApp Revision Speed:</span>
                     <span className="font-mono text-white font-bold">&lt; 15 Seconds</span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Net Return Multiple:</span>
+                    <span className="font-mono text-emerald-400 font-bold">
+                      {((monthlySpend / 2799)).toFixed(1)}x ROI
+                    </span>
+                  </div>
                 </div>
 
                 <button
@@ -866,13 +1228,13 @@ export default function RedesignedHomePage() {
           <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
               <Star size={14} className="fill-emerald-400" />
-              <span>Verified Founders & Doctors</span>
+              <span>Verified Doctors & Founders</span>
             </div>
             <h2 className="font-sora text-3xl sm:text-5xl font-bold text-white tracking-tight">
               Trusted by 450+ Indian Businesses
             </h2>
             <p className="text-sm text-slate-300 font-inter">
-              See what founders have to say about eliminating marketing retainers.
+              See what clinic owners and SMB founders have to say about replacing agency retainers.
             </p>
           </div>
 
@@ -884,7 +1246,7 @@ export default function RedesignedHomePage() {
                 ))}
               </div>
               <p className="text-xs text-slate-300 font-inter leading-relaxed">
-                "As an orthodontist, I cannot spend hours approving Canva templates or arguing with freelance copywriters. KUIRO sends me a WhatsApp message 48 hours before every festival. I send a voice note between surgeries, and it publishes flawlessly."
+                "As an orthodontist, I cannot spend hours approving Canva templates or arguing with freelance copywriters. KUIRO sends me a WhatsApp message 48 hours before every festival. I send a voice note between surgeries, and it publishes flawlessly with my verified degrees."
               </p>
               <div className="pt-2 border-t border-white/5 flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-[#FF7A00]/20 text-[#FF7A00] font-bold text-xs flex items-center justify-center font-sora">
@@ -904,15 +1266,15 @@ export default function RedesignedHomePage() {
                 ))}
               </div>
               <p className="text-xs text-slate-300 font-inter leading-relaxed">
-                "Our specialty roastery runs seasonal monsoon brews and Durga Puja menus. KUIRO's regional cultural radar creates authentic Bengali copy that our customers actually share. Our weekend table reservations jumped 38%."
+                "The new Campaign ROI dashboard changed how we look at social media. We can see exactly which WhatsApp status or Instagram post resulted in an Invisalign booking. Last month alone, KUIRO brought in ₹1.4 Lakh in attributed clinical pipeline."
               </p>
               <div className="pt-2 border-t border-white/5 flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-xs flex items-center justify-center font-sora">
-                  KC
+                  PS
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-white font-sora">Kolkata Chai Co.</h4>
-                  <p className="text-[10px] text-slate-400 font-mono">Specialty Cafes • Park Street & Bangalore</p>
+                  <h4 className="text-xs font-bold text-white font-sora">Dr. Priyadarshini Sengupta</h4>
+                  <p className="text-[10px] text-slate-400 font-mono">Sengupta Aesthetic & Skin Clinic • Salt Lake</p>
                 </div>
               </div>
             </div>
@@ -924,7 +1286,7 @@ export default function RedesignedHomePage() {
                 ))}
               </div>
               <p className="text-xs text-slate-300 font-inter leading-relaxed">
-                "We manage 18 SMB clients. Moving them to KUIRO saved our agency over 60 hours a month. The new Unified Inbox feature lets our team respond to Instagram DMs and WhatsApp inquiries with zero collisions."
+                "We manage 18 SMB clients across Delhi and Mumbai. The 1-Click Creative Kit exporter allows us to deliver clinic reception TV graphics, WhatsApp status cards, and email newsletters to clients in seconds without hiring extra graphic designers."
               </p>
               <div className="pt-2 border-t border-white/5 flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-blue-500/20 text-blue-400 font-bold text-xs flex items-center justify-center font-sora">
@@ -940,8 +1302,146 @@ export default function RedesignedHomePage() {
         </div>
       </section>
 
-      {/* 11. Frequently Asked Questions Accordion */}
-      <section className="py-20 border-t border-white/[0.08] relative">
+      {/* 11. Transparent Pricing Grid */}
+      <section id="pricing" className="py-20 border-t border-white/[0.08] relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-12">
+          <div className="max-w-3xl mx-auto space-y-3">
+            <span className="text-xs font-mono uppercase text-[#FF7A00] font-bold tracking-wider">
+              Transparent Pricing
+            </span>
+            <h2 className="text-3xl sm:text-5xl font-sora font-bold text-white tracking-tight">
+              Predictable Pricing. No Agency Games.
+            </h2>
+            <p className="text-slate-400 text-xs sm:text-sm font-inter">
+              All plans include a 14-day risk-free trial. Upgrade, downgrade, or cancel anytime.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left max-w-5xl mx-auto">
+            {/* Starter */}
+            <div className="p-6 rounded-[16px] bg-[#0B0F14] border border-white/10 space-y-5">
+              <div>
+                <h3 className="font-sora text-lg font-bold text-white">Starter</h3>
+                <p className="text-xs text-slate-400 font-inter">For solo practitioners and single clinics.</p>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-3xl font-bold font-sora text-white">₹1,199</span>
+                <span className="text-xs text-slate-400 font-mono"> / month</span>
+              </div>
+              <ul className="space-y-2 text-xs text-slate-300">
+                <li className="flex items-center gap-2">
+                  <Check size={14} className="text-emerald-400 shrink-0" />
+                  <span>1 Brand Workspace in pgvector</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check size={14} className="text-emerald-400 shrink-0" />
+                  <span>15 Auto-Generated Posts / Month</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check size={14} className="text-emerald-400 shrink-0" />
+                  <span>48h WhatsApp 1-Tap Approval</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check size={14} className="text-emerald-400 shrink-0" />
+                  <span>Instagram & LinkedIn Publishing</span>
+                </li>
+              </ul>
+              <button
+                onClick={handleGetStarted}
+                className="w-full py-2.5 rounded-[10px] bg-white/5 hover:bg-white/10 text-white text-xs font-semibold font-sora border border-white/10 transition"
+              >
+                Start 14-Day Free Trial
+              </button>
+            </div>
+
+            {/* Growth (Featured) */}
+            <div className="p-6 rounded-[16px] bg-gradient-to-b from-[#141A24] to-[#0B0F14] border-2 border-[#FF7A00] space-y-5 relative shadow-xl shadow-[#FF7A00]/10">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#FF7A00] text-white text-[10px] font-bold font-mono uppercase px-3 py-0.5 rounded-full">
+                Most Popular for Clinics
+              </div>
+              <div>
+                <h3 className="font-sora text-lg font-bold text-white">Growth Autopilot</h3>
+                <p className="text-xs text-slate-400 font-inter">Complete autonomous engine with WhatsApp loop.</p>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-3xl font-bold font-sora text-white">₹2,799</span>
+                <span className="text-xs text-slate-400 font-mono"> / month</span>
+              </div>
+              <ul className="space-y-2 text-xs text-slate-300">
+                <li className="flex items-center gap-2">
+                  <Check size={14} className="text-emerald-400 shrink-0" />
+                  <span>365-Day Regional Cultural Radar</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check size={14} className="text-emerald-400 shrink-0" />
+                  <span>Unlimited Voice Note WhatsApp Revisions</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check size={14} className="text-emerald-400 shrink-0" />
+                  <span>Live Campaign ROI & Lead Attribution</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check size={14} className="text-emerald-400 shrink-0" />
+                  <span>1-Click Creative Kit Asset Exporter (ZIP)</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check size={14} className="text-emerald-400 shrink-0" />
+                  <span>Zero-Link Surcharge Guard for X</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check size={14} className="text-emerald-400 shrink-0" />
+                  <span>Indic Typography (Bengali, Hindi, Tamil)</span>
+                </li>
+              </ul>
+              <button
+                onClick={handleGetStarted}
+                className="w-full py-2.5 rounded-[10px] bg-[#FF7A00] hover:bg-[#FF881A] text-white text-xs font-bold font-sora transition shadow-lg shadow-[#FF7A00]/25"
+              >
+                Start 14-Day Free Trial
+              </button>
+            </div>
+
+            {/* Agency / Clinic Chain */}
+            <div className="p-6 rounded-[16px] bg-[#0B0F14] border border-white/10 space-y-5">
+              <div>
+                <h3 className="font-sora text-lg font-bold text-white">Agency / Multi-Clinic</h3>
+                <p className="text-xs text-slate-400 font-inter">For multi-location clinic chains and digital agencies.</p>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-3xl font-bold font-sora text-white">₹11,999</span>
+                <span className="text-xs text-slate-400 font-mono"> / month</span>
+              </div>
+              <ul className="space-y-2 text-xs text-slate-300">
+                <li className="flex items-center gap-2">
+                  <Check size={14} className="text-emerald-400 shrink-0" />
+                  <span>Up to 10 Brand Profiles & Workspaces</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check size={14} className="text-emerald-400 shrink-0" />
+                  <span>Dedicated WhatsApp Cloud API Numbers</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check size={14} className="text-emerald-400 shrink-0" />
+                  <span>Multi-Tenant Role Permissions & Audit Logs</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check size={14} className="text-emerald-400 shrink-0" />
+                  <span>Custom Webhooks & Front-Desk CRM Sync</span>
+                </li>
+              </ul>
+              <button
+                onClick={handleGetStarted}
+                className="w-full py-2.5 rounded-[10px] bg-white/5 hover:bg-white/10 text-white text-xs font-semibold font-sora border border-white/10 transition"
+              >
+                Start 14-Day Free Trial
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 12. Frequently Asked Questions Accordion */}
+      <section className="py-20 border-t border-white/[0.08] bg-[#060a12]/70 relative">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-left">
           <div className="text-center mb-12 space-y-2">
             <span className="text-xs font-mono uppercase text-[#FF7A00] font-bold tracking-wider">
@@ -951,7 +1451,7 @@ export default function RedesignedHomePage() {
               Frequently Asked Questions
             </h2>
             <p className="text-slate-400 text-xs sm:text-sm font-inter">
-              Everything you need to know about our autonomous execution and WhatsApp loop.
+              Everything you need to know about our autonomous execution, WhatsApp loop, and ROI attribution.
             </p>
           </div>
 
@@ -988,20 +1488,20 @@ export default function RedesignedHomePage() {
         </div>
       </section>
 
-      {/* 12. Bottom High-Impact CTA Banner */}
+      {/* 13. Bottom High-Impact CTA Banner */}
       <section className="py-20 border-t border-white/[0.08] relative overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-[#FF7A00]/15 blur-[150px] rounded-full pointer-events-none -z-10" />
 
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
           <h2 className="font-sora text-3xl sm:text-5xl font-bold text-white tracking-tight leading-tight">
             Stop babysitting marketing retainers. <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF7A00] via-[#FFA34D] to-[#FF7A00]">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF7A00] via-[#FFA34D] to-emerald-400">
               Put your business marketing on autopilot.
             </span>
           </h2>
 
           <p className="text-sm sm:text-base text-slate-300 font-inter max-w-2xl mx-auto leading-relaxed">
-            Join hundreds of forward-thinking Indian founders, doctors, and multi-location brands. Set up your Brand Brain in 60 seconds with zero credit card required.
+            Join hundreds of forward-thinking Indian founders, doctors, and multi-location clinic owners. Set up your Brand Brain in 60 seconds with zero credit card required.
           </p>
 
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -1029,7 +1529,7 @@ export default function RedesignedHomePage() {
         </div>
       </section>
 
-      {/* 13. Unified Global Footer */}
+      {/* 14. Unified Global Footer */}
       <Footer />
     </div>
   );
