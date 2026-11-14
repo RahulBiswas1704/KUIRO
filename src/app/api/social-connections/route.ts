@@ -248,3 +248,39 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const platform = searchParams.get('platform') as PlatformKey | null;
+    const workspaceIdParam = searchParams.get('workspaceId');
+
+    if (!platform || !OAUTH_PLATFORMS[platform]) {
+      return NextResponse.json({ error: 'Valid platform query parameter is required.' }, { status: 400 });
+    }
+
+    const auth = await authorizeWorkspace(req, workspaceIdParam);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
+    const wsId = auth.workspaceId!;
+    if (db) {
+      await db
+        .delete(socialConnections)
+        .where(
+          and(
+            eq(socialConnections.workspaceId, wsId),
+            eq(socialConnections.platform, platform)
+          )
+        );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `${platform.toUpperCase()} connection deleted.`,
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to delete connection' }, { status: 500 });
+  }
+}

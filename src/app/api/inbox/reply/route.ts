@@ -2,24 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, conversations, inboxMessages, workspaces } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { sendAutonomousEmailNewsletter } from '@/lib/email/publisher';
-import { getSessionFromRequest } from '@/lib/auth';
+import { getSessionFromRequest, authorizeWorkspace } from '@/lib/auth';
 import { publishInboxEvent } from '@/lib/inbox/eventHub';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSessionFromRequest(req);
-    if (!session) {
-      return NextResponse.json({ error: 'Authentication required. Active session required.' }, { status: 401 });
-    }
-
     const body = await req.json();
     const { conversationId, content, isInternalNote = false } = body;
-    const senderName = body.senderName || session.user.name || 'Agent';
 
     if (!conversationId || !content?.trim()) {
       return NextResponse.json({ error: 'conversationId and content are required' }, { status: 400 });
+    }
+
+    const auth = await authorizeWorkspace(req, body.workspaceId);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
     const database = db;
@@ -27,26 +26,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Database service is temporarily unavailable.' }, { status: 503 });
     }
 
-    // 1. Fetch target conversation and verify workspace authorization
+    const wsId = auth.workspaceId!;
+    const session = auth.session!;
+    const senderName = body.senderName || session.user.name || 'Agent';
+
+    // 1. Fetch target conversation strictly scoped to authorized workspace
     const [conv] = await database
       .select()
       .from(conversations)
-      .where(eq(conversations.id, conversationId));
+      .where(and(
+        eq(conversations.id, conversationId),
+        eq(conversations.workspaceId, wsId)
+      ))
+      .limit(1);
 
     if (!conv) {
-      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
-    }
-
-    if (conv.workspaceId !== session.workspace.id) {
-      const [owned] = await database
-        .select()
-        .from(workspaces)
-        .where(and(eq(workspaces.id, conv.workspaceId), eq(workspaces.ownerId, session.user.id)))
-        .limit(1);
-
-      if (!owned) {
-        return NextResponse.json({ error: 'Forbidden: You do not have permission to reply to this conversation.' }, { status: 403 });
-      }
+      return NextResponse.json({ error: 'Conversation not found or does not belong to authorized workspace.' }, { status: 404 });
     }
 
     // 2. Insert message into Neon PostgreSQL
@@ -72,7 +67,7 @@ export async function POST(req: NextRequest) {
         status: isInternalNote ? conv.status : 'WAITING',
         updatedAt: new Date(),
       })
-      .where(eq(conversations.id, conv.id));
+      .where(and(eq(conversations.id, conv.id), eq(conversations.workspaceId, wsId)));
 
     // 3b. Broadcast Realtime SSE Event
     const dispatchedMsg = {

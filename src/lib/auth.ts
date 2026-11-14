@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { NextRequest } from 'next/server';
-import { db, users, workspaces, sessions, accounts, brandProfiles, verificationTokens } from '@/db';
+import { db, users, workspaces, workspaceMembers, sessions, accounts, brandProfiles, verificationTokens } from '@/db';
 import { eq, and, gt, desc } from 'drizzle-orm';
 
 export const SESSION_COOKIE_NAME = 'kuiro_session';
@@ -497,21 +497,53 @@ export async function findWorkspaceMembership(
   if (!database || !userId || !workspaceId) return null;
 
   try {
+    // 1. Direct Workspace Owner Check (Single-owner architecture)
     const [matchingWorkspace] = await database
       .select()
       .from(workspaces)
       .where(and(eq(workspaces.id, workspaceId), eq(workspaces.ownerId, userId)))
       .limit(1);
 
-    if (!matchingWorkspace) return null;
+    if (matchingWorkspace) {
+      return {
+        id: `mem_${matchingWorkspace.id}_${userId}`,
+        workspaceId: matchingWorkspace.id,
+        userId,
+        role: 'OWNER',
+        workspace: matchingWorkspace,
+      };
+    }
 
-    return {
-      id: `mem_${matchingWorkspace.id}_${userId}`,
-      workspaceId: matchingWorkspace.id,
-      userId,
-      role: 'OWNER',
-      workspace: matchingWorkspace,
-    };
+    // 2. Team Member Check (Agency architecture)
+    try {
+      const [memberRecord] = await database
+        .select()
+        .from(workspaceMembers)
+        .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)))
+        .limit(1);
+
+      if (memberRecord) {
+        const [ws] = await database
+          .select()
+          .from(workspaces)
+          .where(eq(workspaces.id, workspaceId))
+          .limit(1);
+
+        if (ws) {
+          return {
+            id: memberRecord.id,
+            workspaceId: ws.id,
+            userId,
+            role: memberRecord.role as any,
+            workspace: ws,
+          };
+        }
+      }
+    } catch {
+      // workspaceMembers table may not be migrated yet in remote DB
+    }
+
+    return null;
   } catch (err) {
     console.error('[Auth] Failed to find workspace membership:', err);
     return null;

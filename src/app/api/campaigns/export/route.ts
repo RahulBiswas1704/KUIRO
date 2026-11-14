@@ -3,7 +3,7 @@ import { db, scheduledCampaigns, platformPosts, workspaces, brandProfiles } from
 import { eq, desc, and } from 'drizzle-orm';
 import JSZip from 'jszip';
 import { compositeBrandOverlay } from '@/lib/media/compositor';
-import { getSessionFromRequest } from '@/lib/auth';
+import { getSessionFromRequest, authorizeWorkspace } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,40 +30,39 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const campaignIdParam = searchParams.get('campaignId');
+    const workspaceIdParam = searchParams.get('workspaceId');
+
+    const auth = await authorizeWorkspace(req, workspaceIdParam);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
+    const wsId = auth.workspaceId!;
 
     let campaign;
     if (campaignIdParam) {
       [campaign] = await database
         .select()
         .from(scheduledCampaigns)
-        .where(eq(scheduledCampaigns.id, campaignIdParam))
+        .where(and(
+          eq(scheduledCampaigns.id, campaignIdParam),
+          eq(scheduledCampaigns.workspaceId, wsId)
+        ))
         .limit(1);
     } else {
       [campaign] = await database
         .select()
         .from(scheduledCampaigns)
-        .where(eq(scheduledCampaigns.workspaceId, session.workspace.id))
+        .where(eq(scheduledCampaigns.workspaceId, wsId))
         .orderBy(desc(scheduledCampaigns.createdAt))
         .limit(1);
     }
 
     if (!campaign) {
-      return NextResponse.json({ success: false, error: 'No campaign found to export' }, { status: 404 });
+      return NextResponse.json({ success: false, error: 'Campaign not found or does not belong to authorized workspace.' }, { status: 404 });
     }
 
-    if (campaign.workspaceId !== session.workspace.id) {
-      const [owned] = await database
-        .select()
-        .from(workspaces)
-        .where(and(eq(workspaces.id, campaign.workspaceId), eq(workspaces.ownerId, session.user.id)))
-        .limit(1);
-
-      if (!owned) {
-        return NextResponse.json({ error: 'Forbidden: You do not have permission to export this campaign.' }, { status: 403 });
-      }
-    }
-
-    // 1. Fetch Posts
+    // 1. Fetch Posts (scoped strictly to authorized campaign)
     const posts = await database
       .select()
       .from(platformPosts)
@@ -73,13 +72,13 @@ export async function GET(req: NextRequest) {
     const [ws] = await database
       .select()
       .from(workspaces)
-      .where(eq(workspaces.id, campaign.workspaceId))
+      .where(and(eq(workspaces.id, wsId), eq(workspaces.ownerId, auth.session!.user.id)))
       .limit(1);
 
     const [bp] = await database
       .select()
       .from(brandProfiles)
-      .where(eq(brandProfiles.workspaceId, campaign.workspaceId))
+      .where(eq(brandProfiles.workspaceId, wsId))
       .limit(1);
 
     const brandName = ws?.name || 'KUIRO Clinical Brand';
