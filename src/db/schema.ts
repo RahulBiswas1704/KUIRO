@@ -71,6 +71,15 @@ export const workspaces = pgTable('workspaces', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// 2b. Workspace Members (Multi-User Agency Membership & Role-Based Access)
+export const workspaceMembers = pgTable('workspace_members', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id').references(() => workspaces.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  role: text('role', { enum: ['OWNER', 'ADMIN', 'MARKETER', 'INBOX_AGENT'] }).default('MARKETER').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 // 3. The Brand Brain (Persistent Knowledge & Guardrails)
 export const brandProfiles = pgTable('brand_profiles', {
   id: uuid('id').defaultRandom().primaryKey(),

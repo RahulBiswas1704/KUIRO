@@ -743,26 +743,23 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
+    const auth = await authorizeWorkspace(req, body.workspaceId);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+    const wsId = auth.workspaceId!;
+
     const [campRecord] = await database
       .select()
       .from(scheduledCampaigns)
-      .where(eq(scheduledCampaigns.id, campaignId))
+      .where(and(
+        eq(scheduledCampaigns.id, campaignId),
+        eq(scheduledCampaigns.workspaceId, wsId)
+      ))
       .limit(1);
 
     if (!campRecord) {
-      return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
-    }
-
-    if (campRecord.workspaceId !== session.workspace.id) {
-      const [owned] = await database
-        .select()
-        .from(workspaces)
-        .where(and(eq(workspaces.id, campRecord.workspaceId), eq(workspaces.ownerId, session.user.id)))
-        .limit(1);
-
-      if (!owned) {
-        return NextResponse.json({ error: 'Forbidden: You do not have permission to modify this campaign.' }, { status: 403 });
-      }
+      return NextResponse.json({ error: 'Campaign not found or does not belong to authorized workspace.' }, { status: 404 });
     }
 
     // 1. Handle Voice / Text Revision Request with Gemini AI
@@ -770,10 +767,13 @@ export async function PATCH(req: NextRequest) {
       const [camp] = await database
         .select()
         .from(scheduledCampaigns)
-        .where(eq(scheduledCampaigns.id, campaignId));
+        .where(and(
+          eq(scheduledCampaigns.id, campaignId),
+          eq(scheduledCampaigns.workspaceId, wsId)
+        ));
 
       if (!camp) {
-        return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+        return NextResponse.json({ error: 'Campaign not found or does not belong to authorized workspace.' }, { status: 404 });
       }
 
       if (camp.revisionCount >= 2) {
@@ -786,12 +786,12 @@ export async function PATCH(req: NextRequest) {
       const [bp] = await database
         .select()
         .from(brandProfiles)
-        .where(eq(brandProfiles.workspaceId, camp.workspaceId));
+        .where(eq(brandProfiles.workspaceId, wsId));
 
       const [ws] = await database
         .select()
         .from(workspaces)
-        .where(eq(workspaces.id, camp.workspaceId));
+        .where(and(eq(workspaces.id, wsId), eq(workspaces.ownerId, auth.session!.user.id)));
 
       const businessName = ws?.name || 'Sharma Heritage Handlooms & Retail';
       const industry = bp?.industry || 'Retail, Commerce & Professional Services';
@@ -889,7 +889,10 @@ export async function PATCH(req: NextRequest) {
     const [updated] = await database
       .update(scheduledCampaigns)
       .set({ status })
-      .where(eq(scheduledCampaigns.id, campaignId))
+      .where(and(
+        eq(scheduledCampaigns.id, campaignId),
+        eq(scheduledCampaigns.workspaceId, wsId)
+      ))
       .returning();
 
     // Trigger Inngest event so state machine unblocks via Resilient Dispatcher
@@ -913,5 +916,57 @@ export async function PATCH(req: NextRequest) {
       { success: false, error: error.message || 'Failed to update campaign' },
       { status: 500 }
     );
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const campaignId = searchParams.get('campaignId') || searchParams.get('id');
+    const workspaceIdParam = searchParams.get('workspaceId');
+
+    if (!campaignId) {
+      return NextResponse.json({ error: 'campaignId is required' }, { status: 400 });
+    }
+
+    const auth = await authorizeWorkspace(req, workspaceIdParam);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
+    const database = db;
+    if (!database) {
+      return NextResponse.json({ error: 'Database service unavailable' }, { status: 503 });
+    }
+
+    const wsId = auth.workspaceId!;
+
+    // Verify campaign belongs to authorized workspace
+    const [camp] = await database
+      .select()
+      .from(scheduledCampaigns)
+      .where(and(
+        eq(scheduledCampaigns.id, campaignId),
+        eq(scheduledCampaigns.workspaceId, wsId)
+      ))
+      .limit(1);
+
+    if (!camp) {
+      return NextResponse.json({ error: 'Campaign not found or does not belong to authorized workspace.' }, { status: 404 });
+    }
+
+    // Cascade delete platform posts and the campaign
+    await database.delete(platformPosts).where(eq(platformPosts.campaignId, campaignId));
+    await database.delete(scheduledCampaigns).where(and(
+      eq(scheduledCampaigns.id, campaignId),
+      eq(scheduledCampaigns.workspaceId, wsId)
+    ));
+
+    return NextResponse.json({
+      success: true,
+      message: 'Campaign and associated platform posts permanently deleted.',
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to delete campaign' }, { status: 500 });
   }
 }

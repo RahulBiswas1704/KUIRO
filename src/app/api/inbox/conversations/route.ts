@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, conversations, inboxMessages, workspaces, users } from '@/db';
-import { desc, asc, eq } from 'drizzle-orm';
+import { desc, asc, eq, and } from 'drizzle-orm';
 import { ConversationChannel, ConversationStatus, ConversationPriority } from '@/types';
 import { getSessionFromRequest, authorizeWorkspace } from '@/lib/auth';
 
@@ -283,5 +283,57 @@ export async function GET(req: NextRequest) {
       { success: false, error: error.message || 'Failed to fetch conversations' },
       { status: 500 }
     );
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const conversationId = searchParams.get('conversationId') || searchParams.get('id');
+    const workspaceIdParam = searchParams.get('workspaceId');
+
+    if (!conversationId) {
+      return NextResponse.json({ error: 'conversationId is required' }, { status: 400 });
+    }
+
+    const auth = await authorizeWorkspace(req, workspaceIdParam);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
+    const database = db;
+    if (!database) {
+      return NextResponse.json({ error: 'Database service unavailable' }, { status: 503 });
+    }
+
+    const wsId = auth.workspaceId!;
+
+    // Verify conversation belongs to authorized workspace
+    const [conv] = await database
+      .select()
+      .from(conversations)
+      .where(and(
+        eq(conversations.id, conversationId),
+        eq(conversations.workspaceId, wsId)
+      ))
+      .limit(1);
+
+    if (!conv) {
+      return NextResponse.json({ error: 'Conversation not found or does not belong to authorized workspace.' }, { status: 404 });
+    }
+
+    // Cascade delete messages and the conversation
+    await database.delete(inboxMessages).where(eq(inboxMessages.conversationId, conversationId));
+    await database.delete(conversations).where(and(
+      eq(conversations.id, conversationId),
+      eq(conversations.workspaceId, wsId)
+    ));
+
+    return NextResponse.json({
+      success: true,
+      message: 'Conversation and messages permanently deleted.',
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to delete conversation' }, { status: 500 });
   }
 }
