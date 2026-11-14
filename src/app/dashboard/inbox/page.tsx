@@ -56,8 +56,8 @@ import {
 const teamMembers: TeamMember[] = [
   {
     id: 'agent-1',
-    name: 'Dr. Rajesh Sharma',
-    email: 'dr.sharma@apexclinic.in',
+    name: 'Rajesh Sharma',
+    email: 'rajesh@sharmaheritage.in',
     role: 'specialist',
     avatar: 'RS',
     isOnline: true,
@@ -66,7 +66,7 @@ const teamMembers: TeamMember[] = [
   {
     id: 'agent-2',
     name: 'Priya Patel',
-    email: 'priya@apexclinic.in',
+    email: 'priya@sharmaheritage.in',
     role: 'sales',
     avatar: 'PP',
     isOnline: true,
@@ -75,7 +75,7 @@ const teamMembers: TeamMember[] = [
   {
     id: 'agent-3',
     name: 'Amit Sen',
-    email: 'reception@apexclinic.in',
+    email: 'support@sharmaheritage.in',
     role: 'receptionist',
     avatar: 'AS',
     isOnline: false,
@@ -103,13 +103,13 @@ const initialConversations: Conversation[] = [
     status: 'open',
     priority: 'high',
     unreadCount: 1,
-    lastMessage: 'Can I schedule a consultation for Invisalign clear aligners this Saturday?',
+    lastMessage: 'Can I order 3 bespoke Banarasi silk dupattas from the new catalogue for immediate delivery?',
     lastMessageTime: '10:42 AM',
     assignedTo: 'agent-2',
-    tags: ['Clear Aligners', 'VIP Lead', 'Weekend Slot'],
+    tags: ['Artisanal Silks', 'VIP Buyer', 'Festive Order'],
     sentiment: 'positive',
     campaignAttribution: {
-      campaignName: 'Diwali Festive Smiles & Glow Broadcast',
+      campaignName: 'Diwali Festive Prosperity & Heritage Weaves Broadcast',
       triggerDate: 'Nov 8, 2026',
       channel: 'whatsapp',
     },
@@ -118,9 +118,9 @@ const initialConversations: Conversation[] = [
       email: 'ananya.m@gmail.com',
       city: 'Kolkata, Salt Lake',
       totalSpend: '₹14,500',
-      patientOrClientType: 'Existing Patient (Orthodontics)',
+      patientOrClientType: 'VIP Retail Buyer',
       lastVisitDate: 'October 12, 2026',
-      notes: 'Interested in invisible aligners for wedding in December. Very prompt on WhatsApp.',
+      notes: 'Interested in bespoke pure silk Banarasi dupattas for wedding season. Very prompt on WhatsApp.',
     },
     messages: [
       {
@@ -129,7 +129,7 @@ const initialConversations: Conversation[] = [
         channel: 'whatsapp',
         sender: 'customer',
         senderName: 'Ananya Mukherjee',
-        content: 'Hello Dr. Sharma! I saw your Diwali campaign message on WhatsApp about the festive cosmetic consultation offer. Is that still active?',
+        content: 'Hello! I saw your festive handloom campaign message on WhatsApp about the new zari collection. Are bespoke orders still open?',
         timestamp: '10:35 AM',
         status: 'read',
       },
@@ -139,7 +139,7 @@ const initialConversations: Conversation[] = [
         channel: 'whatsapp',
         sender: 'ai_bot',
         senderName: 'KUIRO AI Co-Pilot',
-        content: 'Namaste Ananya! 🙏 Yes, our Diwali Festive Smile Consultation offer is valid till November 15! It includes a full 3D digital scan and consultation with Dr. Sharma. Would you like a weekday or weekend appointment?',
+        content: 'Namaste Ananya! 🙏 Yes, our festive artisanal handloom collection is open for orders! We offer bespoke color customization and express dispatch across India. Would you like us to share our digital lookbook?',
         timestamp: '10:36 AM',
         status: 'read',
         aiGenerated: true,
@@ -150,7 +150,7 @@ const initialConversations: Conversation[] = [
         channel: 'whatsapp',
         sender: 'agent',
         senderName: 'Priya Patel',
-        content: '@Dr. Rajesh Sharma, Ananya previously visited for routine scaling. Shall I block the 11:30 AM Saturday slot for her 3D scan?',
+        content: '@Rajesh Sharma, Ananya previously ordered handloom stoles. Shall I block the 3 bespoke pieces for her?',
         timestamp: '10:38 AM',
         isInternalNote: true,
       },
@@ -160,7 +160,7 @@ const initialConversations: Conversation[] = [
         channel: 'whatsapp',
         sender: 'customer',
         senderName: 'Ananya Mukherjee',
-        content: 'Can I schedule a consultation for Invisalign clear aligners this Saturday around 11:30 AM?',
+        content: 'Can I order 3 bespoke Banarasi silk dupattas from the new catalogue for immediate delivery?',
         timestamp: '10:42 AM',
         status: 'read',
       },
@@ -170,18 +170,18 @@ const initialConversations: Conversation[] = [
     id: 'conv-2',
     workspaceId: 'ws-demo',
     customerName: 'Rohit Verma',
-    customerHandle: '@rohit_fitlife',
+    customerHandle: '@rohit_founder',
     channel: 'instagram',
     status: 'open',
     priority: 'urgent',
     unreadCount: 2,
-    lastMessage: 'Hey! I chipped my front tooth playing football an hour ago. Do you take emergency walk-ins today?',
+    lastMessage: 'Hey! We love your advisory masterclass. Do you have slots open for Q2 founder coaching?',
     lastMessageTime: '10:15 AM',
     assignedTo: 'agent-1',
-    tags: ['Emergency Walk-In', 'Tooth Trauma', 'Urgent'],
+    tags: ['Founder Advisory', 'Growth Masterclass', 'High Priority'],
     sentiment: 'urgent',
     campaignAttribution: {
-      campaignName: 'Instagram Reel: Sports Mouthguard Protection',
+      campaignName: 'Instagram Reel: 3 Scalable Growth Principles',
       triggerDate: 'Nov 6, 2026',
       channel: 'instagram',
     },
@@ -190,9 +190,9 @@ const initialConversations: Conversation[] = [
       email: 'rohit@fitlife.co',
       city: 'Delhi NCR / South Ext',
       totalSpend: '₹0 (New Lead)',
-      patientOrClientType: 'Emergency New Patient',
-      lastVisitDate: 'First Visit',
-      notes: 'Acute anterior tooth fracture. Needs emergency aesthetic composite or crown.',
+      patientOrClientType: 'Growth Stage Founder',
+      lastVisitDate: 'First Inquiry',
+      notes: 'Series-A founder looking for strategic quarterly advisory and sprint mentoring.',
     },
     messages: [
       {
@@ -201,7 +201,7 @@ const initialConversations: Conversation[] = [
         channel: 'instagram',
         sender: 'customer',
         senderName: 'Rohit Verma',
-        content: 'Hey! I chipped my front tooth playing football an hour ago. Do you take emergency walk-ins today?',
+        content: 'Hey! We love your advisory masterclass. Do you have slots open for Q2 founder coaching?',
         timestamp: '10:15 AM',
         status: 'read',
       },
@@ -211,7 +211,7 @@ const initialConversations: Conversation[] = [
         channel: 'instagram',
         sender: 'ai_bot',
         senderName: 'KUIRO AI Co-Pilot',
-        content: 'Hi Rohit! We are so sorry to hear that. Yes, we reserve immediate slots for dental emergencies. Please call our emergency triage desk immediately at +91 98301 24589 or come directly to our Indiranagar clinic before 1:00 PM. We have flagged Dr. Sharma!',
+        content: 'Hi Rohit! Thank you for following our work. Yes, our Q2 advisory sprint has 2 founder slots open. Please share your current ARR and core growth bottleneck so we can send the syllabus and onboarding deck!',
         timestamp: '10:16 AM',
         status: 'delivered',
         aiGenerated: true,
@@ -221,8 +221,8 @@ const initialConversations: Conversation[] = [
         conversationId: 'conv-2',
         channel: 'instagram',
         sender: 'agent',
-        senderName: 'Dr. Rajesh Sharma',
-        content: 'I have notified the front desk. Keeping Operatory 2 prepped with aesthetic bonding composite.',
+        senderName: 'Arjun Sen',
+        content: 'Flagged for initial screening call. Sending the syllabus deck.',
         timestamp: '10:18 AM',
         isInternalNote: true,
       },
@@ -237,13 +237,13 @@ const initialConversations: Conversation[] = [
     status: 'waiting',
     priority: 'normal',
     unreadCount: 0,
-    lastMessage: 'Thank you for sending the corporate wellness pricing proposal. We will review it in our committee.',
+    lastMessage: 'Thank you for sending the corporate wholesale pricing proposal. We will review it in our committee on Monday.',
     lastMessageTime: '09:20 AM',
     assignedTo: 'agent-2',
-    tags: ['Corporate Plan', 'B2B Wellness', 'TCS Camp'],
+    tags: ['Corporate Plan', 'B2B Wholesale', 'Corporate Gifting'],
     sentiment: 'positive',
     campaignAttribution: {
-      campaignName: 'Corporate Dental Wellness Newsletter #42',
+      campaignName: 'Corporate Gifting & Wholesale Catalogue Newsletter #42',
       triggerDate: 'Nov 4, 2026',
       channel: 'email',
     },
@@ -254,7 +254,7 @@ const initialConversations: Conversation[] = [
       totalSpend: '₹1,20,000 (Group Deal)',
       patientOrClientType: 'Corporate Partner HR',
       lastVisitDate: 'Quarterly Check',
-      notes: 'HR lead for 250 employees corporate preventive checkup camp.',
+      notes: 'HR lead for 250 executive corporate festive gifting hampers.',
     },
     messages: [
       {
@@ -263,7 +263,7 @@ const initialConversations: Conversation[] = [
         channel: 'email',
         sender: 'customer',
         senderName: 'Meera Deshmukh',
-        content: 'Dear Dr. Sharma & Team, We received your quarterly newsletter on corporate dental benefits. Could you provide a proposal for an on-site screening camp for 200 staff?',
+        content: 'Dear Rajesh & Team, We received your festive corporate gifting catalogue. Could you provide a proposal and volume quote for 250 bespoke gift sets for our annual gala?',
         timestamp: 'Yesterday 3:45 PM',
         status: 'read',
       },
@@ -273,7 +273,7 @@ const initialConversations: Conversation[] = [
         channel: 'email',
         sender: 'agent',
         senderName: 'Priya Patel',
-        content: 'Dear Meera, Thank you for reaching out! Attached is our customized corporate dental wellness package including complimentary ultrasonic scaling vouchers for your team members.',
+        content: 'Dear Meera, Thank you for reaching out! Attached is our customized corporate gifting proposal with premium artisan presentation boxes and tiered volume discounts for 250 units.',
         timestamp: 'Yesterday 5:10 PM',
         status: 'read',
       },
@@ -283,7 +283,7 @@ const initialConversations: Conversation[] = [
         channel: 'email',
         sender: 'customer',
         senderName: 'Meera Deshmukh',
-        content: 'Thank you for sending the corporate wellness pricing proposal. We will review it in our committee.',
+        content: 'Thank you for sending the corporate wholesale pricing proposal. We will review it in our committee on Monday.',
         timestamp: '09:20 AM',
         status: 'read',
       },
@@ -298,13 +298,13 @@ const initialConversations: Conversation[] = [
     status: 'resolved',
     priority: 'normal',
     unreadCount: 0,
-    lastMessage: 'Awesome, clinic timings noted. See you guys on Wednesday!',
+    lastMessage: 'Awesome, studio visiting hours noted. See you on Wednesday!',
     lastMessageTime: 'Yesterday',
     assignedTo: 'agent-3',
-    tags: ['Facebook Page', 'Timing Inquiry', 'Resolved'],
+    tags: ['Showroom Visit', 'Timing Inquiry', 'Resolved'],
     sentiment: 'neutral',
     campaignAttribution: {
-      campaignName: 'Facebook Ad: Weekend Pediatric Care',
+      campaignName: 'Facebook Showcase: Handcrafted Heritage Weaves',
       triggerDate: 'Nov 2, 2026',
       channel: 'facebook',
     },
@@ -312,10 +312,10 @@ const initialConversations: Conversation[] = [
       phone: '+91 99401 12093',
       email: 'vikram.rao@outlook.com',
       city: 'Bangalore, Indiranagar',
-      totalSpend: '₹4,800',
-      patientOrClientType: 'Parent / Pediatric Patient',
+      totalSpend: '₹18,500',
+      patientOrClientType: 'Direct Consumer / Studio Visitor',
       lastVisitDate: 'August 14, 2026',
-      notes: 'Father of 7-year-old child; visited for fluoride application.',
+      notes: 'Inquired about artisan handloom collections and private showroom styling hours.',
     },
     messages: [
       {
@@ -324,7 +324,7 @@ const initialConversations: Conversation[] = [
         channel: 'messenger',
         sender: 'customer',
         senderName: 'Vikramaditya Rao',
-        content: 'Hi, are you open on national holidays? Need to bring my daughter for teeth cleaning.',
+        content: 'Hi, is your design studio open on national holidays? Would love to drop by to view your handloom collection in person.',
         timestamp: 'Yesterday 11:00 AM',
         status: 'read',
       },
@@ -334,7 +334,7 @@ const initialConversations: Conversation[] = [
         channel: 'messenger',
         sender: 'agent',
         senderName: 'Amit Sen',
-        content: 'Hello Vikram! Yes, our outpatient pediatric wing is open on all major holidays from 10:00 AM to 3:00 PM.',
+        content: 'Hello Vikram! Yes, our flagship studio and showroom are open on all major holidays from 10:00 AM to 6:00 PM. We look forward to welcoming you!',
         timestamp: 'Yesterday 11:05 AM',
         status: 'read',
       },
@@ -344,7 +344,7 @@ const initialConversations: Conversation[] = [
         channel: 'messenger',
         sender: 'customer',
         senderName: 'Vikramaditya Rao',
-        content: 'Awesome, clinic timings noted. See you guys on Wednesday!',
+        content: 'Awesome, studio visiting hours noted. See you guys on Wednesday!',
         timestamp: 'Yesterday 11:08 AM',
         status: 'read',
       },
@@ -356,13 +356,13 @@ const initialConversations: Conversation[] = [
 const initialAutomationRules: AutomationFlowRule[] = [
   {
     id: 'rule-1',
-    name: 'Off-Hours Empathy & Booking Link',
+    name: 'Off-Hours Empathy & Store Link',
     description: 'When message arrives between 8:00 PM and 8:30 AM IST on WhatsApp or Instagram',
     triggerType: 'OFF_HOURS',
     channel: 'all',
     conditions: 'Time outside business operating hours (Mon-Sat 9AM-8PM)',
     actions: [
-      { type: 'AUTO_REPLY', payload: 'Thank you for reaching out! Our clinic is closed for the night, but Dr. Sharma will be back at 9:00 AM. For urgent appointments, book online here: drsharmadental.in/book' },
+      { type: 'AUTO_REPLY', payload: 'Thank you for reaching out! Our studio team is currently offline, but we will be back at 9:00 AM. For immediate catalogue browsing or orders, visit: sharmaheritage.in/shop' },
       { type: 'APPLY_TAG', payload: 'Off-Hours Inquiry' },
     ],
     enabled: true,
@@ -370,16 +370,16 @@ const initialAutomationRules: AutomationFlowRule[] = [
   },
   {
     id: 'rule-2',
-    name: 'High-Intent Treatment Lead Qualification',
-    description: 'Triggers when patient mentions Invisalign, Dental Implants, or Smile Makeover',
+    name: 'High-Intent Bulk & Wholesale Lead Qualification',
+    description: 'Triggers when client mentions bulk, wholesale, corporate gifting, or custom orders',
     triggerType: 'KEYWORD',
     channel: 'all',
-    keywords: ['implant', 'invisalign', 'aligner', 'makeover', 'veneer', 'braces'],
-    conditions: 'Message contains high-value clinical procedure keywords',
+    keywords: ['bulk', 'wholesale', 'quote', 'custom', 'order', 'pricing', 'catalogue', 'corporate'],
+    conditions: 'Message contains high-value B2B or wholesale purchase keywords',
     actions: [
-      { type: 'ROUTE_SPECIALIST', payload: 'Dr. Rajesh Sharma' },
-      { type: 'APPLY_TAG', payload: 'High-Intent Treatment Lead' },
-      { type: 'AUTO_REPLY', payload: 'Dr. Sharma specializes in advanced digital implantology and Invisalign. Would you like us to share our before/after case study booklet?' },
+      { type: 'ROUTE_SPECIALIST', payload: 'Rajesh Sharma' },
+      { type: 'APPLY_TAG', payload: 'High-Intent B2B Lead' },
+      { type: 'AUTO_REPLY', payload: 'Thank you for your interest! We offer dedicated volume pricing and bespoke orders. Would you like us to share our wholesale catalogue and terms?' },
     ],
     enabled: true,
     triggerCount: 89,
@@ -400,15 +400,15 @@ const initialAutomationRules: AutomationFlowRule[] = [
   },
   {
     id: 'rule-4',
-    name: 'Dental Emergency & Pain Triage',
-    description: 'Immediately escalates trauma, swelling, or severe toothache messages to Priority: URGENT',
+    name: 'Priority Support & Delivery Triage',
+    description: 'Immediately escalates delivery, tracking, damage, or urgent order issues to Priority: URGENT',
     triggerType: 'KEYWORD',
     channel: 'all',
-    keywords: ['pain', 'swelling', 'bleed', 'broken', 'chipped', 'emergency', 'hurt'],
-    conditions: 'Patient reports acute discomfort or trauma',
+    keywords: ['urgent', 'delay', 'tracking', 'damage', 'return', 'delivery', 'refund', 'missing'],
+    conditions: 'Customer reports order delay, damage, or time-sensitive request',
     actions: [
-      { type: 'ROUTE_SPECIALIST', payload: 'Dr. Rajesh Sharma' },
-      { type: 'APPLY_TAG', payload: 'URGENT Triage' },
+      { type: 'ROUTE_SPECIALIST', payload: 'Priya Patel' },
+      { type: 'APPLY_TAG', payload: 'URGENT Support' },
     ],
     enabled: true,
     triggerCount: 31,
@@ -487,7 +487,7 @@ export default function UnifiedInboxPage() {
       conversationId: activeConversation.id,
       channel: activeConversation.channel,
       sender: 'agent',
-      senderName: isInternal ? 'Dr. Rajesh Sharma (Internal)' : 'Dr. Sharma Clinics',
+      senderName: isInternal ? 'Rajesh Sharma (Internal)' : 'Sharma Heritage Studio',
       content: currentText,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isInternalNote: isInternal,
@@ -521,7 +521,7 @@ export default function UnifiedInboxPage() {
           conversationId: activeConversation.id,
           content: currentText,
           isInternalNote: isInternal,
-          senderName: isInternal ? 'Dr. Rajesh Sharma (Internal)' : 'Dr. Sharma Clinics',
+          senderName: isInternal ? 'Rajesh Sharma (Internal)' : 'Sharma Heritage Studio',
         }),
       });
     } catch (err) {
@@ -540,7 +540,7 @@ export default function UnifiedInboxPage() {
           customerName: activeConversation.customerName,
           lastMessage: activeConversation.lastMessage,
           channel: activeConversation.channel,
-          brandName: 'Apex Diagnostic & Wellness Clinic',
+          brandName: 'Sharma Heritage Handlooms & Retail',
         }),
       });
       const data = await res.json();
@@ -554,9 +554,9 @@ export default function UnifiedInboxPage() {
     } catch {
       let suggested = '';
       if (activeConversation.id === 'conv-1') {
-        suggested = `Namaste ${activeConversation.customerName}! We would love to welcome you this Saturday for your consultation with Dr. Sharma. We have reserved the slot and will send you clinic directions!`;
+        suggested = `Namaste ${activeConversation.customerName}! We would love to welcome you this Saturday at our flagship studio. We have reserved the preview slot and will send you location directions!`;
       } else {
-        suggested = `Hello ${activeConversation.customerName}, thank you for reaching out to Apex Diagnostic Clinic! Our medical team has received your message and will assist you immediately.`;
+        suggested = `Hello ${activeConversation.customerName}, thank you for reaching out to Sharma Heritage! Our customer care team has received your message and will assist you immediately.`;
       }
       setMessageText(suggested);
       setReplyMode('customer');
@@ -944,7 +944,7 @@ export default function UnifiedInboxPage() {
             <div className="bg-blue-50/80 px-3.5 py-1 border-b border-blue-200/50 flex items-center justify-between text-[10px] text-blue-800">
               <span className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                <span>Priya Patel & Dr. Sharma are currently viewing this thread</span>
+                <span>Priya Patel & Rajesh Sharma are currently viewing this thread</span>
               </span>
               <span className="font-mono text-blue-600">Zero-Collision Active</span>
             </div>
@@ -1043,22 +1043,22 @@ export default function UnifiedInboxPage() {
             <div className="px-3.5 py-1.5 bg-gray-50 border-t border-gray-200 flex items-center gap-1.5 overflow-x-auto scrollbar-none text-[11px]">
               <span className="text-gray-400 text-[10px] shrink-0 font-mono">Quick Snippets:</span>
               <button
-                onClick={() => handleInsertSnippet('Saturday 11:30 AM appointment booked! Clinic map: https://maps.app.goo.gl/kuiro')}
+                onClick={() => handleInsertSnippet('Saturday 11:30 AM studio visit confirmed! Flagship map: https://maps.app.goo.gl/kuiro')}
                 className="px-2 py-0.5 rounded bg-white border border-gray-200 text-gray-700 hover:border-gray-400 whitespace-nowrap text-[10px]"
               >
                 !booking-confirm
               </button>
               <button
-                onClick={() => handleInsertSnippet('Our clinic timings are Mon-Sat, 9:00 AM to 8:00 PM. Emergency walk-ins welcome.')}
+                onClick={() => handleInsertSnippet('Our studio timings are Mon-Sat, 9:30 AM to 8:00 PM. Walk-ins and private appointments welcome.')}
                 className="px-2 py-0.5 rounded bg-white border border-gray-200 text-gray-700 hover:border-gray-400 whitespace-nowrap text-[10px]"
               >
-                !clinic-hours
+                !studio-hours
               </button>
               <button
-                onClick={() => handleInsertSnippet('Invisalign digital packages start at ₹85,000 including all 3D scans and retainers.')}
+                onClick={() => handleInsertSnippet('Bespoke handloom bridal sets start at ₹28,000 including custom fitting, artisan certificates, and insured dispatch.')}
                 className="px-2 py-0.5 rounded bg-white border border-gray-200 text-gray-700 hover:border-gray-400 whitespace-nowrap text-[10px]"
               >
-                !aligner-pricing
+                !bespoke-quote
               </button>
             </div>
 
@@ -1211,10 +1211,10 @@ export default function UnifiedInboxPage() {
               </div>
             </div>
 
-            {/* Customer Clinical / Brand Notes */}
+            {/* Customer CRM / Brand Notes */}
             <div className="space-y-1.5 pt-2 border-t border-gray-200">
               <span className="text-[10px] font-mono uppercase text-gray-400 font-bold block">
-                Clinical Context & Notes:
+                CRM Context & Client Notes:
               </span>
               <p className="p-2.5 rounded-[8px] bg-amber-50/50 border border-amber-200/50 text-amber-900 text-[11px] leading-relaxed">
                 {activeConversation.crmData.notes}
@@ -1273,7 +1273,7 @@ export default function UnifiedInboxPage() {
                 Automation, Keyword Flows & Smart Routing
               </h2>
               <p className="text-xs text-gray-500 max-w-2xl mt-0.5">
-                Automatically qualify leads, reply during off-hours, route high-value patients to specialists, and trigger WhatsApp utility templates without human delay.
+                Automatically qualify leads, reply during off-hours, route high-value inquiries to specialists, and trigger WhatsApp utility templates without human delay.
               </p>
             </div>
 
@@ -1381,7 +1381,7 @@ export default function UnifiedInboxPage() {
                 Customer Contacts & Omni-Channel Reachability
               </h2>
               <p className="text-xs text-gray-500">
-                Directory of verified patients, retail buyers, and leads across WhatsApp, Instagram, Messenger, and Email.
+                Directory of verified clients, retail buyers, and leads across WhatsApp, Instagram, Messenger, and Email.
               </p>
             </div>
 
@@ -1562,29 +1562,29 @@ export default function UnifiedInboxPage() {
               <div className="space-y-2.5 text-xs font-inter">
                 <div className="p-3 rounded-[10px] bg-gray-50 border border-gray-100">
                   <div className="flex items-center justify-between font-semibold text-gray-800">
-                    <span>Diwali Festive Smiles Broadcast</span>
+                    <span>Diwali Festive Prosperity Broadcast</span>
                     <span className="font-mono text-[#FF7A00]">44 Inquiries</span>
                   </div>
                   <div className="w-full h-1.5 bg-gray-200 rounded-full mt-2 overflow-hidden">
                     <div className="h-full bg-[#FF7A00] rounded-full" style={{ width: '68%' }} />
                   </div>
-                  <span className="text-[10px] text-gray-400 mt-1 block">Conversion: 18 Appointments booked</span>
+                  <span className="text-[10px] text-gray-400 mt-1 block">Conversion: 18 Studio Visits Booked</span>
                 </div>
 
                 <div className="p-3 rounded-[10px] bg-gray-50 border border-gray-100">
                   <div className="flex items-center justify-between font-semibold text-gray-800">
-                    <span>Instagram Reel: Sports Toothguard</span>
+                    <span>Instagram Reel: Scalable Artisan Weaves</span>
                     <span className="font-mono text-pink-600">22 Inquiries</span>
                   </div>
                   <div className="w-full h-1.5 bg-gray-200 rounded-full mt-2 overflow-hidden">
                     <div className="h-full bg-pink-500 rounded-full" style={{ width: '42%' }} />
                   </div>
-                  <span className="text-[10px] text-gray-400 mt-1 block">Conversion: 7 Emergency Walk-ins</span>
+                  <span className="text-[10px] text-gray-400 mt-1 block">Conversion: 7 Direct Wholesale Orders</span>
                 </div>
 
                 <div className="p-3 rounded-[10px] bg-gray-50 border border-gray-100">
                   <div className="flex items-center justify-between font-semibold text-gray-800">
-                    <span>Corporate Dental Wellness Newsletter</span>
+                    <span>Corporate Festive Gifting Newsletter</span>
                     <span className="font-mono text-amber-600">12 Inquiries</span>
                   </div>
                   <div className="w-full h-1.5 bg-gray-200 rounded-full mt-2 overflow-hidden">

@@ -42,10 +42,10 @@ const festivalPresets: FestivalPreset[] = [
     date: 'November 8, 2026',
     region: 'Pan-India',
     defaultPrimary: '#FF7A00',
-    headline: 'Light Up Smiles, Not Just Diyas ✨',
-    subheadline: 'Celebrate the festival of prosperity with preventive oral wellness and joyful family moments.',
-    caption: 'This Diwali, let your smile shine as bright as your home! 🪔✨ Between festive laddoos and family gatherings, remember to rinse after sweets and schedule your post-festival wellness checkup. Wishing everyone a prosperous, safe, and joyful Diwali from Dr. Sharma Clinics! 🪔✨',
-    hashtags: '#Diwali2026 #FestivalOfLights #HealthySmiles #DrSharmaClinics #Prosperity',
+    headline: 'Celebrate Festive Prosperity & Elegance ✨',
+    subheadline: 'Honoring festive traditions, artisan craftsmanship, and heartfelt gifts with our community.',
+    caption: 'This Diwali, let your celebrations glow brighter than ever! 🪔✨ Discover our festive collection crafted to bring joy, elegance, and enduring quality to your celebrations. Wishing everyone a prosperous, safe, and joyful Diwali from our team! 🪔✨',
+    hashtags: '#Diwali2026 #FestivalOfLights #FestiveCollection #MadeInIndia #Prosperity',
     bgGradient: 'from-[#0B0F14] via-[#2A1608] to-[#0B0F14]',
     badgeBg: 'bg-amber-500/20 border-amber-500/40 text-amber-300',
     badgeText: 'Diwali Festive Edition',
@@ -56,13 +56,13 @@ const festivalPresets: FestivalPreset[] = [
     date: 'March 4, 2026',
     region: 'Pan-India / North & West',
     defaultPrimary: '#EC4899',
-    headline: 'Protect Your Enamel This Holi 🎨',
-    subheadline: 'Simple pediatric tips to safeguard dental braces and fillings from harsh synthetic colors.',
-    caption: 'Celebrate Holi with vibrant colors, not stained smiles! 🎨✨ Before stepping out, hydrate well and apply lip moisturizer. For patients with aligners or braces, remember to rinse with clean water after playing. Wishing you a colorful, safe, and cheerful Holi!',
-    hashtags: '#Holi2026 #OrganicGulal #DentalCare #PediatricHealth #DrSharmaClinics',
+    headline: 'Vibrant Colors, Modern Indian Celebrations 🎨',
+    subheadline: 'Celebrate the joy of spring with authentic craftsmanship and festive seasonal releases.',
+    caption: 'Celebrate Holi with vibrant spirits and colorful moments! 🎨✨ Step into spring with our cheerful festive releases designed for the season of joy. Wishing you and your loved ones a safe, joyous, and bright Holi!',
+    hashtags: '#Holi2026 #FestivalOfColors #ModernIndian #FestiveJoy #SpringCelebration',
     bgGradient: 'from-[#0B0F14] via-[#2D0B22] to-[#0B0F14]',
     badgeBg: 'bg-pink-500/20 border-pink-500/40 text-pink-300',
-    badgeText: 'Holi Safety Guide',
+    badgeText: 'Holi Festive Edition',
   },
   {
     id: 'durga-puja',
@@ -70,10 +70,10 @@ const festivalPresets: FestivalPreset[] = [
     date: 'October 15, 2026',
     region: 'West Bengal & East India',
     defaultPrimary: '#BE123C',
-    headline: 'Celebrate Power & Vibrant Living 🌸',
-    subheadline: 'Subho Sharadiya! Honoring health, strength, and festive traditions with our community.',
-    caption: 'As the rhythmic beats of the Dhaak fill the autumn air and Maa Durga blesses us, we wish you and your family good health, prosperity, and joyous celebrations. Shubho Sharadiya from Dr. Sharma Dental! 🥁🌸',
-    hashtags: '#DurgaPuja2026 #ShubhoSharadiya #PandalHopping #FestiveSmiles #BengalFestivals',
+    headline: 'Celebrate Tradition & Heritage Elegance 🌸',
+    subheadline: 'Subho Sharadiya! Honoring cultural heritage, artisan weaves, and community blessings.',
+    caption: 'As the rhythmic beats of the Dhaak fill the autumn air and Maa Durga blesses us, we wish you and your family abundant happiness, good health, and prosperous celebrations. Shubho Sharadiya! 🥁🌸',
+    hashtags: '#DurgaPuja2026 #ShubhoSharadiya #FestiveHeritage #ArtisanWeaves #BengalFestivals',
     bgGradient: 'from-[#0B0F14] via-[#2B0A12] to-[#0B0F14]',
     badgeBg: 'bg-rose-500/20 border-rose-500/40 text-rose-300',
     badgeText: 'Sharad Utsav Edition',
@@ -84,10 +84,10 @@ const festivalPresets: FestivalPreset[] = [
     date: 'March 21, 2026',
     region: 'Pan-India & Global',
     defaultPrimary: '#059669',
-    headline: 'Wishing Peace & Joy This Eid 🌙',
-    subheadline: 'May this blessed occasion bring warmth, good health, and memorable sweet moments to your home.',
-    caption: 'Eid Mubarak to you and your loved ones! 🌙 Wishing you peace, good health, and endless happiness. Remember to smile brightly and cherish every moment together!',
-    hashtags: '#EidMubarak2026 #PeaceAndJoy #CommunityHealth #DrSharmaClinics',
+    headline: 'Wishing Peace, Joy & Warmth This Eid 🌙',
+    subheadline: 'May this blessed occasion bring happiness, prosperity, and memorable moments to your home.',
+    caption: 'Eid Mubarak to you and your loved ones! 🌙 Wishing you peace, good health, and endless happiness. Celebrate together with gratitude, generosity, and joy!',
+    hashtags: '#EidMubarak2026 #PeaceAndJoy #CommunityWarmth #FestiveCelebration',
     bgGradient: 'from-[#0B0F14] via-[#082218] to-[#0B0F14]',
     badgeBg: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300',
     badgeText: 'Eid Mubarak Broadcast',
@@ -99,32 +99,32 @@ const festivalPresets: FestivalPreset[] = [
     region: 'West Bengal & Tripura',
     defaultPrimary: '#EA580C',
     headline: 'Shubho Noboborsho 1433 🌿',
-    subheadline: 'A fresh start, a clean slate, and a healthier lifestyle for the auspicious new year.',
-    caption: 'Notun bochorer onek onek shubhechha! 🌿 May Noboborsho 1433 bring flourishing prosperity, sweet memories, and radiant wellness to your entire family. Shubho Noboborsho!',
-    hashtags: '#PoilaBoishakh #Noboborsho1433 #BengaliNewYear #HealthyLiving',
+    subheadline: 'A fresh beginning, renewed milestones, and prosperity for the auspicious new year.',
+    caption: 'Notun bochorer onek onek shubhechha! 🌿 May Noboborsho 1433 bring flourishing prosperity, memorable milestones, and joy to your entire family. Shubho Noboborsho!',
+    hashtags: '#PoilaBoishakh #Noboborsho1433 #BengaliNewYear #NewMilestones',
     bgGradient: 'from-[#0B0F14] via-[#2E1205] to-[#0B0F14]',
     badgeBg: 'bg-orange-500/20 border-orange-500/40 text-orange-300',
     badgeText: 'Noboborsho 1433',
   },
   {
-    id: 'doctors-day',
-    name: 'National Doctors\' Day',
-    date: 'July 1, 2026',
-    region: 'Pan-India Healthcare',
+    id: 'handloom-day',
+    name: 'National Handloom & Artisan Day',
+    date: 'August 7, 2026',
+    region: 'Pan-India Crafts',
     defaultPrimary: '#0284C7',
-    headline: 'Honoring Tireless Hands & Caring Hearts 🩺',
-    subheadline: 'Saluting the medical heroes who safeguard our communities with selfless dedication.',
-    caption: 'On National Doctors\' Day, we pay tribute to the visionary Dr. B.C. Roy and every clinician, nurse, and caregiver who dedicates their life to healing and protecting our nation. Thank you for your service! 🩺💙',
-    hashtags: '#DoctorsDay2026 #HealthcareHeroes #MedicalGratitude #PreventiveCare',
+    headline: 'Honoring Master Crafts & Made In India Pride 🧵',
+    subheadline: 'Celebrating the visionary artisans, creators, and independent businesses shaping our nation.',
+    caption: 'On National Handloom Day, we celebrate the incredible heritage, dedication, and timeless skill of Indian weavers and makers. When you support local enterprise, you preserve a living legacy. 🧵✨',
+    hashtags: '#HandloomDay2026 #MadeInIndia #VocalForLocal #ArtisanHeritage',
     bgGradient: 'from-[#0B0F14] via-[#091D2C] to-[#0B0F14]',
     badgeBg: 'bg-sky-500/20 border-sky-500/40 text-sky-300',
-    badgeText: 'Medical Hero Salute',
+    badgeText: 'Artisan Heritage Special',
   },
 ];
 
 export default function InteractiveFestivalGenerator() {
   const [selectedFestival, setSelectedFestival] = useState<FestivalPreset>(festivalPresets[1]); // Default Holi
-  const [businessName, setBusinessName] = useState('Dr. Sharma Dental Care');
+  const [businessName, setBusinessName] = useState('Sharma Heritage Handlooms & Retail');
   const [customHeadline, setCustomHeadline] = useState('');
   const [aspectRatio, setAspectRatio] = useState<'1:1' | '9:16'>('1:1');
   const [brandColor, setBrandColor] = useState('#FF7A00');
@@ -154,7 +154,7 @@ export default function InteractiveFestivalGenerator() {
           brandName: businessName,
           primaryColor: brandColor,
           phone: '+91 98301 24589',
-          website: 'drsharmadental.in',
+          website: 'sharmaheritage.in',
         }),
       });
       setRenderedSuccess(true);
@@ -395,7 +395,7 @@ export default function InteractiveFestivalGenerator() {
                 <div className="pt-3 border-t border-white/15 flex items-center justify-between text-[10px] text-gray-300 relative z-10 font-mono">
                   <div className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    <span>drsharmadental.in</span>
+                    <span>sharmaheritage.in</span>
                   </div>
                   <span>+91 98301 24589</span>
                 </div>

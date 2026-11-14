@@ -221,20 +221,20 @@ export async function ensureDemoUser(): Promise<{
   };
 }> {
   const database = db;
-  const demoEmail = 'dr.sharma@apexclinic.in';
+  const demoEmail = 'rajesh@sharmaheritage.in';
 
   if (!database) {
     return {
       user: {
         id: 'usr_demo_101',
-        name: 'Dr. Rajesh Sharma',
+        name: 'Rajesh Sharma',
         email: demoEmail,
-        role: 'Founder & Clinic Director',
+        role: 'Founder & Retail Director',
         emailVerified: true,
       },
       workspace: {
-        id: 'ws-apex-101',
-        name: 'Dr. Sharma Dental Clinics',
+        id: 'ws-sharma-101',
+        name: 'Sharma Heritage Retail & Studio',
         subscriptionTier: 'GROWTH',
         whatsappAdminPhone: '+919876543210',
       },
@@ -242,17 +242,30 @@ export async function ensureDemoUser(): Promise<{
   }
 
   // 1. Check if user already exists
-  let [demoUser] = await database.select().from(users).where(eq(users.email, demoEmail)).limit(1);
+  let [demoUser] = await database
+    .select()
+    .from(users)
+    .where(eq(users.email, demoEmail))
+    .limit(1);
+
+  // Backwards compat: if previously seeded under legacy email, find that too
+  if (!demoUser) {
+    [demoUser] = await database
+      .select()
+      .from(users)
+      .where(eq(users.email, 'dr.sharma@apexclinic.in'))
+      .limit(1);
+  }
 
   if (!demoUser) {
     const demoPasswordHash = hashPassword('DemoSharma2026!');
     [demoUser] = await database
       .insert(users)
       .values({
-        name: 'Dr. Rajesh Sharma',
+        name: 'Rajesh Sharma',
         email: demoEmail,
         passwordHash: demoPasswordHash,
-        role: 'Founder & Clinic Director',
+        role: 'Founder & Retail Director',
         emailVerified: true,
       })
       .returning();
@@ -269,7 +282,7 @@ export async function ensureDemoUser(): Promise<{
     [demoWorkspace] = await database
       .insert(workspaces)
       .values({
-        name: 'Dr. Sharma Dental Clinics',
+        name: 'Sharma Heritage Retail & Studio',
         ownerId: demoUser.id,
         subscriptionTier: 'GROWTH',
         whatsappAdminPhone: '+919876543210',
@@ -287,33 +300,33 @@ export async function ensureDemoUser(): Promise<{
   if (!existingProfile) {
     await database.insert(brandProfiles).values({
       workspaceId: demoWorkspace.id,
-      industry: 'Healthcare & Preventive Diagnostics',
-      websiteUrl: 'https://drsharmadental.in',
+      industry: 'Retail, Commerce & Professional Services',
+      websiteUrl: 'https://sharmaheritage.in',
       toneOfVoice: {
-        style: 'clinical_empathetic',
+        style: 'professional_warm',
         formality: 'semi-formal',
-        archetype: 'compassionate_caregiver',
+        archetype: 'trusted_craftsman_and_advisor',
         samplePhrases: [
-          'Empathetic & Caring',
-          'Clinically Authoritative',
-          'Jargon-Free',
-          'Culturally Warm (Indian Family Values)',
+          'Artisanal & Authentic',
+          'Customer-First & Transparent',
+          'Jargon-Free Clarity',
+          'Culturally Warm & Celebratory (Festivals & Milestones)',
         ],
       },
       visualIdentity: {
-        primaryHex: '#0D9488',
-        secondaryHex: '#0F172A',
-        accentHex: '#FF7A00',
+        primaryHex: '#0B0F14',
+        secondaryHex: '#FF7A00',
+        accentHex: '#10B981',
         fontFamily: 'Sora',
       },
       contentPillars: [
-        { name: 'Preventive Care', weight: 40, description: 'Early diagnosis and hygiene' },
-        { name: 'Patient Success Stories', weight: 30, description: 'Real testimonials and smiles' },
-        { name: 'Seasonal Health Advice', weight: 30, description: 'Festival & weather wellness' },
+        { name: 'Artisan Craft & Silk Heritage', weight: 40, description: 'Behind the scenes weaving and quality craft' },
+        { name: 'Customer Stories & Bespoke Styling', weight: 30, description: 'Real testimonials and festive wardrobes' },
+        { name: 'Festive Collections & Drops', weight: 30, description: 'Seasonal launches and volume gifting' },
       ],
       negativeConstraints: [
-        'Never prescribe medicine without an in-person physical clinical exam',
-        'Avoid scare tactics or exaggerated claims',
+        'Never denigrate competitors or publish unverified claims',
+        'Ensure all pricing and offers carry explicit validity terms',
       ],
     });
   }
@@ -323,7 +336,7 @@ export async function ensureDemoUser(): Promise<{
       id: demoUser.id,
       name: demoUser.name,
       email: demoUser.email,
-      role: demoUser.role || 'Founder & Clinic Director',
+      role: demoUser.role || 'Founder & Retail Director',
       emailVerified: demoUser.emailVerified ?? true,
     },
     workspace: {

@@ -168,16 +168,16 @@ export default function RedesignedHomePage() {
       script: 'Devanagari / English'
     },
     practice: {
-      name: 'Dr. Rajesh Sharma',
-      brand: 'Apex Healthcare & Dental Center',
+      name: 'Arjun Sen',
+      brand: 'Sen Studio & Architecture Practice',
       city: 'Kolkata & Delhi NCR',
-      niche: 'Healthcare Practice & Professional Services',
-      offerings: 'Preventive Healthcare • Clear Aligners • Consultations',
+      niche: 'Design Practice & Professional Services',
+      offerings: 'Bespoke Architecture • Commercial Interiors • Consultations',
       colors: ['#10B981', '#064E3B'],
-      sampleCampaign: 'Diwali Festive Care & Family Health Awareness',
+      sampleCampaign: 'Diwali Festive Spaces & Sustainable Living Showcase',
       attributedLeads: 42,
       attributedPipeline: '₹1,40,000',
-      indicQuote: 'शुभ दीपावली एवं स्वस्थ जीवन!',
+      indicQuote: 'शुभ दीपावली एवं सुख-समृद्धि!',
       script: 'Devanagari Script'
     },
     lifestyle: {

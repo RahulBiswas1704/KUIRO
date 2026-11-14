@@ -228,7 +228,7 @@ export default function ConnectedChannelsModal({
               <div>
                 <p className="font-semibold text-amber-200">Transactional ESP & DKIM Relay</p>
                 <p className="text-gray-400 text-[11px] mt-0.5">
-                  Sends clinic newsletters, patient reminders, and event announcements using authenticated domain credentials.
+                  Sends branded newsletters, customer drops, and promotional announcements using authenticated domain credentials.
                 </p>
               </div>
             </div>
@@ -250,11 +250,11 @@ export default function ConnectedChannelsModal({
                 onChange={(e) => setHandleOrId(e.target.value)}
                 placeholder={
                   activePlatform === 'instagram'
-                    ? '@drsharma.dental'
+                    ? '@sharmaheritage'
                     : activePlatform === 'linkedin'
                     ? 'urn:li:organization:8472910'
                     : activePlatform === 'x'
-                    ? '@sharmadental_in'
+                    ? '@sharmaheritage_in'
                     : activePlatform === 'whatsapp'
                     ? '+91 98301 24589'
                     : 'hello@kuiro.in'
