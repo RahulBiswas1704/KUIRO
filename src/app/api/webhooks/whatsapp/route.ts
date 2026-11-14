@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { inngest } from '@/lib/inngest/client';
-import { db, scheduledCampaigns, conversations, inboxMessages, workspaces, socialConnections } from '@/db';
+import { db, scheduledCampaigns, platformPosts, brandProfiles, conversations, inboxMessages, workspaces, socialConnections } from '@/db';
 import { eq, and, desc } from 'drizzle-orm';
-import { generateWithGemini } from '@/lib/ai/gemini';
+import { generateWithGemini, transcribeAudioWithGemini } from '@/lib/ai/gemini';
+import { reviseCampaignSurgically } from '@/lib/campaigns/reviser';
+import { whatsappClient } from '@/lib/whatsapp/client';
 import { publishInboxEvent } from '@/lib/inbox/eventHub';
 
 function normalizePhone(phone: string): string {
@@ -213,7 +215,38 @@ export async function POST(req: NextRequest) {
     } else if (messageType === 'audio' || messageType === 'voice') {
       isVoice = true;
       const mediaId = message.audio?.id || message.voice?.id;
-      messageContent = `[Voice Note received: ID ${mediaId || 'audio'}]`;
+      const inlineData = message.audio?.data || message.voice?.data;
+      const transcriptGiven = message.audio?.transcript || message.voice?.transcript;
+
+      if (inlineData) {
+        try {
+          const trans = await transcribeAudioWithGemini(inlineData, message.audio?.mime_type || 'audio/ogg');
+          messageContent = trans.transcript ? `[Voice Note: ${trans.transcript}]` : `[Voice Note received: ID ${mediaId || 'audio'}]`;
+        } catch (transErr) {
+          messageContent = `[Voice Note received: ID ${mediaId || 'audio'}]`;
+        }
+      } else if (transcriptGiven) {
+        messageContent = `[Voice Note: ${transcriptGiven}]`;
+      } else if (mediaId && process.env.WHATSAPP_ACCESS_TOKEN && !process.env.WHATSAPP_ACCESS_TOKEN.startsWith('mock')) {
+        try {
+          const mediaUrl = await whatsappClient.getMediaUrl(mediaId);
+          if (mediaUrl && !mediaUrl.includes('mock-media')) {
+            const audioRes = await fetch(mediaUrl, {
+              headers: { Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}` },
+            });
+            const audioBuffer = Buffer.from(await audioRes.arrayBuffer());
+            const trans = await transcribeAudioWithGemini(audioBuffer, message.audio?.mime_type || 'audio/ogg');
+            messageContent = `[Voice Note: ${trans.transcript}]`;
+          } else {
+            messageContent = `[Voice Note received: ID ${mediaId}]`;
+          }
+        } catch (mediaErr) {
+          console.warn('[WhatsApp Audio Media Retrieval Warning]:', mediaErr);
+          messageContent = `[Voice Note received: ID ${mediaId}]`;
+        }
+      } else {
+        messageContent = `[Voice Note received: ID ${mediaId || 'audio'}]`;
+      }
     } else {
       messageContent = `[Received ${messageType} attachment]`;
     }
@@ -296,6 +329,171 @@ export async function POST(req: NextRequest) {
         }
 
         if (targetWs) {
+          // Check if sender is the workspace admin
+          const isAdminSender =
+            targetWs.whatsappAdminPhone &&
+            normalizePhone(targetWs.whatsappAdminPhone) === normalizePhone(senderPhone);
+
+          // If Admin is messaging, check if there is an active AUTO_QUEUED campaign to approve, pause, or surgically revise
+          if (isAdminSender) {
+            const [pendingCamp] = await db
+              .select()
+              .from(scheduledCampaigns)
+              .where(
+                and(
+                  eq(scheduledCampaigns.workspaceId, targetWs.id),
+                  eq(scheduledCampaigns.status, 'AUTO_QUEUED')
+                )
+              )
+              .orderBy(desc(scheduledCampaigns.createdAt))
+              .limit(1);
+
+            if (pendingCamp) {
+              const cleanContent = messageContent.replace(/^\[Voice Note:\s*|\]$/g, '').trim();
+
+              // Check for quick Approval
+              const isApprove = /\b(approve|approved|haan|ha|publish|sahi hai|chalega|looks good|perfect|ok)\b/i.test(cleanContent);
+              if (isApprove) {
+                await db
+                  .update(scheduledCampaigns)
+                  .set({ status: 'APPROVED' })
+                  .where(eq(scheduledCampaigns.id, pendingCamp.id));
+
+                await safeSendInngest({
+                  name: 'whatsapp/admin.action',
+                  data: {
+                    action: 'APPROVE',
+                    campaignId: pendingCamp.id,
+                  },
+                });
+
+                await sendWhatsAppReply(
+                  senderPhone,
+                  `✅ *Campaign Approved!*\n\nYour campaign *"${pendingCamp.topicSummary}"* has been approved and entered the immediate publish queue.`
+                );
+
+                return NextResponse.json({
+                  status: 'admin_campaign_approved',
+                  campaignId: pendingCamp.id,
+                }, { status: 200 });
+              }
+
+              // Check for Emergency Pause
+              const isPause = /\b(pause|stop|ruk jao|hold|cancel|mat daalo|skip)\b/i.test(cleanContent);
+              if (isPause) {
+                await db
+                  .update(scheduledCampaigns)
+                  .set({ status: 'PAUSED' })
+                  .where(eq(scheduledCampaigns.id, pendingCamp.id));
+
+                await safeSendInngest({
+                  name: 'whatsapp/admin.action',
+                  data: {
+                    action: 'EMERGENCY_PAUSE',
+                    campaignId: pendingCamp.id,
+                  },
+                });
+
+                await sendWhatsAppReply(
+                  senderPhone,
+                  `🛑 *Emergency Pause Activated!*\n\nCampaign *"${pendingCamp.topicSummary}"* has been paused.`
+                );
+
+                return NextResponse.json({
+                  status: 'admin_campaign_paused',
+                  campaignId: pendingCamp.id,
+                }, { status: 200 });
+              }
+
+              // Otherwise treat as Surgical Voice / Text Revision
+              if (pendingCamp.revisionCount < 2) {
+                const existingPosts = await db
+                  .select()
+                  .from(platformPosts)
+                  .where(eq(platformPosts.campaignId, pendingCamp.id));
+
+                const [bp] = await db
+                  .select()
+                  .from(brandProfiles)
+                  .where(eq(brandProfiles.workspaceId, targetWs.id));
+
+                const revisionResult = await reviseCampaignSurgically({
+                  posts: existingPosts.map((p) => ({
+                    id: p.id,
+                    platform: p.platform as any,
+                    caption: p.captionText,
+                    firstComment: p.firstCommentText || undefined,
+                    subject: p.emailSubject || undefined,
+                    mediaUrls: p.mediaUrls,
+                    aspectRatio: p.aspectRatio,
+                  })),
+                  revisionPrompt: cleanContent,
+                  businessName: targetWs.name,
+                  industry: bp?.industry || 'General Commerce & Services',
+                  tones: (bp?.toneOfVoice?.samplePhrases as string[]) || ['Culturally Warm', 'Authoritative'],
+                  pillars: (bp?.contentPillars as any[])?.map((p) => p.name || p) || ['Core Offerings'],
+                  negativeConstraints: (bp?.negativeConstraints as string[]) || [],
+                });
+
+                const nextRevCount = pendingCamp.revisionCount + 1;
+                await db
+                  .update(scheduledCampaigns)
+                  .set({
+                    revisionCount: nextRevCount,
+                    status: 'AUTO_QUEUED',
+                  })
+                  .where(eq(scheduledCampaigns.id, pendingCamp.id));
+
+                for (const rev of revisionResult.revisedPosts) {
+                  const match = existingPosts.find((p) => p.platform === rev.platform);
+                  if (match) {
+                    await db
+                      .update(platformPosts)
+                      .set({
+                        captionText: rev.caption,
+                        firstCommentText: rev.firstComment !== undefined ? rev.firstComment : match.firstCommentText,
+                        emailSubject: rev.subject !== undefined ? rev.subject : match.emailSubject,
+                        emailHtml: rev.platform === 'email' ? rev.caption : match.emailHtml,
+                        aiCriticScore: rev.aiCriticScore,
+                      })
+                      .where(eq(platformPosts.id, match.id));
+                  }
+                }
+
+                await safeSendInngest({
+                  name: 'whatsapp/admin.action',
+                  data: {
+                    action: 'EDIT',
+                    instruction: cleanContent,
+                    campaignId: pendingCamp.id,
+                  },
+                });
+
+                await sendWhatsAppReply(
+                  senderPhone,
+                  `🎨 *Surgical Voice Revision Applied (${nextRevCount}/2)*\n\n${revisionResult.revisionSummary}\n\n*Composite Quality Score:* ${revisionResult.compositeCriticScore}/100\n\nPreview updated in dashboard! Reply *APPROVE* or send another voice note if you need further adjustments.`
+                );
+
+                return NextResponse.json({
+                  status: 'admin_campaign_revised',
+                  campaignId: pendingCamp.id,
+                  revisionSummary: revisionResult.revisionSummary,
+                  criticScore: revisionResult.compositeCriticScore,
+                }, { status: 200 });
+              } else {
+                await sendWhatsAppReply(
+                  senderPhone,
+                  `⚠️ *Maximum Revisions Reached*\n\nYou have used your 2 free revisions for campaign "${pendingCamp.topicSummary}". Please reply *APPROVE* to publish or *PAUSE* to cancel.`
+                );
+
+                return NextResponse.json({
+                  status: 'admin_max_revisions_reached',
+                  campaignId: pendingCamp.id,
+                }, { status: 200 });
+              }
+            }
+          }
+
           // Check for existing conversation with this customer
           let [conv] = await db
             .select()

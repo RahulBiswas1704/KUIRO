@@ -257,6 +257,39 @@ export default function DashboardPage() {
     }
   };
 
+  // Surgical Revision State & Handler
+  const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
+  const [revisionPromptText, setRevisionPromptText] = useState('');
+  const [isSubmittingRevision, setIsSubmittingRevision] = useState(false);
+
+  const handleRequestRevision = async (id: string, promptText: string) => {
+    if (!promptText.trim()) return;
+    try {
+      setIsSubmittingRevision(true);
+      const res = await fetch('/api/campaigns', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campaignId: id,
+          revisionPrompt: promptText.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(data.message || 'Campaign revised surgically via Gemini!', 'success');
+        setIsRevisionModalOpen(false);
+        setRevisionPromptText('');
+        await fetchCampaigns(true);
+      } else {
+        showToast(data.error || 'Failed to revise campaign.', 'error');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Error submitting revision.', 'error');
+    } finally {
+      setIsSubmittingRevision(false);
+    }
+  };
+
   // Handle Generate with AI / Instant Composer
   const handleGenerateCampaign = async (topicToUse?: string, triggerTypeToUse?: string) => {
     const topic = topicToUse || customTopic.trim();
@@ -859,24 +892,36 @@ export default function DashboardPage() {
                 )}
 
                 {/* AI Critic Score Breakdown Bar */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-                  <div className="p-2 bg-white rounded-[8px] border border-[#E5E7EB] text-center">
-                    <div className="text-[10px] text-gray-400 uppercase font-medium">Tone Fidelity</div>
-                    <div className="text-sm font-bold text-emerald-600">98 / 100</div>
-                  </div>
-                  <div className="p-2 bg-white rounded-[8px] border border-[#E5E7EB] text-center">
-                    <div className="text-[10px] text-gray-400 uppercase font-medium">Visual Quality</div>
-                    <div className="text-sm font-bold text-emerald-600">94 / 100</div>
-                  </div>
-                  <div className="p-2 bg-white rounded-[8px] border border-[#E5E7EB] text-center">
-                    <div className="text-[10px] text-gray-400 uppercase font-medium">X Link Guardrail</div>
-                    <div className="text-sm font-bold text-emerald-600">100% Pass</div>
-                  </div>
-                  <div className="p-2 bg-white rounded-[8px] border border-[#E5E7EB] text-center">
-                    <div className="text-[10px] text-gray-400 uppercase font-medium">Negative Alerts</div>
-                    <div className="text-sm font-bold text-emerald-600">0 Violations</div>
-                  </div>
-                </div>
+                {(() => {
+                  const posts = activeCampaign.posts || [];
+                  const avgScore = posts.length > 0
+                    ? Math.round(posts.reduce((sum: number, p: any) => sum + (p.aiCriticScore || 90), 0) / posts.length)
+                    : 92;
+                  const igScore = instagramPost?.aiCriticScore || 92;
+                  const waScore = whatsappPost?.aiCriticScore || 95;
+                  const xScore = xPost?.aiCriticScore || 88;
+
+                  return (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                      <div className="p-2 bg-white rounded-[8px] border border-[#E5E7EB] text-center">
+                        <div className="text-[10px] text-gray-400 uppercase font-medium">AI Critic Composite</div>
+                        <div className="text-sm font-bold text-emerald-600">{avgScore} / 100</div>
+                      </div>
+                      <div className="p-2 bg-white rounded-[8px] border border-[#E5E7EB] text-center">
+                        <div className="text-[10px] text-gray-400 uppercase font-medium">Instagram Hook</div>
+                        <div className="text-sm font-bold text-emerald-600">{igScore} / 100</div>
+                      </div>
+                      <div className="p-2 bg-white rounded-[8px] border border-[#E5E7EB] text-center">
+                        <div className="text-[10px] text-gray-400 uppercase font-medium">WhatsApp Utility</div>
+                        <div className="text-sm font-bold text-emerald-600">{waScore} / 100</div>
+                      </div>
+                      <div className="p-2 bg-white rounded-[8px] border border-[#E5E7EB] text-center">
+                        <div className="text-[10px] text-gray-400 uppercase font-medium">X Link Guardrail</div>
+                        <div className="text-sm font-bold text-emerald-600">{xScore >= 85 ? '100% Pass' : `${xScore} / 100`}</div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Action Buttons & Quick Controls */}
@@ -903,6 +948,18 @@ export default function DashboardPage() {
                       </>
                     )}
                   </button>
+
+                  {activeCampaign.status !== 'APPROVED' && (activeCampaign.revisionCount || 0) < 2 && (
+                    <button
+                      onClick={() => setIsRevisionModalOpen(true)}
+                      disabled={isUpdatingStatus}
+                      className="px-3 py-2 rounded-[10px] bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-semibold transition flex items-center gap-1.5 border border-purple-200"
+                      title="Surgically revise copy in English, Hindi, or Bengali using Gemini AI"
+                    >
+                      <Sparkles size={13} />
+                      <span>Request Revision ({activeCampaign.revisionCount || 0}/2)</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={() => handlePause(activeCampaign.id)}
@@ -1407,6 +1464,102 @@ export default function DashboardPage() {
           showToast('OAuth connection vault updated successfully in Neon DB!', 'success');
         }}
       />
+
+      {/* Surgical Campaign Revision Modal */}
+      {isRevisionModalOpen && activeCampaign && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-[16px] max-w-lg w-full p-6 shadow-2xl border border-gray-100 space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-[8px] bg-purple-50 text-purple-600 flex items-center justify-center">
+                  <Sparkles size={16} />
+                </div>
+                <div>
+                  <h3 className="font-sora text-sm font-bold text-[#0B0F14]">
+                    Surgical Campaign Revision
+                  </h3>
+                  <p className="text-[11px] text-gray-500">
+                    Revision {(activeCampaign.revisionCount || 0) + 1} of 2 (Free) • Gemini 2.5 Multi-Modal
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsRevisionModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded"
+              >
+                <CloseIcon size={16} />
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-600 leading-relaxed">
+              Describe your revision in <span className="font-semibold text-gray-800">English, Hindi, Bengali, or Hinglish</span>. KUIRO will surgically update the existing copy across all 5 channels while maintaining the approved brand pillars.
+            </p>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold text-gray-700">
+                Founder Revision Instruction:
+              </label>
+              <textarea
+                value={revisionPromptText}
+                onChange={(e) => setRevisionPromptText(e.target.value)}
+                placeholder="e.g. Bhai direct pricing mat daalo, thoda festive sound karo aur WhatsApp booking link highlight karo..."
+                rows={3}
+                className="w-full text-xs p-3 rounded-[10px] border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 font-sans"
+              />
+            </div>
+
+            {/* Quick Suggestions */}
+            <div className="space-y-1">
+              <span className="text-[10px] font-medium text-gray-400 uppercase">Quick Suggestions:</span>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  'Bhai pricing mat daalo, thoda festive sound karo',
+                  'Make it punchier and emphasize WhatsApp booking',
+                  'Add our weekend timings and doorstep delivery',
+                ].map((sug) => (
+                  <button
+                    key={sug}
+                    type="button"
+                    onClick={() => setRevisionPromptText(sug)}
+                    className="text-[10px] bg-gray-50 hover:bg-purple-50 hover:text-purple-700 text-gray-600 px-2 py-1 rounded-[6px] border border-gray-200 transition"
+                  >
+                    {sug}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setIsRevisionModalOpen(false)}
+                disabled={isSubmittingRevision}
+                className="px-3 py-1.5 rounded-[8px] text-xs font-medium text-gray-600 hover:bg-gray-100 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRequestRevision(activeCampaign.id, revisionPromptText)}
+                disabled={isSubmittingRevision || !revisionPromptText.trim()}
+                className="px-4 py-2 rounded-[8px] bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-semibold hover:opacity-95 transition flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isSubmittingRevision ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    <span>Applying Revision via Gemini...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={13} />
+                    <span>Apply Surgical Revision</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

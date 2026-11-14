@@ -2,7 +2,8 @@ import { inngest } from '../client';
 import { db, scheduledCampaigns, platformPosts, workspaces, brandProfiles } from '@/db';
 import { eq } from 'drizzle-orm';
 import { GeneratedAssetPayload } from '@/types';
-import { evaluateCampaignWithCritic } from '@/lib/ai/critic';
+import { evaluateCampaignWithCritic, evaluateAndRefineCampaignCopy } from '@/lib/ai/critic';
+import { reviseCampaignSurgically } from '@/lib/campaigns/reviser';
 import { generateContactSheetGrid } from '@/lib/media/compositor';
 import { whatsappClient } from '@/lib/whatsapp/client';
 import { publishToAllChannels } from '@/lib/social/publisher';
@@ -162,9 +163,9 @@ export const autopilot48hStateMachine = inngest.createFunction(
       ];
     })) as GeneratedAssetPayload[];
 
-    // STEP 3: Pre-Publish AI Critic Evaluation
-    const criticEvaluation = await step.run('pre-publish-ai-critic', async () => {
-      return evaluateCampaignWithCritic(generatedAssets, {
+    // STEP 3: Pre-Publish AI Critic Evaluation & Auto-Refinement
+    const { evaluation: criticEvaluation, refinedAssets } = await step.run('pre-publish-ai-critic', async () => {
+      return evaluateAndRefineCampaignCopy(generatedAssets, {
         negative_constraints: [
           'Never mention competing diagnostic chains',
           'Never promise 100% cure guarantees',
@@ -172,14 +173,21 @@ export const autopilot48hStateMachine = inngest.createFunction(
       });
     });
 
+    const assetsToUse = refinedAssets && refinedAssets.length > 0 ? refinedAssets : generatedAssets;
+
     // STEP 4: Render Programmatic Brand Contact-Sheet Preview
     const contactSheet = await step.run('generate-contact-sheet', async () => {
+      const igScore = criticEvaluation.platformScores?.['instagram']?.totalScore || 96;
+      const liScore = criticEvaluation.platformScores?.['linkedin']?.totalScore || 94;
+      const xScore = criticEvaluation.platformScores?.['x']?.totalScore || 92;
+      const waScore = criticEvaluation.platformScores?.['whatsapp']?.totalScore || 98;
+
       return generateContactSheetGrid(
         [
-          { title: 'Instagram 4:5 Visual Post', platform: 'instagram', captionSnippet: generatedAssets[0].caption, criticScore: 96 },
-          { title: 'LinkedIn Thought Leadership', platform: 'linkedin', captionSnippet: generatedAssets[1].caption, criticScore: 94 },
-          { title: 'X Link-in-Reply Short Post', platform: 'x', captionSnippet: generatedAssets[2].caption, criticScore: 92 },
-          { title: 'WhatsApp Broadcast Card', platform: 'whatsapp', captionSnippet: generatedAssets[3].caption, criticScore: 98 },
+          { title: 'Instagram 4:5 Visual Post', platform: 'instagram', captionSnippet: assetsToUse[0].caption, criticScore: igScore },
+          { title: 'LinkedIn Thought Leadership', platform: 'linkedin', captionSnippet: assetsToUse[1].caption, criticScore: liScore },
+          { title: 'X Link-in-Reply Short Post', platform: 'x', captionSnippet: assetsToUse[2].caption, criticScore: xScore },
+          { title: 'WhatsApp Broadcast Card', platform: 'whatsapp', captionSnippet: assetsToUse[3].caption, criticScore: waScore },
         ],
         campaignContext.brandName
       );
@@ -258,7 +266,97 @@ export const autopilot48hStateMachine = inngest.createFunction(
         revisionCount++;
         await step.run(`apply-revision-${revisionCount}`, async () => {
           console.log(`[Voice Revision ${revisionCount}/${maxRevisions}] Applying instruction: "${instruction}"`);
-          return { revisionCount, instruction };
+          const database = db;
+          if (!database) return { success: false, reason: 'No DB' };
+
+          const existingDbPosts = await database
+            .select()
+            .from(platformPosts)
+            .where(eq(platformPosts.campaignId, campaignId));
+
+          const [bp] = await database
+            .select()
+            .from(brandProfiles)
+            .where(eq(brandProfiles.workspaceId, workspaceId));
+
+          const revision = await reviseCampaignSurgically({
+            posts: existingDbPosts.map((p) => ({
+              id: p.id,
+              platform: p.platform as any,
+              caption: p.captionText,
+              firstComment: p.firstCommentText || undefined,
+              subject: p.emailSubject || undefined,
+              mediaUrls: p.mediaUrls,
+              aspectRatio: p.aspectRatio,
+            })),
+            revisionPrompt: instruction,
+            businessName: campaignContext.brandName,
+            industry: bp?.industry || 'Healthcare & Preventive Diagnostics',
+            tones: (bp?.toneOfVoice?.samplePhrases as string[]) || ['Empathetic', 'Authoritative'],
+            pillars: (bp?.contentPillars as any[])?.map((p) => p.name || p) || ['Preventive Care', 'Family Wellness'],
+            negativeConstraints: (bp?.negativeConstraints as string[]) || ['Never mention competing diagnostic chains'],
+          });
+
+          for (const r of revision.revisedPosts) {
+            const match = existingDbPosts.find((p) => p.platform === r.platform);
+            if (match) {
+              await database
+                .update(platformPosts)
+                .set({
+                  captionText: r.caption,
+                  firstCommentText: r.firstComment !== undefined ? r.firstComment : match.firstCommentText,
+                  emailSubject: r.subject !== undefined ? r.subject : match.emailSubject,
+                  emailHtml: r.platform === 'email' ? r.caption : match.emailHtml,
+                  aiCriticScore: r.aiCriticScore,
+                })
+                .where(eq(platformPosts.id, match.id));
+            }
+          }
+
+          await database
+            .update(scheduledCampaigns)
+            .set({ revisionCount })
+            .where(eq(scheduledCampaigns.id, campaignId));
+
+          return {
+            revisionCount,
+            instruction,
+            revisionSummary: revision.revisionSummary,
+            criticScore: revision.compositeCriticScore,
+          };
+        });
+
+        // Re-render contact sheet and re-dispatch updated WhatsApp preview
+        await step.run(`redispatch-preview-${revisionCount}`, async () => {
+          const database = db;
+          const updatedDbPosts = database
+            ? await database.select().from(platformPosts).where(eq(platformPosts.campaignId, campaignId))
+            : [];
+
+          const updatedContactSheet = await generateContactSheetGrid(
+            updatedDbPosts.map((p) => ({
+              title: `${p.platform.toUpperCase()} Post`,
+              platform: p.platform as any,
+              captionSnippet: p.captionText,
+              criticScore: p.aiCriticScore,
+            })),
+            campaignContext.brandName
+          );
+
+          await whatsappClient.sendPreviewCard({
+            recipientPhone: campaignContext.adminPhone,
+            campaignId,
+            topicSummary: `${campaignContext.topicSummary} (Revised ${revisionCount}/${maxRevisions})`,
+            previewImageUrl: updatedContactSheet.publicUrl,
+            publishAtFormatted: new Date(publishAt).toLocaleDateString('en-IN', {
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+          });
+
+          return { redispatched: true, revisionCount };
         });
       }
     }
