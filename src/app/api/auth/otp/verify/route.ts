@@ -13,22 +13,30 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, otp, type = 'MAGIC_LINK' } = body;
+    const { email, phone, identifier, otp, type = 'MAGIC_LINK', name, isSignup = false } = body;
 
-    if (!email || typeof email !== 'string' || !email.trim()) {
-      return NextResponse.json({ error: 'Email address is required.' }, { status: 400 });
+    const rawIdentifier = (email || phone || identifier || '').trim();
+    if (!rawIdentifier) {
+      return NextResponse.json({ error: 'Email address or phone number is required.' }, { status: 400 });
     }
 
     if (!otp || typeof otp !== 'string' || !otp.trim()) {
       return NextResponse.json({ error: '6-digit verification code is required.' }, { status: 400 });
     }
 
-    const cleanEmail = email.trim().toLowerCase();
+    // Normalize identifier
+    let cleanIdentifier = rawIdentifier.toLowerCase();
+    const isPhone = /^\+?[0-9\s\-()]{10,15}$/.test(rawIdentifier);
+    if (isPhone) {
+      const digits = rawIdentifier.replace(/[^0-9]/g, '');
+      cleanIdentifier = digits.length === 10 ? `+91${digits}` : `+${digits}`;
+    }
+
     const ipAddress = req.headers.get('x-forwarded-for') || undefined;
     const userAgent = req.headers.get('user-agent') || undefined;
 
     // Verify OTP Token
-    const verification = await verifyAndConsumeToken(cleanEmail, otp.trim(), type as any);
+    const verification = await verifyAndConsumeToken(cleanIdentifier, otp.trim(), type as any);
     if (!verification.valid) {
       return NextResponse.json(
         { error: verification.error || 'Invalid or expired verification code.' },
@@ -36,16 +44,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // If MAGIC_LINK type, establish authenticated session
-    if (type === 'MAGIC_LINK') {
+    // If MAGIC_LINK / OTP Login type, establish or create authenticated session
+    if (type === 'MAGIC_LINK' || type === 'EMAIL_VERIFICATION') {
       const database = db;
       if (!database) {
         return NextResponse.json({ error: 'Database service is unavailable.' }, { status: 503 });
       }
 
-      const [userRecord] = await database.select().from(users).where(eq(users.email, cleanEmail)).limit(1);
+      // Check user by email or phone email alias
+      const searchEmail = isPhone ? `${cleanIdentifier.replace(/[^0-9]/g, '')}@phone.kuiro.in` : cleanIdentifier;
+      let [userRecord] = await database.select().from(users).where(eq(users.email, searchEmail)).limit(1);
+
+      // If user doesn't exist, create user immediately for frictionless signup!
       if (!userRecord) {
-        return NextResponse.json({ error: 'No account found for this email address.' }, { status: 404 });
+        const displayName = (name || '').trim() || (isPhone ? `Founder (${cleanIdentifier.slice(-4)})` : cleanIdentifier.split('@')[0]);
+        [userRecord] = await database.insert(users).values({
+          name: displayName,
+          email: searchEmail,
+          emailVerified: true,
+          role: 'Founder',
+        }).returning();
+      } else if (!userRecord.emailVerified) {
+        await database.update(users).set({ emailVerified: true }).where(eq(users.id, userRecord.id));
       }
 
       let [workspaceRecord] = await database.select().from(workspaces).where(eq(workspaces.ownerId, userRecord.id)).limit(1);
@@ -54,6 +74,7 @@ export async function POST(req: NextRequest) {
           name: `${userRecord.name}'s Workspace`,
           ownerId: userRecord.id,
           subscriptionTier: 'GROWTH',
+          whatsappAdminPhone: isPhone ? cleanIdentifier : null,
         }).returning();
       }
 

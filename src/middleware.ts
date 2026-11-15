@@ -6,8 +6,6 @@ export const config = {
     '/dashboard/:path*',
     '/admin',
     '/admin/:path*',
-    '/get-started',
-    '/get-started/:path*',
   ],
 };
 
@@ -24,8 +22,8 @@ export function middleware(req: NextRequest) {
     }
   }
 
-  // 2. Client Dashboard & Onboarding Protection
-  if (pathname.startsWith('/dashboard') || pathname.startsWith('/get-started')) {
+  // 2. Client Dashboard Protection
+  if (pathname.startsWith('/dashboard')) {
     const sessionCookie = req.cookies.get('kuiro_session')?.value;
     if (!sessionCookie) {
       const loginUrl = new URL('/login', req.url);
