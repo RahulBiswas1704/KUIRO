@@ -8,6 +8,7 @@ import { generateWithGemini, transcribeAudioWithGemini } from '@/lib/ai/gemini';
 import { reviseCampaignSurgically } from '@/lib/campaigns/reviser';
 import { whatsappClient } from '@/lib/whatsapp/client';
 import { publishInboxEvent } from '@/lib/inbox/eventHub';
+import { ingestInboundMessage } from '@/lib/inbox/dispatchService';
 import {
   verifyMetaWebhookChallenge,
   verifyMetaSignature,
@@ -527,105 +528,22 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          // Check for existing conversation with this customer
-          let [conv] = await db
-            .select()
-            .from(conversations)
-            .where(
-              and(
-                eq(conversations.customerHandle, senderPhone),
-                eq(conversations.channel, 'whatsapp')
-              )
-            );
-
-          if (!conv) {
-            // Attribute lead to active or latest published campaign
-            const [latestCamp] = await db
-              .select()
-              .from(scheduledCampaigns)
-              .where(eq(scheduledCampaigns.workspaceId, targetWs.id))
-              .orderBy(desc(scheduledCampaigns.createdAt))
-              .limit(1);
-
-            const campaignSource = latestCamp ? latestCamp.topicSummary : 'WhatsApp Direct Lead';
-
-            // Create new conversation with campaign attribution
-            const [newConv] = await db
-              .insert(conversations)
-              .values({
-                workspaceId: targetWs.id,
-                channel: 'whatsapp',
-                customerName: contactName,
-                customerHandle: senderPhone,
-                status: 'OPEN',
-                priority: 'NORMAL',
-                lastMessageText: messageContent,
-                unreadCount: 1,
-                tags: ['WhatsApp Inbound', 'Attributed Lead'],
-                campaignSource,
-                crmData: {
-                  phone: senderPhone,
-                  patientOrClientType: 'Inbound Campaign Lead',
-                  totalSpend: '₹3,500 (Attributed)',
-                  notes: `Inbound customer inquiry attributed to: ${campaignSource}`,
-                },
-              })
-              .returning();
-            conv = newConv;
-          } else {
-            // Update existing conversation
-            await db
-              .update(conversations)
-              .set({
-                lastMessageText: messageContent,
-                unreadCount: (conv.unreadCount || 0) + 1,
-                updatedAt: new Date(),
-              })
-              .where(eq(conversations.id, conv.id));
-          }
-
-          if (conv) {
-            // Insert incoming message
-            const [newWaMsg] = await db.insert(inboxMessages).values({
-              conversationId: conv.id,
-              channel: 'whatsapp',
-              senderType: 'CUSTOMER',
-              senderName: contactName,
-              content: messageContent,
-              isInternalNote: false,
-              aiGenerated: false,
-            }).returning();
-
-            // Broadcast real-time SSE event to connected inbox agents
-            publishInboxEvent({
-              type: 'new_message',
-              workspaceId: targetWs.id,
-              conversationId: conv.id,
-              data: {
-                message: {
-                  id: newWaMsg?.id || `wa_${Date.now()}`,
-                  conversationId: conv.id,
-                  channel: 'whatsapp',
-                  sender: 'customer',
-                  senderName: contactName,
-                  content: messageContent,
-                  timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                  status: 'delivered',
-                  isInternalNote: false,
-                },
-                conversation: {
-                  id: conv.id,
-                  customerName: contactName,
-                  customerHandle: senderPhone,
-                  channel: 'whatsapp',
-                  lastMessage: messageContent,
-                  lastMessageTime: 'Just now',
-                  unreadCount: (conv.unreadCount || 0) + 1,
-                  status: 'open',
-                },
-              },
-            });
-          }
+          // Ingest inbound customer message into Unified Omni-Channel Inbox via dispatchService
+          await ingestInboundMessage({
+            workspaceId: targetWs.id,
+            channel: 'whatsapp',
+            customerHandle: senderPhone,
+            customerName: contactName,
+            content: messageContent,
+            providerMessageId: message.id || `wa_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+            messageType: isVoice ? 'audio' : 'text',
+            metadata: {
+              rawMessageId: message.id,
+              timestamp: message.timestamp,
+              type: message.type,
+              isVoiceNote: isVoice,
+            },
+          });
         }
       } catch (dbErr) {
         console.error('[WhatsApp DB Save Error]:', dbErr);

@@ -26,7 +26,13 @@ export interface InboxMessage {
   content: string;
   timestamp: string;
   isInternalNote?: boolean;
-  status?: 'sent' | 'delivered' | 'read';
+  status?: 'sent' | 'delivered' | 'read' | 'failed';
+  providerMessageId?: string;
+  deliveryStatus?: 'queued' | 'sent' | 'delivered' | 'read' | 'failed';
+  messageType?: string;
+  deliveryError?: string;
+  readState?: boolean;
+  metadata?: any;
   attachments?: {
     type: 'image' | 'document' | 'audio';
     url: string;
@@ -47,6 +53,9 @@ export interface Conversation {
   unreadCount: number;
   lastMessage: string;
   lastMessageTime: string;
+  lastCustomerMessageAt?: string;
+  windowExpiresAt?: string;
+  isWindowOpen?: boolean; // 24-hour customer service window status
   assignedTo?: string; // TeamMember id
   tags: string[];
   sentiment: 'positive' | 'neutral' | 'urgent';

@@ -315,6 +315,8 @@ export const conversations = pgTable('conversations', {
   }>(),
   lastMessageText: text('last_message_text').notNull(),
   unreadCount: integer('unread_count').default(0).notNull(),
+  lastCustomerMessageAt: timestamp('last_customer_message_at', { withTimezone: true }),
+  windowExpiresAt: timestamp('window_expires_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -330,6 +332,13 @@ export const inboxMessages = pgTable('inbox_messages', {
   }).notNull(),
   senderName: text('sender_name'),
   content: text('content').notNull(),
+  providerMessageId: text('provider_message_id'),
+  deliveryStatus: text('delivery_status', {
+    enum: ['queued', 'sent', 'delivered', 'read', 'failed']
+  }).default('delivered').notNull(),
+  messageType: text('message_type').default('text').notNull(),
+  deliveryError: text('delivery_error'),
+  readState: boolean('read_state').default(false).notNull(),
   isInternalNote: boolean('is_internal_note').default(false).notNull(),
   aiGenerated: boolean('ai_generated').default(false).notNull(),
   attachments: jsonb('attachments').$type<Array<{
@@ -337,6 +346,7 @@ export const inboxMessages = pgTable('inbox_messages', {
     url: string;
     title?: string;
   }>>(),
+  metadata: jsonb('metadata'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
