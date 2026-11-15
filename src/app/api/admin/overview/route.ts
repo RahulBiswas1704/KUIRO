@@ -191,6 +191,13 @@ export async function GET(req: NextRequest) {
           status: outboxTelemetry.queueHealth === 'FALLBACK_ACTIVE' ? 'FALLBACK_ACTIVE' : process.env.INNGEST_EVENT_KEY ? 'OPERATIONAL' : 'LOCAL_OUTBOX',
           scheduler: `48h Durable Loop • ${outboxTelemetry.totalDispatched} dispatched (${outboxTelemetry.pendingOutboxCount} queued)`,
         },
+        storage: {
+          name: storageHealth.provider === 'neon' ? 'Neon Object Storage Media Vault' : storageHealth.provider === 'r2' ? 'Cloudflare R2 Media Vault' : 'Local Storage Fallback',
+          status: storageHealth.status === 'HEALTHY' ? 'OPERATIONAL' : storageHealth.status === 'DEGRADED' ? 'DEGRADED' : 'FALLBACK_LOCAL',
+          bucket: storageHealth.bucket || 'kuiro-media',
+          provider: storageHealth.provider,
+          latencyMs: storageHealth.latencyMs,
+        },
         cloudflareR2: {
           status: storageHealth.status === 'HEALTHY' ? 'OPERATIONAL' : storageHealth.status === 'DEGRADED' ? 'DEGRADED' : 'FALLBACK_LOCAL',
           bucket: storageHealth.bucket || 'kuiro-media',

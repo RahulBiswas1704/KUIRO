@@ -60,6 +60,7 @@ interface SystemHealth {
   geminiAi: { status: string; model: string };
   whatsappCloud: { status: string; graphApiVersion: string; phoneId: string };
   inngestEngine: { status: string; scheduler: string };
+  storage?: { name: string; status: string; bucket: string; provider: string; latencyMs?: number };
   cloudflareR2: { status: string; bucket: string };
   resendEmail: { status: string; from: string };
 }
@@ -982,10 +983,10 @@ export default function AdminPage() {
                     color: 'emerald',
                   },
                   {
-                    name: 'Cloudflare R2 Media Vault',
-                    status: health?.cloudflareR2.status || 'OPERATIONAL',
-                    desc: `Bucket: ${health?.cloudflareR2.bucket || 'kuiro-media'}`,
-                    meta: 'S3-Compatible High-DPI CDN',
+                    name: health?.storage?.name || (health?.storage?.provider === 'neon' ? 'Neon Object Storage Media Vault' : 'Cloud Media Vault'),
+                    status: health?.storage?.status || health?.cloudflareR2?.status || 'OPERATIONAL',
+                    desc: `Bucket: ${health?.storage?.bucket || health?.cloudflareR2?.bucket || 'kuiro-media'}`,
+                    meta: health?.storage?.provider === 'neon' ? 'Neon Lakebase S3 Media Vault' : 'S3-Compatible High-DPI CDN',
                     color: 'blue',
                   },
                   {

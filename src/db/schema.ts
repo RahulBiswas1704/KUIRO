@@ -331,7 +331,7 @@ export const platformPosts = pgTable('platform_posts', {
   firstCommentText: text('first_comment_text'), // Holds external link for X to avoid link surcharge
   emailSubject: text('email_subject'),
   emailHtml: text('email_html'),
-  mediaUrls: text('media_urls').array().default([]).notNull(), // Cloudflare R2 public URLs
+  mediaUrls: text('media_urls').array().default([]).notNull(), // S3 / Neon Object Storage public URLs
   aspectRatio: text('aspect_ratio').default('4:5').notNull(), // 4:5, 1:1, 16:9, 9:16
   aiCriticScore: integer('ai_critic_score').default(90).notNull(), // 0-100 rubric score
   platformPostId: text('platform_post_id'),

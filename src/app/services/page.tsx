@@ -136,7 +136,7 @@ export default function ServicesPage() {
         'Multi-aspect ratio generation: 1:1 Feed square, 4:5 LinkedIn carousel, 9:16 vertical stories/reels',
         'Dynamic XML entity sanitization (safely handles & in brand names like "Roy & Sons")',
         '2x2 and 3x2 composite contact sheets for instant single-message WhatsApp previews',
-        'Instant Cloudflare R2 asset storage with edge CDN delivery and WebP compression'
+        'Instant Neon Lakebase S3 asset storage with edge CDN delivery and WebP compression'
       ],
       workflowSteps: [
         { step: '01', title: 'Canvas Base', desc: 'Generate high-aesthetic, text-free luxury background canvas' },
@@ -147,7 +147,7 @@ export default function ServicesPage() {
         { label: 'Rendering Core', value: 'Satori (JSX to SVG) + Sharp (SVG to WebP)' },
         { label: 'Font Engine', value: 'Google Noto Sans Indic Series (OTF/TTF)' },
         { label: 'Script Support', value: 'Devanagari, Bengali, Tamil, Kannada, Telugu' },
-        { label: 'CDN Storage', value: 'Cloudflare R2 (S3-Compatible Object Store)' }
+        { label: 'CDN Storage', value: 'Neon Lakebase (S3-Compatible Object Store)' }
       ]
     },
     whatsapp: {
@@ -588,7 +588,7 @@ export default function ServicesPage() {
             </div>
             <h3 className="text-base font-sora font-bold text-white">Programmatic Indic Studio Compositing</h3>
             <p className="text-xs text-slate-300 font-inter leading-relaxed">
-              Satori and Sharp composite high-DPI visuals across 1:1, 4:5, and 9:16 aspect ratios. Devanagari, Bengali, or Tamil typography is pre-shaped with zero ligature clipping and uploaded to Cloudflare R2 edge storage.
+              Satori and Sharp composite high-DPI visuals across 1:1, 4:5, and 9:16 aspect ratios. Devanagari, Bengali, or Tamil typography is pre-shaped with zero ligature clipping and uploaded to Neon Lakebase S3-compatible storage.
             </p>
             <div className="pt-2 flex items-center gap-2 text-[11px] font-mono text-slate-400">
               <CheckCheck size={13} className="text-emerald-400" />
@@ -907,7 +907,7 @@ export default function ServicesPage() {
             </span>
             <span className="px-3 py-1.5 rounded-lg bg-[#11141A] border border-white/5 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span>Cloudflare R2 CDN</span>
+              <span>Neon S3 Storage</span>
             </span>
             <span className="px-3 py-1.5 rounded-lg bg-[#11141A] border border-white/5 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-400" />

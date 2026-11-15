@@ -192,7 +192,7 @@ export default function PrivacyPolicyPage() {
               <li><strong>Encryption in Transit:</strong> All data transmissions between your browser, our servers, WhatsApp, and third-party APIs are encrypted with TLS 1.3 and HTTPS.</li>
               <li><strong>Encryption at Rest:</strong> All database records, vector embeddings, and media files are encrypted at rest using AES-256.</li>
               <li><strong>Neon Serverless PostgreSQL:</strong> High-security cloud PostgreSQL with strict Row-Level Security (RLS) ensuring strict isolation between tenant workspaces.</li>
-              <li><strong>Cloudflare R2 Object Storage:</strong> Media assets, 1080p TV graphics, and 1-Click Creative Kit ZIP archives are stored in encrypted S3-compatible buckets with fine-grained access controls.</li>
+              <li><strong>Neon Lakebase / S3 Object Storage:</strong> Media assets, 1080p TV graphics, and 1-Click Creative Kit ZIP archives are stored in encrypted S3-compatible buckets with fine-grained access controls.</li>
               <li><strong>OAuth Token Security:</strong> Social media tokens are stored using salted key encryption and refreshed automatically via official platform protocols.</li>
             </ul>
           </section>
