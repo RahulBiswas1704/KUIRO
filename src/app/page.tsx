@@ -176,8 +176,6 @@ export default function ZorchaInspiredHomePage() {
       {/* Floating Glassmorphic Navbar (Zorcha Inspired) */}
       <Navbar
         activeRoute="home"
-        badgeText="Meta API v21.0 Verified"
-        statusText="WhatsApp Bridge Active"
       />
 
       {/* =========================================================================

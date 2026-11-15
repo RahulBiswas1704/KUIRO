@@ -30,8 +30,8 @@ export interface NavbarProps {
 
 export default function Navbar({
   activeRoute = 'home',
-  badgeText = 'AI Marketing Co-Pilot',
-  statusText = 'Channels Online',
+  badgeText = '',
+  statusText = '',
   rightContent,
   className = '',
 }: NavbarProps) {
