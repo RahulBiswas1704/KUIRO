@@ -105,12 +105,12 @@ export default function CalendarPage() {
     }
   };
 
-  // Trigger 48h daily cultural radar cron scan across Neon DB
+  // Trigger 48h cultural radar scan for current workspace
   const handleScanRadar = async () => {
     setIsScanningRadar(true);
-    setTestRunNotice('Running 48h Cultural Radar Scan across all active workspaces in Neon DB...');
+    setTestRunNotice('Running 48h Cultural Radar Scan for your workspace in Neon DB...');
     try {
-      const res = await fetch('/api/calendar/cron-trigger', {
+      const res = await fetch('/api/calendar/radar-scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });

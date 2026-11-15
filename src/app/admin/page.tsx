@@ -563,7 +563,7 @@ export default function AdminPage() {
   const handleTriggerRadarSweep = async () => {
     try {
       showToast('Initiating 48-Hour Radar sweep across all workspaces...');
-      const res = await fetch('/api/calendar/cron-trigger', { method: 'POST' });
+      const res = await fetch('/api/admin/calendar/sweep', { method: 'POST' });
       const data = await res.json();
       if (res.ok) {
         const autoCount = data.autoCommitted?.length || 0;
