@@ -693,6 +693,18 @@ export async function POST(req: NextRequest) {
       insertedPosts.push(created);
     }
 
+    // Persist structured critic evaluation & content version hash into diagnostic metadata
+    await database
+      .update(scheduledCampaigns)
+      .set({
+        diagnosticMetadata: {
+          structuredCriticEvaluation: evaluation.structuredEvaluation,
+          contentVersionHash: evaluation.structuredEvaluation?.contentVersionHash,
+          evaluatedAt: evaluation.structuredEvaluation?.evaluatedAt,
+        },
+      })
+      .where(eq(scheduledCampaigns.id, newCamp.id));
+
     // 5. Trigger Inngest Durable Workflow via Resilient Dispatcher
     await safeDispatchInngest({
       name: 'kuiro/campaign.initiate',
@@ -848,6 +860,11 @@ export async function PATCH(req: NextRequest) {
           revisionCount: nextRevisionCount,
           status: 'REVIEW_PENDING', // reset to review pending with fresh revision
           publishAt: lateRevisionResult.newPublishAt || camp.publishAt,
+          diagnosticMetadata: {
+            structuredCriticEvaluation: revisionResult.structuredEvaluation,
+            contentVersionHash: revisionResult.structuredEvaluation?.contentVersionHash,
+            evaluatedAt: revisionResult.structuredEvaluation?.evaluatedAt,
+          },
         })
         .where(eq(scheduledCampaigns.id, campaignId))
         .returning();
@@ -891,6 +908,7 @@ export async function PATCH(req: NextRequest) {
         message: revisionResult.revisionSummary || `Campaign revised successfully based on: "${revisionPrompt}"`,
         revisionSummary: revisionResult.revisionSummary,
         criticScore: revisionResult.compositeCriticScore,
+        structuredEvaluation: revisionResult.structuredEvaluation,
         revisionCount: nextRevisionCount,
         campaign: {
           ...updatedCamp,

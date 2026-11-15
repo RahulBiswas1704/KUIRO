@@ -1,5 +1,5 @@
 import { generateWithGemini } from '@/lib/ai/gemini';
-import { evaluateAndRefineCampaignCopy } from '@/lib/ai/critic';
+import { evaluateAndRefineCampaignCopy, StructuredCriticEvaluation } from '@/lib/ai/critic';
 import { GeneratedAssetPayload } from '@/types';
 
 export interface PostToRevise {
@@ -35,6 +35,7 @@ export interface SurgicalRevisionResult {
   revisedPosts: RevisedPostOutput[];
   revisionSummary: string;
   compositeCriticScore: number;
+  structuredEvaluation?: StructuredCriticEvaluation;
 }
 
 /**
@@ -314,5 +315,6 @@ Return a raw JSON object only (no markdown, no backticks):
     revisedPosts: revisedOutputs,
     revisionSummary: summary,
     compositeCriticScore: evaluation.overallScore100,
+    structuredEvaluation: evaluation.structuredEvaluation,
   };
 }

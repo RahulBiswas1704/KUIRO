@@ -371,10 +371,15 @@ export async function createAutonomousCampaign(params: {
       workspaceId: ws.id,
       triggerType,
       topicSummary: topic.trim(),
-      status: 'AUTO_QUEUED',
+      status: 'REVIEW_PENDING',
       revisionCount: 0,
       generateAt: now,
-      publishAt: publishAt,
+      publishAt: targetPublishAt || new Date(Date.now() + 48 * 3600 * 1000),
+      diagnosticMetadata: {
+        structuredCriticEvaluation: evaluation.structuredEvaluation,
+        contentVersionHash: evaluation.structuredEvaluation?.contentVersionHash,
+        evaluatedAt: evaluation.structuredEvaluation?.evaluatedAt,
+      },
     })
     .returning();
 

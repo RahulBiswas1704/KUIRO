@@ -287,6 +287,24 @@ export const autopilot48hStateMachine = inngest.createFunction(
 
       if (remainingMs <= 0) {
         // Timer elapsed!
+        const isCriticApproved = criticEvaluation.approved !== false;
+        if (!isCriticApproved) {
+          // Quality / Compliance Guardrail: Do NOT auto-publish unapproved content!
+          await transitionCampaignState({
+            campaignId,
+            targetState: 'PAUSED',
+            workspaceId,
+            reason: `Auto-commit blocked by AI Critic: Content flagged for compliance or quality issues (${criticEvaluation.issues?.length || 0} issues). Explicit human approval required.`,
+            metadata: {
+              criticEvaluation: criticEvaluation.structuredEvaluation,
+            },
+          });
+          return {
+            status: 'PAUSED',
+            message: 'Auto-commit held pending manual founder review due to AI Critic compliance/quality flags.',
+          };
+        }
+
         if (campaignContext.autoCommitEnabled) {
           currentStatus = 'READY_TO_PUBLISH';
           await transitionCampaignState({
@@ -319,6 +337,23 @@ export const autopilot48hStateMachine = inngest.createFunction(
 
       if (!adminAction) {
         // Timeout reached!
+        const isCriticApproved = criticEvaluation.approved !== false;
+        if (!isCriticApproved) {
+          await transitionCampaignState({
+            campaignId,
+            targetState: 'PAUSED',
+            workspaceId,
+            reason: `Auto-commit blocked by AI Critic: Content flagged for compliance or quality issues (${criticEvaluation.issues?.length || 0} issues). Explicit human approval required.`,
+            metadata: {
+              criticEvaluation: criticEvaluation.structuredEvaluation,
+            },
+          });
+          return {
+            status: 'PAUSED',
+            message: 'Auto-commit held pending manual founder review due to AI Critic compliance/quality flags.',
+          };
+        }
+
         if (campaignContext.autoCommitEnabled) {
           currentStatus = 'READY_TO_PUBLISH';
           await transitionCampaignState({

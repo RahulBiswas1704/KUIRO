@@ -112,3 +112,39 @@ export interface GeneratedAssetPayload {
     cta: number;
   };
 }
+
+// 8. Six-Dimension Structured AI Critic Evaluation Types
+export interface CriticDimensionScores {
+  brandFidelity: number;      // 0-100: Does content follow Brand Brain?
+  culturalRelevance: number;  // 0-100: Are cultural/regional references accurate and respectful?
+  platformFit: number;        // 0-100: Does it suit platform formatting & unit economics?
+  conversionPotential: number;// 0-100: Clear business objective & compelling CTA?
+  languageQuality: number;    // 0-100: Clear, natural, grammatical, no corporate buzzwords?
+  safetyCompliance: number;   // 0-100: Avoids prohibited or risky claims?
+}
+
+export type CriticIssueSeverity = 'low' | 'medium' | 'high' | 'critical';
+export type CriticIssueCategory = 'brand' | 'cultural' | 'platform' | 'conversion' | 'language' | 'safety' | 'compliance';
+
+export interface CriticIssue {
+  severity: CriticIssueSeverity;
+  category: CriticIssueCategory;
+  message: string;
+  platform?: string;
+}
+
+export interface StructuredEvaluationResult {
+  overallScore: number;       // 0-100 composite score
+  scores: CriticDimensionScores;
+  issues: CriticIssue[];
+  approved: boolean;          // true if overallScore >= 80, no critical/high issues, deterministic safety passes
+  suggestedImprovements: string[];
+  contentVersionHash?: string;
+  evaluatedAt?: string;
+  platformBreakdown?: Record<string, {
+    score: number;
+    passed: boolean;
+    issues: CriticIssue[];
+    suggestedRefinement?: string;
+  }>;
+}
