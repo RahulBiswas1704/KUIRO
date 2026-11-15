@@ -222,7 +222,7 @@ export default function ZorchaInspiredHomePage() {
               className="flex items-center justify-center bg-[#10141F]/80 hover:bg-white/[0.08] text-slate-200 font-semibold rounded-2xl px-6 py-3.5 border border-white/10 hover:border-white/20 transition backdrop-blur-xl text-sm"
             >
               <Smartphone size={16} className="text-emerald-400 mr-2" />
-              <span>See WhatsApp Interactive Demo</span>
+              <span>See How It Works</span>
             </a>
           </div>
 
@@ -918,13 +918,13 @@ export default function ZorchaInspiredHomePage() {
             </button>
 
             <a
-              href="https://wa.me/919876543210?text=Hi%20KUIRO%20Team%2C%20show%20me%20a%20live%20WhatsApp%20approval%20demo"
+              href="https://wa.me/919876543210?text=Hi%20KUIRO%20Team%2C%20I%20would%20like%20to%20learn%20more%20about%20autonomous%20marketing"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center bg-[#10141F] hover:bg-white/[0.08] text-slate-200 font-semibold rounded-2xl px-6 py-4 border border-white/10 transition text-sm"
             >
               <Smartphone size={16} className="text-emerald-400 mr-2" />
-              <span>WhatsApp Live Demo (+91 98765 43210)</span>
+              <span>Connect on WhatsApp (+91 98765 43210)</span>
             </a>
           </div>
         </div>

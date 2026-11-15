@@ -18,11 +18,10 @@ export async function GET(req: NextRequest) {
     }
 
     if (!db) {
-      return NextResponse.json({
-        success: true,
-        source: 'mock',
-        data: null,
-      });
+      return NextResponse.json(
+        { success: false, error: 'Database service is currently unavailable.' },
+        { status: 503 }
+      );
     }
 
     const wsId = auth.workspaceId!;

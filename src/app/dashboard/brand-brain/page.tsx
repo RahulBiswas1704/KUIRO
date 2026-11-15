@@ -113,7 +113,7 @@ export default function BrandBrainPage() {
       const res = await fetch('/api/brand-brain/extract', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: targetUrl, workspaceId: 'ws-demo' }),
+        body: JSON.stringify({ url: targetUrl }),
       });
       const data = await res.json();
 

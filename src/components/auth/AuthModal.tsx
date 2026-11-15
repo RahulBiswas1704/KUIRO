@@ -24,7 +24,6 @@ export default function AuthModal() {
     closeAuthModal,
     login,
     signup,
-    loginDemoUser,
   } = useAuth();
 
   const [email, setEmail] = useState('');
@@ -69,18 +68,6 @@ export default function AuthModal() {
       }
     } catch (err: unknown) {
       setErrorMessage(err instanceof Error ? err.message : 'Authentication failed. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDemoLogin = async () => {
-    setErrorMessage('');
-    setIsSubmitting(true);
-    try {
-      await loginDemoUser();
-    } catch (err: unknown) {
-      setErrorMessage(err instanceof Error ? err.message : 'Demo sign in failed. Database unavailable.');
     } finally {
       setIsSubmitting(false);
     }
@@ -161,31 +148,6 @@ export default function AuthModal() {
             Sign In
           </button>
         </div>
-
-        {/* 1-Click Fast Demo Sign In Pill (Highlighted for immediate test drive) */}
-        {authModalMode === 'login' && (
-          <button
-            type="button"
-            onClick={handleDemoLogin}
-            disabled={isSubmitting}
-            className="w-full p-3 rounded-[12px] bg-gradient-to-r from-emerald-950/60 to-[#121A15] border border-emerald-500/40 hover:border-emerald-500/80 text-left transition flex items-center justify-between group disabled:opacity-50"
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                <Zap size={15} />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-white group-hover:text-emerald-300 transition">
-                  1-Click Demo Login
-                </p>
-                <p className="text-[10px] text-emerald-400/80">
-                  Dr. Sharma Dental Clinics (Pre-configured Workspace)
-                </p>
-              </div>
-            </div>
-            <ArrowRight size={14} className="text-emerald-400 group-hover:translate-x-1 transition" />
-          </button>
-        )}
 
         {/* Error Alert if any */}
         {errorMessage && (

@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               hasCompletedOnboarding: true,
               role: data.user.role || 'Founder',
               emailVerified: data.user.emailVerified,
-              isDemo: !!data.user.isDemo,
+              isDemo: false,
             };
             setUser(verifiedUser);
             setIsLoading(false);

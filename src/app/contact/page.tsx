@@ -423,7 +423,7 @@ export default function ContactPage() {
                   >
                     <option value="WhatsApp Message (Fastest)">WhatsApp Message (Fastest • Avg &lt; 15 mins)</option>
                     <option value="Phone Call">Phone Call from a Solutions Engineer</option>
-                    <option value="Google Meet Live Demo">Google Meet Screen-Share Demo</option>
+                    <option value="Google Meet Consultation">Google Meet Strategy &amp; Setup Session</option>
                     <option value="Email Response">Email Response</option>
                   </select>
                 </div>

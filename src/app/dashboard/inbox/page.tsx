@@ -102,7 +102,7 @@ const teamMembers: TeamMember[] = [
 const initialConversations: Conversation[] = [
   {
     id: 'conv-1',
-    workspaceId: 'ws-demo',
+    workspaceId: 'ws-live',
     customerName: 'Ananya Mukherjee',
     customerHandle: '+91 98312 44589',
     channel: 'whatsapp',
@@ -174,7 +174,7 @@ const initialConversations: Conversation[] = [
   },
   {
     id: 'conv-2',
-    workspaceId: 'ws-demo',
+    workspaceId: 'ws-live',
     customerName: 'Rohit Verma',
     customerHandle: '@rohit_founder',
     channel: 'instagram',
@@ -236,7 +236,7 @@ const initialConversations: Conversation[] = [
   },
   {
     id: 'conv-3',
-    workspaceId: 'ws-demo',
+    workspaceId: 'ws-live',
     customerName: 'Meera Deshmukh',
     customerHandle: 'meera.deshmukh@tcs.com',
     channel: 'email',
@@ -297,7 +297,7 @@ const initialConversations: Conversation[] = [
   },
   {
     id: 'conv-4',
-    workspaceId: 'ws-demo',
+    workspaceId: 'ws-live',
     customerName: 'Vikramaditya Rao',
     customerHandle: 'm.me/vikram.aditya.rao',
     channel: 'messenger',

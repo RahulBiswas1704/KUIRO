@@ -4,7 +4,6 @@ import { eq } from 'drizzle-orm';
 import {
   verifyPassword,
   createDatabaseSession,
-  ensureDemoUser,
   checkLoginRateLimit,
   recordFailedLoginAttempt,
   clearFailedLoginAttempts,
@@ -17,7 +16,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, password, isDemo } = body;
+    const { email, password } = body;
     const ipAddress = req.headers.get('x-forwarded-for') || undefined;
     const userAgent = req.headers.get('user-agent') || undefined;
 
@@ -29,38 +28,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Explicit 1-Click Demo Login (Dr. Rajesh Sharma)
-    if (isDemo === true) {
-      const demoData = await ensureDemoUser();
-      const { token, expiresAt } = await createDatabaseSession(demoData.user.id, {
-        ipAddress,
-        userAgent,
-      });
-
-      const response = NextResponse.json({
-        success: true,
-        user: { ...demoData.user, isDemo: true },
-        workspace: demoData.workspace,
-        sessionToken: token,
-        expiresAt,
-      });
-
-      response.cookies.set({
-        name: SESSION_COOKIE_NAME,
-        value: token,
-        path: '/',
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: SESSION_MAX_AGE_DAYS * 24 * 60 * 60,
-      });
-
-      return response;
-    }
-
     const clientIp = ipAddress || 'unknown';
 
-    // 2. Strict Credential Validation (Preventing Passwordless Access)
+    // 1. Strict Credential Validation (Preventing Passwordless Access)
     if (!email || typeof email !== 'string' || !email.trim()) {
       return NextResponse.json(
         { error: 'Email address is required.' },

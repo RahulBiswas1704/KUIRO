@@ -223,7 +223,7 @@ export default function Navbar({
             >
               <span className="flex items-center gap-2">
                 <Smartphone size={14} />
-                <span>WhatsApp Demo (+91 98765 43210)</span>
+                <span>WhatsApp Direct (+91 98765 43210)</span>
               </span>
               <ExternalLink size={12} />
             </a>

@@ -17,26 +17,10 @@ export async function GET(req: NextRequest) {
 
     const database = db;
     if (!database) {
-      return NextResponse.json({
-        success: true,
-        source: 'mock',
-        settings: {
-          id: auth.workspaceId || 'ws_demo',
-          name: 'Sharma Heritage Handlooms & Retail',
-          industry: 'Retail, Apparel & Local Commerce',
-          websiteUrl: 'https://sharmaheritage.in',
-          whatsappAdminPhone: '+91 98301 24589',
-          subscriptionTier: 'GROWTH',
-          autoCommitEnabled: true,
-          reviewWindowHours: 48,
-          voiceLanguages: ['English', 'Hindi', 'Bengali'],
-          gstin: '19AAACS1429B1Z8',
-          teamMembers: [
-            { id: '1', name: 'Rajesh Sharma', email: 'rajesh.sharma@kuiro.in', role: 'Owner', status: 'Active' },
-            { id: '2', name: 'Priya Sen', email: 'priya.marketing@sharmaheritage.in', role: 'Marketer', status: 'Active' },
-          ],
-        },
-      });
+      return NextResponse.json(
+        { success: false, error: 'Database service is currently unavailable.' },
+        { status: 503 }
+      );
     }
 
     const wsId = auth.workspaceId!;

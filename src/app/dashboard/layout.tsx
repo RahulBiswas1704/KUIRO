@@ -42,10 +42,10 @@ const navItems = [
     badge: 'OMNI',
   },
   {
-    name: 'WhatsApp Simulator',
+    name: 'WhatsApp 48h Terminal',
     href: '/dashboard/simulator',
     icon: Smartphone,
-    badge: '48h Loop',
+    badge: 'LIVE',
   },
   {
     name: 'Brand Brain Studio',
@@ -220,10 +220,10 @@ export default function DashboardLayout({
               <div className="absolute left-4 right-4 mt-2 bg-[#0A0E18] border border-white/[0.12] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.85)] z-50 p-2 space-y-1 animate-fade-in text-left">
                 <div className="px-3 py-2 border-b border-white/[0.06]">
                   <p className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">
-                    Multi-Tenant Simulator
+                    Workspace Profiles
                   </p>
                   <p className="text-[11px] text-slate-400 mt-0.5">
-                    Switch workspace brand guidelines & 48h campaign queues:
+                    Select brand workspace profile &amp; 48h campaign queues:
                   </p>
                 </div>
 
@@ -378,22 +378,16 @@ export default function DashboardLayout({
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-slate-400 hidden sm:inline">
               Workspace Isolated
             </span>
-            {user?.isDemo && (
-              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-[#FF7A00]/10 text-[#FF7A00] border border-[#FF7A00]/30 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#FF7A00] animate-pulse" />
-                Demo Sandbox
-              </span>
-            )}
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Multi-Tenant Simulator Pill */}
+            {/* Multi-Tenant Workspace Pill */}
             <button
               type="button"
               onClick={() => setIsPersonaMenuOpen(!isPersonaMenuOpen)}
               disabled={isSwitchingPersona}
               className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] text-xs font-mono text-slate-300 transition cursor-pointer"
-              title="Switch Multi-Tenant Operator Persona"
+              title="Switch Workspace Profile"
             >
               {isSwitchingPersona ? (
                 <Loader2 size={13} className="animate-spin text-[#FF7A00]" />
@@ -401,18 +395,18 @@ export default function DashboardLayout({
                 <span>{activePersona.emoji}</span>
               )}
               <span className="font-semibold text-white truncate max-w-[160px]">
-                {activePersona.name}
+                {currentWorkspaceName}
               </span>
               <ChevronDown size={12} className="text-slate-400" />
             </button>
 
-            {/* WhatsApp Simulator Shortcut */}
+            {/* WhatsApp Terminal Shortcut */}
             <Link
               href="/dashboard/simulator"
               className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-mono font-semibold hover:bg-emerald-500/20 transition cursor-pointer"
             >
               <Smartphone size={13} />
-              <span>Simulate WhatsApp</span>
+              <span>WhatsApp Terminal</span>
             </Link>
 
             {/* Notification Bell */}

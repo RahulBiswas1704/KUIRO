@@ -23,7 +23,7 @@ import {
 
 export default function GetStartedAuthPage() {
   const router = useRouter();
-  const { isLoggedIn, loginDemoUser } = useAuth();
+  const { isLoggedIn } = useAuth();
 
   // Mode: Sign Up or Sign In
   const [authMode, setAuthMode] = useState<'signup' | 'signin'>('signup');
@@ -185,8 +185,8 @@ export default function GetStartedAuthPage() {
    */
   const handleGoogleAuth = () => {
     setIsLoading(true);
-    // In production connects to Google OAuth; fallback creates verified session
-    window.location.href = '/api/auth/login?isDemo=true';
+    // In production, initiates Google OAuth flow
+    window.location.href = '/api/auth/oauth/google/authorize';
   };
 
   return (
@@ -522,17 +522,6 @@ export default function GetStartedAuthPage() {
               <span>No Credit Card</span>
               <span>•</span>
               <span>Cancel Anytime</span>
-            </div>
-
-            {/* Instant Demo Sandbox Shortcut */}
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={loginDemoUser}
-                className="text-[11px] text-slate-400 hover:text-white transition underline cursor-pointer"
-              >
-                Want to preview first? Explore Instant Demo Sandbox →
-              </button>
             </div>
           </div>
         </div>

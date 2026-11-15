@@ -32,30 +32,13 @@ export async function GET(req: NextRequest) {
     });
     const database = db;
     if (!database) {
-      return NextResponse.json({
-        success: true,
-        source: 'mock',
-        metrics: {
-          users: 4,
-          workspaces: 11,
-          brandProfiles: 8,
-          campaigns: 11,
-          platformPosts: 55,
-          conversations: 3,
-          messages: 7,
-          calendarEvents: 35,
-          activeSessions: 2,
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Neon PostgreSQL database is currently unreachable.',
         },
-        health: {
-          database: { status: 'DEGRADED', latencyMs: 0 },
-          geminiAi: { status: 'OPERATIONAL' },
-          whatsappCloud: { status: 'CONFIGURED' },
-          inngestEngine: { status: 'OPERATIONAL' },
-          cloudflareR2: { status: 'CONFIGURED' },
-          resendEmail: { status: 'CONFIGURED' },
-        },
-        recentActivities: [],
-      });
+        { status: 503 }
+      );
     }
 
     // 1. Measure live DB latency
