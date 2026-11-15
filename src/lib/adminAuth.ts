@@ -102,7 +102,7 @@ export function timingSafeCompare(a: string, b: string): boolean {
  * Fails closed if missing, banned, or low-entropy.
  */
 export function getManagementPasskey(): string {
-  const passkey = process.env.KUIRO_MANAGEMENT_PASSKEY || process.env.ADMIN_SECRET_KEY || 'Kuiro.2026@#';
+  const passkey = process.env.KUIRO_MANAGEMENT_PASSKEY || process.env.ADMIN_SECRET_KEY || '';
   if (!passkey || !passkey.trim()) {
     throw new Error('ADMIN_SECRETS_NOT_CONFIGURED: KUIRO_MANAGEMENT_PASSKEY is not configured in environment.');
   }

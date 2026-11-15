@@ -15,9 +15,7 @@ import {
   CheckCircle2,
   AlertCircle,
   RefreshCw,
-  Sparkles,
   ShieldCheck,
-  Zap
 } from 'lucide-react';
 
 export default function AdminLoginPage() {
@@ -25,8 +23,8 @@ export default function AdminLoginPage() {
   const searchParams = useSearchParams();
   const redirectPath = searchParams?.get('redirect') || '/admin';
 
-  const [email, setEmail] = useState('hello.kuiro@gmail.com');
-  const [passkey, setPasskey] = useState('Kuiro.2026@#');
+  const [email, setEmail] = useState('');
+  const [passkey, setPasskey] = useState('');
   const [showPasskey, setShowPasskey] = useState(false);
   const [mfaCode, setMfaCode] = useState('');
   const [showMfa, setShowMfa] = useState(false);
@@ -51,12 +49,6 @@ export default function AdminLoginPage() {
     }
     checkAuth();
   }, [router, redirectPath]);
-
-  const handleFillCredentials = () => {
-    setEmail('hello.kuiro@gmail.com');
-    setPasskey('Kuiro.2026@#');
-    setErrorMessage('');
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,24 +127,6 @@ export default function AdminLoginPage() {
           </p>
         </div>
 
-        {/* 1-Click Auto-Fill Convenience Pill */}
-        <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-between gap-2 text-xs font-mono">
-          <div className="flex items-center gap-2 truncate">
-            <Zap size={14} className="text-[#FF7A00] shrink-0" />
-            <div className="truncate text-left leading-tight">
-              <span className="text-[10px] text-slate-400 uppercase block">Admin Account</span>
-              <span className="text-slate-200 text-[11px] font-bold">hello.kuiro@gmail.com</span>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleFillCredentials}
-            className="px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-[#FF7A00] text-[11px] font-bold transition shrink-0 cursor-pointer"
-          >
-            Fill Credentials
-          </button>
-        </div>
-
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4 font-inter text-xs">
           {/* Error Banner */}
@@ -183,7 +157,7 @@ export default function AdminLoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="hello.kuiro@gmail.com"
+                placeholder="operator@kuiro.in"
                 className="w-full bg-transparent text-white font-mono text-xs sm:text-sm focus:outline-none"
                 autoComplete="username"
               />

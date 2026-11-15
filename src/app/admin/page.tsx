@@ -82,7 +82,7 @@ export default function AdminPage() {
   >('overview');
 
   // Authentication State
-  const [operatorEmail, setOperatorEmail] = useState<string>('hello.kuiro@gmail.com');
+  const [operatorEmail, setOperatorEmail] = useState<string>('');
   const [isAuthChecking, setIsAuthChecking] = useState(true);
 
   // System Data
