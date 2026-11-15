@@ -4,6 +4,9 @@ import { db, workspaces, subscriptions, payments } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { authorizeWorkspace } from '@/lib/auth';
 import { getPendingOrder, markOrderPaid, PlanTier, BillingCycle } from '@/lib/billing';
+import { logger, getCorrelationId } from '@/lib/observability/logger';
+import { metrics } from '@/lib/observability/metrics';
+import { alertManager } from '@/lib/observability/alerts';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +37,7 @@ interface VerifyPaymentBody {
  * 5. Guarantees exactly-once atomic plan activation (idempotent).
  */
 export async function POST(req: NextRequest) {
+  const correlationId = getCorrelationId(req.headers);
   try {
     const body: VerifyPaymentBody = await req.json();
     const {
@@ -131,7 +135,22 @@ export async function POST(req: NextRequest) {
       crypto.timingSafeEqual(sigBuf, expBuf);
 
     if (!isSignatureValid) {
-      console.warn(`[Payment Verification Attack Blocked] Forged signature submitted for order ${orderId}`);
+      logger.warn('payment_signature_verification_failed', {
+        service: 'payment-gateway',
+        event: 'payment_signature_failed',
+        workspaceId: wsId,
+        correlationId,
+        errorCode: 'INVALID_PAYMENT_SIGNATURE',
+        metadata: { orderId, paymentId, gateway },
+      });
+
+      // Evaluate payment failure threshold & trigger alert if spike detected
+      await alertManager.checkPaymentSignatureFailureThreshold({
+        provider: gateway,
+        workspaceId: wsId,
+        correlationId,
+      });
+
       return NextResponse.json(
         {
           error: 'Cryptographic signature mismatch. Simulated or forged payment response rejected.',
@@ -197,9 +216,21 @@ export async function POST(req: NextRequest) {
     // 8. Mark order as paid in server store
     markOrderPaid(orderId);
 
-    console.log(
-      `[Payment Verified & Activated] Workspace ${wsId} successfully upgraded to ${activatedTier} (${pendingOrder.billingCycle}). Invoice: ${invoiceNumber}`
-    );
+    logger.info('payment_verified_and_activated', {
+      service: 'payment-gateway',
+      event: 'payment_received',
+      workspaceId: wsId,
+      correlationId,
+      metadata: {
+        orderId,
+        paymentId,
+        tier: activatedTier,
+        amount: pendingOrder.totalAmount,
+        currency: pendingOrder.currency,
+        invoiceNumber,
+      },
+    });
+    metrics.increment('payments.verified_success', { gateway });
 
     return NextResponse.json({
       success: true,

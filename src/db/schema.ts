@@ -489,6 +489,30 @@ export const realtimePubSubEvents = pgTable('realtime_pubsub_events', {
   index('idx_pubsub_ws_created').on(table.workspaceId, table.createdAt),
 ]);
 
+export const systemAlerts = pgTable('system_alerts', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  severity: text('severity', {
+    enum: ['INFO', 'WARNING', 'ERROR', 'CRITICAL']
+  }).default('WARNING').notNull(),
+  category: text('category').notNull(), // e.g. "PAYMENT", "SOCIAL_PUBLISHING", "AI_SURGE", "DATABASE", "SECURITY", "SCHEDULER", "INBOX"
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  workspaceId: uuid('workspace_id').references(() => workspaces.id, { onDelete: 'cascade' }),
+  correlationId: text('correlation_id'),
+  details: jsonb('details'),
+  status: text('status', {
+    enum: ['OPEN', 'ACKNOWLEDGED', 'RESOLVED']
+  }).default('OPEN').notNull(),
+  dispatchedChannels: jsonb('dispatched_channels').$type<string[]>(),
+  resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index('idx_system_alerts_category_created').on(table.category, table.createdAt),
+  index('idx_system_alerts_severity_created').on(table.severity, table.createdAt),
+  index('idx_system_alerts_workspace_created').on(table.workspaceId, table.createdAt),
+  index('idx_system_alerts_status_created').on(table.status, table.createdAt),
+]);
+
 // ==============================================================================
 // 9. Drizzle Relations
 // ==============================================================================
@@ -519,10 +543,15 @@ export const workspaceRelations = relations(workspaces, ({ one, many }) => ({
   payments: many(payments),
   durableEvents: many(durableEvents),
   realtimePubSubEvents: many(realtimePubSubEvents),
+  systemAlerts: many(systemAlerts),
 }));
 
 export const realtimePubSubEventsRelations = relations(realtimePubSubEvents, ({ one }) => ({
   workspace: one(workspaces, { fields: [realtimePubSubEvents.workspaceId], references: [workspaces.id] }),
+}));
+
+export const systemAlertsRelations = relations(systemAlerts, ({ one }) => ({
+  workspace: one(workspaces, { fields: [systemAlerts.workspaceId], references: [workspaces.id] }),
 }));
 
 export const durableEventsRelations = relations(durableEvents, ({ one }) => ({

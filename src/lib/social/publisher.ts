@@ -297,6 +297,9 @@ export async function publishToAllChannels(
 import { executeWithIdempotency, IdempotencyKeyBuilder } from '@/lib/events/idempotency';
 import { db, platformPosts } from '@/db';
 import { eq, and } from 'drizzle-orm';
+import { logger } from '@/lib/observability/logger';
+import { metrics } from '@/lib/observability/metrics';
+import { alertManager } from '@/lib/observability/alerts';
 
 /**
  * Idempotent Channel Publishing Wrapper
@@ -327,6 +330,7 @@ export async function publishCampaignChannelWithIdempotency({
   authorUrn?: string;
   accessToken?: string;
 }): Promise<ChannelPublishResult> {
+  const startTime = Date.now();
   const idempotencyKey = IdempotencyKeyBuilder.campaignPublish({
     campaignId,
     platform,
@@ -397,14 +401,56 @@ export async function publishCampaignChannelWithIdempotency({
     }
   );
 
-  if (res.result) {
+  const durationMs = Date.now() - startTime;
+
+  if (res.result && (res.result.status === 'PUBLISHED' || res.result.status === 'MOCK_PUBLISHED')) {
+    logger.info('social_publish_completed', {
+      service: 'campaign-publisher',
+      event: 'publish_succeeded',
+      workspaceId,
+      campaignId,
+      platform,
+      durationMs,
+      metadata: {
+        status: res.result.status,
+        platformPostId: res.result.platformPostId,
+      },
+    });
+    metrics.increment('social.publish_success', { platform });
+    metrics.recordDuration('social.publish_duration', durationMs, { platform });
     return res.result;
   }
+
+  const errorText = res.result?.error || res.error || 'Idempotent publishing failed';
+  const errorCode = errorText.toLowerCase().includes('timeout')
+    ? 'PROVIDER_TIMEOUT'
+    : errorText.toLowerCase().includes('token')
+    ? 'TOKEN_EXPIRED'
+    : 'PROVIDER_ERROR';
+
+  logger.error('social_publish_failed', {
+    service: 'campaign-publisher',
+    event: 'publish_failed',
+    workspaceId,
+    campaignId,
+    platform,
+    errorCode,
+    durationMs,
+    metadata: { error: errorText },
+  });
+
+  // Evaluate failure threshold and trigger alert if spike detected
+  await alertManager.checkPublishingFailureThreshold({
+    workspaceId,
+    campaignId,
+    platform,
+    errorCode,
+  });
 
   return {
     platform,
     status: 'FAILED',
-    error: res.error || 'Idempotent publishing failed',
+    error: errorText,
   };
 }
 

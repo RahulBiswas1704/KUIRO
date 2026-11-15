@@ -25,6 +25,9 @@ import {
   handleUnpauseAndApproval,
   handleLateRevision,
 } from '@/lib/campaigns/stateMachine';
+import { logger, getCorrelationId } from '@/lib/observability/logger';
+import { metrics } from '@/lib/observability/metrics';
+import { alertManager } from '@/lib/observability/alerts';
 
 function normalizePhone(phone: string): string {
   return phone.replace(/\D/g, '').slice(-10);
@@ -99,6 +102,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const correlationId = getCorrelationId(req.headers);
   try {
     // 1. Read raw request body BEFORE any JSON deserialization
     const rawBody = await req.text();
@@ -107,6 +111,19 @@ export async function POST(req: NextRequest) {
     // 2. Cryptographic HMAC-SHA256 signature verification over exact raw bytes
     const sigVerification = verifyMetaSignature(rawBody, signature);
     if (!sigVerification.valid) {
+      logger.warn('whatsapp_webhook_signature_failed', {
+        service: 'whatsapp-webhook',
+        event: 'signature_verification_failed',
+        correlationId,
+        errorCode: 'SIGNATURE_MISMATCH',
+        metadata: {
+          status: sigVerification.status,
+          error: sigVerification.error,
+          clientIp: req.headers.get('x-forwarded-for') || '127.0.0.1',
+        },
+      });
+      metrics.increment('whatsapp.signature_failed');
+
       return NextResponse.json(
         { error: sigVerification.error },
         { status: sigVerification.status }

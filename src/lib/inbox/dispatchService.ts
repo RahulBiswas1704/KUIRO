@@ -3,6 +3,8 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 import { publishInboxEvent } from '@/lib/inbox/eventHub';
 import { decryptToken } from '@/lib/crypto/vault';
 import { sendAutonomousEmailNewsletter } from '@/lib/email/publisher';
+import { logger } from '@/lib/observability/logger';
+import { metrics } from '@/lib/observability/metrics';
 
 export interface MessagingWindowStatus {
   isOpen: boolean;
@@ -158,7 +160,12 @@ export async function ingestInboundMessage(params: InboundMessageParams): Promis
         .limit(1);
 
       if (existingMsg) {
-        console.log(`[Inbox Ingestion] Duplicate message '${providerMessageId}' ignored.`);
+        logger.info('inbox_duplicate_ignored', {
+          service: 'inbox-dispatcher',
+          event: 'duplicate_message_ignored',
+          workspaceId,
+          metadata: { providerMessageId, channel },
+        });
         return {
           success: true,
           duplicate: true,
@@ -407,6 +414,16 @@ export async function dispatchOutboundReply(params: OutboundDispatchParams): Pro
     // 3. Check 24-Hour Messaging Window Rules (WhatsApp & Instagram)
     const windowStatus = checkMessagingWindow(conv.lastCustomerMessageAt, channel);
     if (!windowStatus.isOpen && !templateName) {
+      logger.warn('inbox_24h_window_expired', {
+        service: 'inbox-dispatcher',
+        event: 'window_violated',
+        workspaceId,
+        conversationId,
+        errorCode: 'WINDOW_EXPIRED',
+        metadata: { channel },
+      });
+      metrics.increment('inbox.window_violation', { channel });
+
       return {
         success: false,
         deliveryStatus: 'failed',
@@ -643,6 +660,28 @@ export async function dispatchOutboundReply(params: OutboundDispatchParams): Pro
       },
     });
 
+    if (!dispatchSuccess) {
+      logger.error('inbox_outbound_dispatch_failed', {
+        service: 'inbox-dispatcher',
+        event: 'dispatch_failed',
+        workspaceId,
+        conversationId,
+        channel,
+        errorCode: 'PROVIDER_ERROR',
+        metadata: { error: dispatchError },
+      });
+      metrics.increment('inbox.dispatch_failed', { channel });
+    } else {
+      logger.info('inbox_outbound_dispatched', {
+        service: 'inbox-dispatcher',
+        event: 'outbound_sent',
+        workspaceId,
+        conversationId,
+        channel,
+        metadata: { messageId: storedMessage.id, providerMessageId },
+      });
+    }
+
     return {
       success: dispatchSuccess,
       messageId: storedMessage.id,
@@ -654,7 +693,13 @@ export async function dispatchOutboundReply(params: OutboundDispatchParams): Pro
       message: storedMessage,
     };
   } catch (err: any) {
-    console.error('[dispatchOutboundReply Error]:', err);
+    logger.error('dispatch_outbound_reply_exception', {
+      service: 'inbox-dispatcher',
+      event: 'dispatch_exception',
+      workspaceId,
+      conversationId,
+      err,
+    });
     return {
       success: false,
       deliveryStatus: 'failed',
