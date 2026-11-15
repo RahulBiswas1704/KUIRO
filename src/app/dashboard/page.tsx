@@ -32,7 +32,13 @@ import {
   KeyRound,
   Lock,
   Download,
-  FileArchive
+  FileArchive,
+  ChevronRight,
+  ExternalLink,
+  Copy,
+  Zap,
+  TrendingUp,
+  Tag
 } from 'lucide-react';
 import ConnectedChannelsModal, { PlatformKey } from '@/components/dashboard/ConnectedChannelsModal';
 import { CampaignRoiDashboard } from '@/components/dashboard';
@@ -95,8 +101,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'queue' | 'history'>('queue');
-  const [selectedPlatformTab, setSelectedPlatformTab] = useState<'all' | 'instagram' | 'linkedin' | 'x' | 'whatsapp' | 'email'>('all');
-  
+  const [selectedPlatformTab, setSelectedPlatformTab] = useState<'instagram' | 'whatsapp' | 'linkedin' | 'x' | 'email'>('instagram');
+  const [filterTrigger, setFilterTrigger] = useState<string>('ALL');
+
   // Notification Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'info' | 'error'>('success');
@@ -123,6 +130,19 @@ export default function DashboardPage() {
     isPassed: false,
   });
 
+  // Connected Channels State & Modal
+  const [channels, setChannels] = useState<any[]>([]);
+  const [isChannelsModalOpen, setIsChannelsModalOpen] = useState(false);
+  const [selectedChannelForModal, setSelectedChannelForModal] = useState<PlatformKey>('instagram');
+
+  // Revision Modal State
+  const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
+  const [revisionPromptText, setRevisionPromptText] = useState('');
+  const [isSubmittingRevision, setIsSubmittingRevision] = useState(false);
+
+  // Export Creative Kit State
+  const [isExportingKit, setIsExportingKit] = useState(false);
+
   const showToast = (msg: string, type: 'success' | 'info' | 'error' = 'success') => {
     setToastMessage(msg);
     setToastType(type);
@@ -139,7 +159,6 @@ export default function DashboardPage() {
       if (data.success && Array.isArray(data.campaigns)) {
         setCampaigns(data.campaigns);
         if (data.campaigns.length > 0 && !selectedCampaignId) {
-          // Select first auto-queued or top campaign
           const queued = data.campaigns.find((c: ScheduledCampaign) => c.status === 'AUTO_QUEUED');
           setSelectedCampaignId(queued ? queued.id : data.campaigns[0].id);
         }
@@ -153,11 +172,6 @@ export default function DashboardPage() {
       if (!silent) setLoading(false);
     }
   };
-
-  // Connected Channels State & Modal Controls
-  const [channels, setChannels] = useState<any[]>([]);
-  const [isChannelsModalOpen, setIsChannelsModalOpen] = useState(false);
-  const [selectedChannelForModal, setSelectedChannelForModal] = useState<PlatformKey>('instagram');
 
   const fetchChannels = async () => {
     try {
@@ -176,10 +190,10 @@ export default function DashboardPage() {
     fetchChannels();
   }, []);
 
-  // Active spotlight campaign
+  // Spotlight active campaign
   const activeCampaign = campaigns.find((c) => c.id === selectedCampaignId) || campaigns[0] || null;
 
-  // Real Countdown calculation
+  // Real-time Countdown calculation
   useEffect(() => {
     if (!activeCampaign?.publishAt) return;
 
@@ -257,11 +271,7 @@ export default function DashboardPage() {
     }
   };
 
-  // Surgical Revision State & Handler
-  const [isRevisionModalOpen, setIsRevisionModalOpen] = useState(false);
-  const [revisionPromptText, setRevisionPromptText] = useState('');
-  const [isSubmittingRevision, setIsSubmittingRevision] = useState(false);
-
+  // Handle Request AI Revision
   const handleRequestRevision = async (id: string, promptText: string) => {
     if (!promptText.trim()) return;
     try {
@@ -326,8 +336,6 @@ export default function DashboardPage() {
   };
 
   // 1-Click Creative Kit Asset Exporter
-  const [isExportingKit, setIsExportingKit] = useState(false);
-
   const handleExportCreativeKit = async (campaignId: string, topicName: string) => {
     try {
       setIsExportingKit(true);
@@ -349,7 +357,7 @@ export default function DashboardPage() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      showToast(`Creative Kit ZIP downloaded! Packaged 4:5 visual, WhatsApp card, copy & HTML newsletter.`, 'success');
+      showToast(`Creative Kit ZIP downloaded! Packaged 4:5 visual, WhatsApp copy, and HTML email.`, 'success');
     } catch (err: any) {
       showToast(err.message || 'Error exporting creative kit bundle.', 'error');
     } finally {
@@ -357,12 +365,23 @@ export default function DashboardPage() {
     }
   };
 
-  // Extract posts for active campaign
+  // Posts extraction
   const instagramPost = activeCampaign?.posts?.find((p) => p.platform === 'instagram');
+  const whatsappPost = activeCampaign?.posts?.find((p) => p.platform === 'whatsapp');
   const linkedinPost = activeCampaign?.posts?.find((p) => p.platform === 'linkedin');
   const xPost = activeCampaign?.posts?.find((p) => p.platform === 'x');
-  const whatsappPost = activeCampaign?.posts?.find((p) => p.platform === 'whatsapp');
   const emailPost = activeCampaign?.posts?.find((p) => p.platform === 'email');
+
+  const activePost =
+    selectedPlatformTab === 'instagram'
+      ? instagramPost
+      : selectedPlatformTab === 'whatsapp'
+      ? whatsappPost
+      : selectedPlatformTab === 'linkedin'
+      ? linkedinPost
+      : selectedPlatformTab === 'x'
+      ? xPost
+      : emailPost;
 
   // Compute average AI Critic score
   const avgCriticScore = activeCampaign?.posts?.length
@@ -370,840 +389,940 @@ export default function DashboardPage() {
         activeCampaign.posts.reduce((sum, p) => sum + (p.aiCriticScore || 90), 0) /
         activeCampaign.posts.length
       ).toFixed(1)
-    : '96.8';
+    : '97.4';
 
   const queuedCampaigns = campaigns.filter((c) => c.status === 'AUTO_QUEUED' || c.status === 'APPROVED');
   const historyCampaigns = campaigns.filter((c) => c.status === 'PUBLISHED' || c.status === 'PAUSED');
 
+  const displayedCampaigns = (activeTab === 'queue' ? queuedCampaigns : historyCampaigns).filter((c) => {
+    if (filterTrigger === 'ALL') return true;
+    return c.triggerType === filterTrigger;
+  });
+
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      {/* Toast alert */}
+    <div className="space-y-6 pb-16">
+      {/* Toast Notification Alert */}
       {toastMessage && (
         <div
-          className={`p-3.5 rounded-[12px] border text-xs font-medium flex items-center justify-between shadow-sm animate-fadeIn ${
+          className={`p-4 rounded-2xl border text-xs font-mono flex items-center justify-between shadow-2xl animate-fade-in ${
             toastType === 'success'
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+              ? 'bg-emerald-950/80 border-emerald-500/30 text-emerald-300'
               : toastType === 'info'
-              ? 'bg-blue-50 border-blue-200 text-blue-800'
-              : 'bg-rose-50 border-rose-200 text-rose-800'
+              ? 'bg-blue-950/80 border-blue-500/30 text-blue-300'
+              : 'bg-red-950/80 border-red-500/30 text-red-300'
           }`}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             {toastType === 'success' ? (
-              <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
-            ) : toastType === 'info' ? (
-              <AlertCircle size={16} className="text-blue-600 shrink-0" />
+              <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
             ) : (
-              <AlertCircle size={16} className="text-rose-600 shrink-0" />
+              <AlertCircle size={16} className="text-[#FF7A00] shrink-0" />
             )}
             <span>{toastMessage}</span>
           </div>
           <button
             onClick={() => setToastMessage(null)}
-            className="text-gray-500 hover:text-gray-800 transition"
+            className="text-slate-400 hover:text-white transition cursor-pointer p-1"
           >
             <CloseIcon size={14} />
           </button>
         </div>
       )}
 
-      {/* Hero Welcome & Autopilot Banner */}
-      <div className="rounded-[14px] bg-[#0B0F14] text-white p-6 border border-[#1E2530] relative overflow-hidden shadow-sm">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-              <span className="px-2 py-0.5 rounded-full bg-[#FF7A00]/20 text-[#FF7A00] text-[10px] font-semibold tracking-wider uppercase flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#FF7A00] animate-pulse" />
-                Autonomous Co-Pilot Active
+      {/* =========================================================================
+          SECTION 1: HERO AUTOPILOT CONTROL CENTER (Zorcha Card)
+      ========================================================================= */}
+      <div className="rounded-[28px] bg-gradient-to-b from-[#0D121F] to-[#0A0E18] border border-white/[0.09] p-6 sm:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden">
+        {/* Subtle decorative grid overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-2xl">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[10px] font-mono uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Autonomous Co-Pilot Active</span>
               </span>
-              <span className="text-gray-400 text-xs">• 365 Regional Engine</span>
-              <span className="text-gray-400 text-xs">• Neon Serverless PG</span>
+              <span className="text-slate-400 text-xs font-mono">• 365 Regional Engine</span>
+              <span className="text-slate-400 text-xs font-mono">• Neon Serverless PG</span>
             </div>
-            <h2 className="font-sora text-xl md:text-2xl font-bold tracking-tight">
+
+            <h2 className="font-sora text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
               Your marketing. <span className="text-[#FF7A00]">On autopilot.</span>
             </h2>
-            <p className="text-gray-400 text-xs md:text-sm mt-1 max-w-xl">
-              KUIRO plans, generates, checks compliance, and prepares multi-channel posts 48 hours in advance. Do nothing, and it auto-commits to your channels.
+
+            <p className="text-slate-400 text-xs sm:text-sm font-inter leading-relaxed">
+              KUIRO plans 365 days of localized campaigns, verifies brand tone, checks compliance, and prepares multi-channel posts 48 hours in advance. Do nothing, and it auto-commits directly to your channels.
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Quick Action Buttons */}
+          <div className="flex items-center gap-2.5 flex-wrap shrink-0">
             <button
+              type="button"
               onClick={() => setIsGeneratorOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] bg-gradient-to-r from-[#FF7A00] to-[#E66E00] text-white text-xs font-semibold hover:opacity-95 transition shadow-sm font-sora shadow-orange-500/20"
+              className="py-3 px-4.5 rounded-full bg-[#FF7A00] hover:bg-[#FF881A] text-white text-xs font-sora font-semibold transition shadow-lg shadow-[#FF7A00]/25 flex items-center gap-2 cursor-pointer active:scale-95"
             >
-              <Sparkles size={15} />
-              <span>+ Instant Campaign Composer</span>
+              <Sparkles size={14} />
+              <span>+ Instant Composer</span>
             </button>
+
             <Link
               href="/dashboard/simulator"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[10px] bg-white text-[#0B0F14] text-xs font-semibold hover:bg-gray-100 transition shadow-sm"
+              className="py-3 px-4 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.09] text-white text-xs font-sora font-semibold transition flex items-center gap-2 cursor-pointer"
             >
-              <Smartphone size={15} />
+              <Smartphone size={14} className="text-emerald-400" />
               <span>WhatsApp Sim</span>
             </Link>
+
             <Link
               href="/dashboard/calendar"
-              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-[10px] bg-[#1E2530] text-gray-200 text-xs font-semibold hover:bg-[#2A3442] transition"
+              className="py-3 px-4 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.09] text-slate-300 hover:text-white text-xs font-sora font-semibold transition flex items-center gap-2 cursor-pointer"
             >
-              <Calendar size={15} />
+              <Calendar size={14} className="text-[#FF7A00]" />
               <span>365 Radar</span>
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Top 4 KPI Metrics */}
+      {/* =========================================================================
+          SECTION 2: TOP 4 KPI HIGHLIGHTS
+      ========================================================================= */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-[12px] border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-          <div className="flex items-center justify-between text-gray-500 mb-2">
-            <span className="text-[11px] font-medium uppercase tracking-wider">
-              48h Queue Status
+        {/* KPI 1: 48h Radar Queue */}
+        <div className="rounded-2xl bg-[#0A0E18] border border-white/[0.08] p-5 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
+              48h Queue Load
             </span>
-            <Clock size={16} className="text-[#FF7A00]" />
+            <Clock size={15} className="text-[#FF7A00]" />
           </div>
-          <div className="text-2xl font-bold text-[#0B0F14] font-inter">
+          <div className="text-2xl font-bold font-sora text-white">
             {queuedCampaigns.length} {queuedCampaigns.length === 1 ? 'Campaign' : 'Campaigns'}
           </div>
-          <p className="text-[11px] text-gray-500 mt-1 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <p className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
             <span>Active in 48h Auto-Commit radar</span>
           </p>
         </div>
 
-        <div className="bg-white p-4 rounded-[12px] border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-          <div className="flex items-center justify-between text-gray-500 mb-2">
-            <span className="text-[11px] font-medium uppercase tracking-wider">
+        {/* KPI 2: AI Critic Compliance */}
+        <div className="rounded-2xl bg-[#0A0E18] border border-white/[0.08] p-5 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
               AI Critic Quality Pass
             </span>
-            <ShieldCheck size={16} className="text-emerald-500" />
+            <ShieldCheck size={15} className="text-emerald-400" />
           </div>
-          <div className="text-2xl font-bold text-[#0B0F14] font-inter">
-            {avgCriticScore} / 100
+          <div className="text-2xl font-bold font-sora text-white">
+            {avgCriticScore} <span className="text-sm font-normal text-slate-400">/ 100</span>
           </div>
-          <p className="text-[11px] text-gray-500 mt-1">
-            Zero link surcharges, 100% brand tone
+          <p className="text-[11px] font-mono text-slate-400">
+            Zero link surcharges, 100% brand voice
           </p>
         </div>
 
-        <div className="bg-white p-4 rounded-[12px] border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-          <div className="flex items-center justify-between text-gray-500 mb-2">
-            <span className="text-[11px] font-medium uppercase tracking-wider">
-              WhatsApp Approvals
+        {/* KPI 3: WhatsApp Approvals */}
+        <div className="rounded-2xl bg-[#0A0E18] border border-white/[0.08] p-5 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
+              WhatsApp 48h Loop
             </span>
-            <Smartphone size={16} className="text-emerald-600" />
+            <Smartphone size={15} className="text-emerald-400" />
           </div>
-          <div className="text-2xl font-bold text-[#0B0F14] font-inter">
+          <div className="text-2xl font-bold font-sora text-white">
             {activeCampaign?.status === 'APPROVED' ? 'Approved' : 'Zero-Click'}
           </div>
-          <p className="text-[11px] text-gray-500 mt-1">
-            48h passive auto-commit enabled
+          <p className="text-[11px] font-mono text-slate-400">
+            Passive auto-commit countdown active
           </p>
         </div>
 
-        <div className="bg-white p-4 rounded-[12px] border border-[#E5E7EB] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-          <div className="flex items-center justify-between text-gray-500 mb-2">
-            <span className="text-[11px] font-medium uppercase tracking-wider">
-              Connected Channels
+        {/* KPI 4: Connected Channels */}
+        <div className="rounded-2xl bg-[#0A0E18] border border-white/[0.08] p-5 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
+              Live Channels
             </span>
-            <Share2 size={16} className="text-blue-500" />
+            <Share2 size={15} className="text-[#FF7A00]" />
           </div>
-          <div className="text-2xl font-bold text-[#0B0F14] font-inter">
-            5 of 5 Live
+          <div className="text-2xl font-bold font-sora text-white">
+            5 Channels
           </div>
-          <p className="text-[11px] text-gray-500 mt-1 flex items-center gap-1">
-            <span className="text-emerald-600 font-medium">IG, LI, X, WA, Email healthy</span>
+          <p className="text-[11px] font-mono text-emerald-400 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span>WhatsApp, Insta, LinkedIn, X, Mail</span>
           </p>
         </div>
       </div>
 
-      {/* Campaign ROI & Lead Attribution Section */}
-      <CampaignRoiDashboard onRefreshNeeded={() => fetchCampaigns(true)} />
-
-      {/* Main Campaign Queue / Spotlight Card */}
-      {loading ? (
-        <div className="bg-white rounded-[14px] border border-[#E5E7EB] p-12 text-center shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
-          <Loader2 size={32} className="text-[#FF7A00] animate-spin mx-auto mb-3" />
-          <h3 className="text-base font-bold text-[#0B0F14]">Loading Neon Database Campaigns...</h3>
-          <p className="text-xs text-gray-500 mt-1">
-            Connecting to Lakebase PostgreSQL & retrieving 48h autonomous payloads.
-          </p>
-        </div>
-      ) : error ? (
-        <div className="bg-white rounded-[14px] border border-rose-200 p-8 text-center text-rose-800">
-          <AlertCircle size={32} className="text-rose-500 mx-auto mb-2" />
-          <h3 className="text-base font-bold">Failed to load campaign data</h3>
-          <p className="text-xs text-rose-600 mt-1">{error}</p>
-          <button
-            onClick={() => fetchCampaigns()}
-            className="mt-4 px-4 py-2 bg-rose-600 text-white rounded-[8px] text-xs font-semibold hover:bg-rose-700 transition"
-          >
-            Retry Connection
-          </button>
-        </div>
-      ) : !activeCampaign ? (
-        <div className="bg-white rounded-[14px] border border-dashed border-[#E5E7EB] p-12 text-center">
-          <Sparkles size={36} className="text-[#FF7A00] mx-auto mb-3" />
-          <h3 className="text-base font-bold text-[#0B0F14]">No active campaigns found</h3>
-          <p className="text-xs text-gray-500 mt-1 max-w-md mx-auto">
-            Your 48-hour marketing queue is currently empty. Generate a campaign using AI or pick a cultural milestone.
-          </p>
-          <button
-            onClick={() => setIsGeneratorOpen(true)}
-            className="mt-4 px-4 py-2 bg-gradient-to-r from-[#FF7A00] to-[#E66E00] text-white rounded-[8px] text-xs font-semibold hover:opacity-95 transition shadow-sm"
-          >
-            Open Instant Campaign Composer
-          </button>
-        </div>
-      ) : (
-        <div className="bg-white rounded-[14px] border border-[#E5E7EB] p-6 shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-6">
-          {/* Spotlight Header with Live Countdown */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between pb-4 border-b border-[#E5E7EB] gap-4">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-[10px] bg-orange-50 border border-orange-200 flex items-center justify-center text-[#FF7A00] shrink-0 mt-0.5">
-                <Flame size={20} />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                      activeCampaign.status === 'APPROVED'
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : activeCampaign.status === 'PAUSED'
-                        ? 'bg-rose-50 text-rose-700 border-rose-200'
-                        : 'bg-amber-50 text-amber-700 border-amber-200'
-                    }`}
-                  >
-                    {activeCampaign.status === 'APPROVED'
-                      ? 'APPROVED (QUEUED FOR PUBLISH)'
-                      : activeCampaign.status === 'PAUSED'
-                      ? 'PAUSED (MANUAL HOLD)'
-                      : 'AUTO_QUEUED (48H WINDOW)'}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    Trigger: {activeCampaign.triggerType}
-                  </span>
-                  <span className="text-xs text-gray-400">• Neon DB ID: {activeCampaign.id.slice(0, 8)}</span>
-                </div>
-                <h3 className="font-sora text-base md:text-lg font-bold text-[#0B0F14] mt-0.5">
-                  {activeCampaign.topicSummary}
-                </h3>
-                <p className="text-xs text-gray-500">
-                  Target: Multi-Channel (IG, LI, X, WA, Email) • 5 Platform Payloads Pre-Crafted
-                </p>
-              </div>
-            </div>
-
-            {/* 48h Dynamic Countdown Timer */}
-            <div className="flex items-center gap-3 bg-[#F9FAFB] p-3 rounded-[12px] border border-[#E5E7EB] shrink-0">
-              <Clock
-                size={20}
-                className={timeLeft.isPassed ? 'text-emerald-600' : 'text-[#FF7A00] animate-pulse'}
-              />
-              <div>
-                <div className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
-                  {activeCampaign.status === 'PAUSED'
-                    ? 'Autopilot Hold'
-                    : timeLeft.isPassed
-                    ? 'Window Status'
-                    : 'Passive Auto-Commit In'}
-                </div>
-                <div className="text-sm font-bold text-[#0B0F14] font-mono">
-                  {activeCampaign.status === 'PAUSED' ? (
-                    <span className="text-rose-600">PAUSED</span>
-                  ) : timeLeft.isPassed ? (
-                    <span className="text-emerald-600">Auto-Committing / Ready</span>
-                  ) : (
-                    `${String(timeLeft.hours).padStart(2, '0')}h ${String(timeLeft.minutes).padStart(2, '0')}m ${String(timeLeft.seconds).padStart(2, '0')}s`
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Campaign Selector Pill Ribbon if multiple campaigns exist */}
-          {campaigns.length > 1 && (
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
-              <span className="text-gray-400 font-medium text-[11px] shrink-0">Active Campaigns:</span>
-              {campaigns.map((camp) => (
+      {/* =========================================================================
+          SECTION 3: DUAL-PANE OPERATIONAL WORKSPACE
+      ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* =======================================================================
+            LEFT COLUMN (5 Cols): CAMPAIGN QUEUE & STATUS RADAR
+        ======================================================================= */}
+        <div className="lg:col-span-5 space-y-4">
+          <div className="rounded-[24px] bg-[#0A0E18] border border-white/[0.08] p-5 shadow-sm space-y-4">
+            {/* Queue vs History Tabs */}
+            <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
+              <div className="flex items-center gap-1.5 p-1 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs font-mono">
                 <button
-                  key={camp.id}
-                  onClick={() => setSelectedCampaignId(camp.id)}
-                  className={`px-3 py-1.5 rounded-[8px] font-medium transition shrink-0 flex items-center gap-1.5 ${
-                    camp.id === activeCampaign.id
-                      ? 'bg-[#0B0F14] text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  type="button"
+                  onClick={() => setActiveTab('queue')}
+                  className={`px-3 py-1.5 rounded-full font-semibold transition cursor-pointer ${
+                    activeTab === 'queue'
+                      ? 'bg-white text-black shadow-sm'
+                      : 'text-slate-400 hover:text-white'
                   }`}
                 >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      camp.status === 'APPROVED'
-                        ? 'bg-emerald-400'
-                        : camp.status === 'PAUSED'
-                        ? 'bg-rose-400'
-                        : 'bg-amber-400'
-                    }`}
-                  />
-                  <span className="max-w-[200px] truncate">{camp.topicSummary}</span>
+                  Active Queue ({queuedCampaigns.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('history')}
+                  className={`px-3 py-1.5 rounded-full font-semibold transition cursor-pointer ${
+                    activeTab === 'history'
+                      ? 'bg-white text-black shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Published ({historyCampaigns.length})
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => fetchCampaigns(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.05] transition cursor-pointer"
+                title="Refresh campaigns"
+              >
+                <RefreshCw size={14} className={loading ? 'animate-spin text-[#FF7A00]' : ''} />
+              </button>
+            </div>
+
+            {/* Category Filter Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] font-mono scrollbar-none">
+              {['ALL', 'FLASH_SALE', 'SEASONAL', 'PRODUCT_DROP', 'THOUGHT_LEADERSHIP'].map((trigger) => (
+                <button
+                  key={trigger}
+                  type="button"
+                  onClick={() => setFilterTrigger(trigger)}
+                  className={`px-2.5 py-1 rounded-lg border whitespace-nowrap transition cursor-pointer ${
+                    filterTrigger === trigger
+                      ? 'bg-[#FF7A00]/15 border-[#FF7A00] text-white font-bold'
+                      : 'bg-white/[0.02] border-white/[0.06] text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {trigger === 'ALL'
+                    ? 'All'
+                    : trigger === 'FLASH_SALE'
+                    ? 'Flash Sale'
+                    : trigger === 'SEASONAL'
+                    ? 'Festive'
+                    : trigger === 'PRODUCT_DROP'
+                    ? 'New Drop'
+                    : 'Thought Lead'}
                 </button>
               ))}
             </div>
-          )}
 
-          {/* Visual & Multi-Channel Breakdown */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Visual Preview / Satori Banner Card */}
-            <div className="lg:col-span-1 space-y-3">
-              <div className="relative rounded-[12px] overflow-hidden border border-[#E5E7EB] bg-gray-900 group">
-                <div className="aspect-square bg-gradient-to-br from-[#0B0F14] via-[#1E2530] to-[#0B0F14] p-4 flex flex-col justify-between text-white relative">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 bg-[#FF7A00] text-white px-2 py-0.5 rounded-full text-[10px] font-bold">
-                      <span>KUIRO</span>
-                    </div>
-                    <span className="text-[10px] bg-black/40 px-2 py-0.5 rounded text-gray-300">
-                      Satori High-DPI 4:5
-                    </span>
-                  </div>
-
-                  <div className="space-y-1.5 my-auto text-center px-2">
-                    <p className="text-[11px] font-semibold text-[#FF7A00] uppercase tracking-wider">
-                      Apex Diagnostic & Wellness
-                    </p>
-                    <h4 className="font-sora text-base font-bold leading-tight">
-                      {activeCampaign.topicSummary}
-                    </h4>
-                    <p className="text-[10px] text-gray-300 max-w-xs mx-auto line-clamp-3">
-                      {instagramPost?.captionText.slice(0, 120)}...
-                    </p>
-                  </div>
-
-                  <div className="pt-2 border-t border-white/10 flex items-center justify-between text-[10px] text-gray-400">
-                    <span>Zero Link-Surcharge Engine</span>
-                    <span>kuiro.in</span>
-                  </div>
+            {/* Campaigns List Container */}
+            <div className="space-y-3 max-h-[620px] overflow-y-auto pr-1">
+              {loading && campaigns.length === 0 ? (
+                <div className="p-8 text-center space-y-3">
+                  <Loader2 size={24} className="animate-spin text-[#FF7A00] mx-auto" />
+                  <p className="text-xs text-slate-400 font-mono">Loading autonomous campaigns...</p>
                 </div>
-
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                  <Link
-                    href="/dashboard/simulator"
-                    className="px-3 py-1.5 rounded-[8px] bg-white text-xs font-semibold text-[#0B0F14] hover:bg-gray-100 flex items-center gap-1.5"
-                  >
-                    <Smartphone size={14} />
-                    <span>Inspect in WhatsApp</span>
-                  </Link>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between text-xs text-gray-500 px-1">
-                <span>Contact Sheet (2x2 Multi-Channel)</span>
-                <button
-                  onClick={() => handleExportCreativeKit(activeCampaign.id, activeCampaign.topicSummary)}
-                  disabled={isExportingKit}
-                  className="text-[#FF7A00] hover:text-[#E66E00] font-semibold text-[11px] flex items-center gap-1 transition disabled:opacity-50"
-                  title="Download ready-to-use brand asset visual & copy ZIP"
-                >
-                  <Download size={12} />
-                  <span>Download Assets (ZIP)</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Platform Tailored Copy & Rules */}
-            <div className="lg:col-span-2 space-y-4">
-              <div className="rounded-[12px] bg-[#F9FAFB] border border-[#E5E7EB] p-4 space-y-3">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <span className="text-xs font-semibold text-[#0B0F14]">
-                      AI Multi-Channel Payloads (Gemini 2.5 Multi-Modal)
-                    </span>
-                  </div>
-                  <span className="text-[11px] font-mono text-gray-500">
-                    Revision {activeCampaign.revisionCount} of 2 (Free)
-                  </span>
-                </div>
-
-                {/* Platform Switcher Chips */}
-                <div className="flex items-center gap-1.5 overflow-x-auto border-b border-gray-200 pb-2">
+              ) : displayedCampaigns.length === 0 ? (
+                <div className="p-8 text-center space-y-3 rounded-2xl bg-white/[0.02] border border-dashed border-white/[0.08]">
+                  <p className="text-xs text-slate-400">No campaigns found in this view.</p>
                   <button
-                    onClick={() => setSelectedPlatformTab('all')}
-                    className={`px-2.5 py-1 rounded-[6px] text-xs font-medium transition ${
-                      selectedPlatformTab === 'all'
-                        ? 'bg-[#0B0F14] text-white'
-                        : 'text-gray-600 hover:bg-gray-200'
-                    }`}
+                    type="button"
+                    onClick={() => setIsGeneratorOpen(true)}
+                    className="text-xs text-[#FF7A00] font-semibold hover:underline"
                   >
-                    All Payloads
-                  </button>
-                  <button
-                    onClick={() => setSelectedPlatformTab('instagram')}
-                    className={`px-2.5 py-1 rounded-[6px] text-xs font-medium transition flex items-center gap-1 ${
-                      selectedPlatformTab === 'instagram'
-                        ? 'bg-pink-600 text-white'
-                        : 'text-pink-600 hover:bg-pink-50'
-                    }`}
-                  >
-                    <Instagram size={12} />
-                    <span>Instagram</span>
-                  </button>
-                  <button
-                    onClick={() => setSelectedPlatformTab('linkedin')}
-                    className={`px-2.5 py-1 rounded-[6px] text-xs font-medium transition flex items-center gap-1 ${
-                      selectedPlatformTab === 'linkedin'
-                        ? 'bg-blue-600 text-white'
-                        : 'text-blue-600 hover:bg-blue-50'
-                    }`}
-                  >
-                    <Linkedin size={12} />
-                    <span>LinkedIn</span>
-                  </button>
-                  <button
-                    onClick={() => setSelectedPlatformTab('x')}
-                    className={`px-2.5 py-1 rounded-[6px] text-xs font-medium transition flex items-center gap-1 ${
-                      selectedPlatformTab === 'x'
-                        ? 'bg-sky-600 text-white'
-                        : 'text-sky-600 hover:bg-sky-50'
-                    }`}
-                  >
-                    <Twitter size={12} />
-                    <span>X (Twitter)</span>
-                  </button>
-                  <button
-                    onClick={() => setSelectedPlatformTab('whatsapp')}
-                    className={`px-2.5 py-1 rounded-[6px] text-xs font-medium transition flex items-center gap-1 ${
-                      selectedPlatformTab === 'whatsapp'
-                        ? 'bg-emerald-600 text-white'
-                        : 'text-emerald-600 hover:bg-emerald-50'
-                    }`}
-                  >
-                    <MessageSquare size={12} />
-                    <span>WhatsApp</span>
-                  </button>
-                  <button
-                    onClick={() => setSelectedPlatformTab('email')}
-                    className={`px-2.5 py-1 rounded-[6px] text-xs font-medium transition flex items-center gap-1 ${
-                      selectedPlatformTab === 'email'
-                        ? 'bg-amber-600 text-white'
-                        : 'text-amber-600 hover:bg-amber-50'
-                    }`}
-                  >
-                    <Mail size={12} />
-                    <span>Email</span>
+                    + Compose a new campaign now
                   </button>
                 </div>
-
-                {/* Instagram / Facebook Caption */}
-                {(selectedPlatformTab === 'all' || selectedPlatformTab === 'instagram') && instagramPost && (
-                  <div className="text-xs text-gray-700 bg-white p-3 rounded-[8px] border border-[#E5E7EB] space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-pink-600 font-semibold text-[11px]">
-                        <Instagram size={13} />
-                        <span>Instagram 4:5 Portrait Payload:</span>
-                      </div>
-                      <span className="text-[10px] text-gray-400 font-mono">
-                        Critic Score: {instagramPost.aiCriticScore || 96}/100
-                      </span>
-                    </div>
-                    <p className="whitespace-pre-line leading-relaxed">{instagramPost.captionText}</p>
-                    {instagramPost.firstCommentText && (
-                      <p className="text-gray-400 text-[10px] font-mono pt-1">
-                        {instagramPost.firstCommentText}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* LinkedIn Thought Leadership */}
-                {(selectedPlatformTab === 'all' || selectedPlatformTab === 'linkedin') && linkedinPost && (
-                  <div className="text-xs text-gray-700 bg-white p-3 rounded-[8px] border border-[#E5E7EB] space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-blue-600 font-semibold text-[11px]">
-                        <Linkedin size={13} />
-                        <span>LinkedIn 1:1 Executive Insight Payload:</span>
-                      </div>
-                      <span className="text-[10px] text-gray-400 font-mono">
-                        Critic Score: {linkedinPost.aiCriticScore || 94}/100
-                      </span>
-                    </div>
-                    <p className="whitespace-pre-line leading-relaxed">{linkedinPost.captionText}</p>
-                    {linkedinPost.firstCommentText && (
-                      <p className="text-blue-500 text-[10px] font-mono pt-1">
-                        {linkedinPost.firstCommentText}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* X (Twitter) Surcharge Guardrail */}
-                {(selectedPlatformTab === 'all' || selectedPlatformTab === 'x') && xPost && (
-                  <div className="text-xs text-gray-700 bg-white p-3 rounded-[8px] border border-[#E5E7EB] space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-sky-500 font-semibold text-[11px]">
-                        <Twitter size={13} />
-                        <span>X (Twitter) Payload:</span>
-                      </div>
-                      <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                        Surcharge Guardrail Active ($0.200 Saved)
-                      </span>
-                    </div>
-                    <p className="leading-relaxed">{xPost.captionText}</p>
-                    {xPost.firstCommentText && (
-                      <div className="text-[11px] text-gray-600 bg-gray-50 p-2 rounded border border-dashed border-gray-300">
-                        <span className="font-semibold text-gray-700">First Reply (Link Guardrail): </span>
-                        {xPost.firstCommentText}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* WhatsApp Broadcast */}
-                {(selectedPlatformTab === 'all' || selectedPlatformTab === 'whatsapp') && whatsappPost && (
-                  <div className="text-xs text-gray-700 bg-white p-3 rounded-[8px] border border-[#E5E7EB] space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
-                        <MessageSquare size={13} />
-                        <span>WhatsApp Direct Utility Broadcast:</span>
-                      </div>
-                      <span className="text-[10px] font-mono text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                        Meta Cloud API Ready
-                      </span>
-                    </div>
-                    <p className="whitespace-pre-line leading-relaxed font-sans">{whatsappPost.captionText}</p>
-                  </div>
-                )}
-
-                {/* Branded Email Newsletter */}
-                {(selectedPlatformTab === 'all' || selectedPlatformTab === 'email') && emailPost && (
-                  <div className="text-xs text-gray-700 bg-white p-3 rounded-[8px] border border-[#E5E7EB] space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-amber-600 font-semibold text-[11px]">
-                        <Mail size={13} />
-                        <span>Email Newsletter (Subject & Body):</span>
-                      </div>
-                      <span className="text-[10px] font-mono text-gray-400">
-                        {emailPost.emailSubject}
-                      </span>
-                    </div>
-                    <div
-                      className="bg-gray-50 p-2.5 rounded border border-gray-200 text-gray-800 text-[11px] space-y-1 prose-sm"
-                      dangerouslySetInnerHTML={{ __html: emailPost.emailHtml || emailPost.captionText }}
-                    />
-                  </div>
-                )}
-
-                {/* AI Critic Score Breakdown Bar */}
-                {(() => {
-                  const posts = activeCampaign.posts || [];
-                  const avgScore = posts.length > 0
-                    ? Math.round(posts.reduce((sum: number, p: any) => sum + (p.aiCriticScore || 90), 0) / posts.length)
-                    : 92;
-                  const igScore = instagramPost?.aiCriticScore || 92;
-                  const waScore = whatsappPost?.aiCriticScore || 95;
-                  const xScore = xPost?.aiCriticScore || 88;
+              ) : (
+                displayedCampaigns.map((c) => {
+                  const isSelected = c.id === (activeCampaign?.id || selectedCampaignId);
+                  const isQueued = c.status === 'AUTO_QUEUED';
+                  const isApproved = c.status === 'APPROVED';
+                  const isPaused = c.status === 'PAUSED';
 
                   return (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-                      <div className="p-2 bg-white rounded-[8px] border border-[#E5E7EB] text-center">
-                        <div className="text-[10px] text-gray-400 uppercase font-medium">AI Critic Composite</div>
-                        <div className="text-sm font-bold text-emerald-600">{avgScore} / 100</div>
+                    <div
+                      key={c.id}
+                      onClick={() => setSelectedCampaignId(c.id)}
+                      className={`p-4 rounded-2xl border transition-all duration-200 cursor-pointer space-y-2.5 ${
+                        isSelected
+                          ? 'bg-[#0E1524] border-[#FF7A00] shadow-[0_4px_24px_rgba(255,122,0,0.15)] ring-1 ring-[#FF7A00]/50'
+                          : 'bg-white/[0.02] hover:bg-white/[0.04] border-white/[0.06]'
+                      }`}
+                    >
+                      {/* Header Badge & Trigger */}
+                      <div className="flex items-center justify-between text-xs font-mono">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${
+                            isQueued
+                              ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                              : isApproved
+                              ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                              : isPaused
+                              ? 'bg-slate-500/15 text-slate-300 border border-slate-500/30'
+                              : 'bg-blue-500/15 text-blue-300 border border-blue-500/30'
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isQueued
+                                ? 'bg-amber-400 animate-pulse'
+                                : isApproved
+                                ? 'bg-emerald-400'
+                                : 'bg-slate-400'
+                            }`}
+                          />
+                          <span>
+                            {c.status === 'AUTO_QUEUED'
+                              ? '48h Auto-Commit'
+                              : c.status === 'APPROVED'
+                              ? 'Approved'
+                              : c.status === 'PAUSED'
+                              ? 'Paused'
+                              : 'Published'}
+                          </span>
+                        </span>
+
+                        <span className="text-[11px] text-slate-400">
+                          {new Date(c.publishAt).toLocaleDateString('en-IN', {
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </span>
                       </div>
-                      <div className="p-2 bg-white rounded-[8px] border border-[#E5E7EB] text-center">
-                        <div className="text-[10px] text-gray-400 uppercase font-medium">Instagram Hook</div>
-                        <div className="text-sm font-bold text-emerald-600">{igScore} / 100</div>
-                      </div>
-                      <div className="p-2 bg-white rounded-[8px] border border-[#E5E7EB] text-center">
-                        <div className="text-[10px] text-gray-400 uppercase font-medium">WhatsApp Utility</div>
-                        <div className="text-sm font-bold text-emerald-600">{waScore} / 100</div>
-                      </div>
-                      <div className="p-2 bg-white rounded-[8px] border border-[#E5E7EB] text-center">
-                        <div className="text-[10px] text-gray-400 uppercase font-medium">X Link Guardrail</div>
-                        <div className="text-sm font-bold text-emerald-600">{xScore >= 85 ? '100% Pass' : `${xScore} / 100`}</div>
+
+                      {/* Topic Title */}
+                      <h4 className="text-xs font-sora font-semibold text-white leading-snug line-clamp-2">
+                        {c.topicSummary}
+                      </h4>
+
+                      {/* Channels & Mini Actions */}
+                      <div className="flex items-center justify-between pt-1 border-t border-white/[0.04] text-[11px]">
+                        <div className="flex items-center gap-1.5 text-slate-400">
+                          <Instagram size={12} className="hover:text-white" />
+                          <Smartphone size={12} className="text-emerald-400" />
+                          <Linkedin size={12} className="hover:text-white" />
+                          <Twitter size={12} className="hover:text-white" />
+                          <Mail size={12} className="hover:text-white" />
+                        </div>
+
+                        {isQueued && (
+                          <span className="text-[10px] font-mono text-[#FF7A00]">
+                            Auto-commits in {timeLeft.hours}h {timeLeft.minutes}m
+                          </span>
+                        )}
                       </div>
                     </div>
                   );
-                })()}
-              </div>
-
-              {/* Action Buttons & Quick Controls */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                <div className="text-xs text-gray-500">
-                  Target Auto-Commit: <span className="font-semibold text-gray-700">{new Date(activeCampaign.publishAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' })} IST</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleExportCreativeKit(activeCampaign.id, activeCampaign.topicSummary)}
-                    disabled={isExportingKit}
-                    className="px-3.5 py-2 rounded-[10px] bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white text-xs font-semibold transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
-                    title="Download high-resolution 4:5 visual, WhatsApp 1:1 card, copy & HTML newsletter in a ZIP"
-                  >
-                    {isExportingKit ? (
-                      <>
-                        <Loader2 size={13} className="animate-spin" />
-                        <span>Bundling ZIP...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Download size={13} />
-                        <span>Export Kit (ZIP)</span>
-                      </>
-                    )}
-                  </button>
-
-                  {activeCampaign.status !== 'APPROVED' && (activeCampaign.revisionCount || 0) < 2 && (
-                    <button
-                      onClick={() => setIsRevisionModalOpen(true)}
-                      disabled={isUpdatingStatus}
-                      className="px-3 py-2 rounded-[10px] bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-semibold transition flex items-center gap-1.5 border border-purple-200"
-                      title="Surgically revise copy in English, Hindi, or Bengali using Gemini AI"
-                    >
-                      <Sparkles size={13} />
-                      <span>Request Revision ({activeCampaign.revisionCount || 0}/2)</span>
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => handlePause(activeCampaign.id)}
-                    disabled={isUpdatingStatus}
-                    className={`px-3 py-2 rounded-[10px] text-xs font-semibold transition flex items-center gap-1.5 ${
-                      activeCampaign.status === 'PAUSED'
-                        ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
-                        : 'bg-gray-100 text-[#0B0F14] hover:bg-gray-200'
-                    }`}
-                  >
-                    {activeCampaign.status === 'PAUSED' ? (
-                      <>
-                        <Play size={13} />
-                        <span>Resume Autopilot</span>
-                      </>
-                    ) : (
-                      <>
-                        <Pause size={13} />
-                        <span>Pause</span>
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => handleApprove(activeCampaign.id)}
-                    disabled={isUpdatingStatus || activeCampaign.status === 'APPROVED'}
-                    className={`px-4 py-2 rounded-[10px] text-xs font-semibold transition flex items-center gap-1.5 ${
-                      activeCampaign.status === 'APPROVED'
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-[#FF7A00] text-white hover:bg-[#E66E00]'
-                    }`}
-                  >
-                    {activeCampaign.status === 'APPROVED' ? (
-                      <>
-                        <Check size={14} />
-                        <span>Approved</span>
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 size={14} />
-                        <span>Approve Now</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
+                })
+              )}
             </div>
           </div>
         </div>
-      )}
 
-      {/* Instant Campaign Composer Modal */}
-      {isGeneratorOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn overflow-y-auto">
-          <div className="bg-white rounded-[18px] max-w-xl w-full p-6 space-y-5 shadow-2xl border border-gray-100 my-8">
-            {/* Header */}
-            <div className="flex items-center justify-between pb-3.5 border-b border-gray-100">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-[10px] bg-gradient-to-tr from-[#FF7A00] to-amber-500 text-white flex items-center justify-center shadow-sm">
-                  <Sparkles size={18} />
-                </div>
+        {/* =======================================================================
+            RIGHT COLUMN (7 Cols): LIVE MULTI-CHANNEL PREVIEW & SURGICAL ACTIONS
+        ======================================================================= */}
+        <div className="lg:col-span-7 space-y-4">
+          {activeCampaign ? (
+            <div className="rounded-[28px] bg-[#0A0E18] border border-white/[0.08] p-6 shadow-xl space-y-5">
+              {/* Spotlight Header Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.06] pb-4">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-sora text-base font-bold text-[#0B0F14]">
-                      Instant Campaign Composer
-                    </h3>
-                    <span className="px-2 py-0.5 rounded-full bg-orange-50 text-[#FF7A00] text-[10px] font-bold border border-orange-200 uppercase tracking-wide">
-                      Gemini 2.5 Multi-Modal
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-mono text-[#FF7A00] font-bold uppercase tracking-wider">
+                      Target Campaign:
+                    </span>
+                    <span className="text-xs text-slate-400 font-mono">
+                      ID: {activeCampaign.id.slice(0, 8)}...
                     </span>
                   </div>
-                  <p className="text-[11px] text-gray-500">
-                    Draft, critique, and schedule an urgent broadcast or milestone across all channels in 30 seconds.
-                  </p>
+                  <h3 className="text-base font-sora font-bold text-white line-clamp-1">
+                    {activeCampaign.topicSummary}
+                  </h3>
+                </div>
+
+                {/* 48h Auto-Commit Countdown Timer Box */}
+                <div className="px-3.5 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-right">
+                  <span className="text-[9px] font-mono uppercase text-slate-400 block">
+                    Auto-Commit Clock
+                  </span>
+                  <span className="text-sm font-mono font-bold text-[#FF7A00]">
+                    {timeLeft.hours.toString().padStart(2, '0')}h :{' '}
+                    {timeLeft.minutes.toString().padStart(2, '0')}m :{' '}
+                    {timeLeft.seconds.toString().padStart(2, '0')}s
+                  </span>
+                </div>
+              </div>
+
+              {/* Channel Selector Switcher Tabs */}
+              <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-white/[0.03] border border-white/[0.06] overflow-x-auto text-xs font-mono">
+                <button
+                  type="button"
+                  onClick={() => setSelectedPlatformTab('instagram')}
+                  className={`flex-1 min-w-[105px] py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                    selectedPlatformTab === 'instagram'
+                      ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/30 text-white font-bold'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Instagram size={13} className="text-pink-400" />
+                  <span>Instagram</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedPlatformTab('whatsapp')}
+                  className={`flex-1 min-w-[105px] py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                    selectedPlatformTab === 'whatsapp'
+                      ? 'bg-emerald-500/20 border border-emerald-500/30 text-white font-bold'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Smartphone size={13} className="text-emerald-400" />
+                  <span>WhatsApp</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedPlatformTab('linkedin')}
+                  className={`flex-1 min-w-[105px] py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                    selectedPlatformTab === 'linkedin'
+                      ? 'bg-blue-500/20 border border-blue-500/30 text-white font-bold'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Linkedin size={13} className="text-blue-400" />
+                  <span>LinkedIn</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedPlatformTab('x')}
+                  className={`flex-1 min-w-[80px] py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                    selectedPlatformTab === 'x'
+                      ? 'bg-white/10 border border-white/20 text-white font-bold'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Twitter size={13} className="text-slate-300" />
+                  <span>X / Tweet</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedPlatformTab('email')}
+                  className={`flex-1 min-w-[90px] py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                    selectedPlatformTab === 'email'
+                      ? 'bg-amber-500/20 border border-amber-500/30 text-white font-bold'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Mail size={13} className="text-amber-400" />
+                  <span>Newsletter</span>
+                </button>
+              </div>
+
+              {/* =================================================================
+                  PLATFORM LIVE PREVIEWS
+              ================================================================= */}
+              <div className="rounded-2xl bg-[#070A11] border border-white/[0.08] p-4 sm:p-5 relative overflow-hidden">
+                {/* 1. INSTAGRAM FEED PREVIEW */}
+                {selectedPlatformTab === 'instagram' && (
+                  <div className="space-y-4 animate-fade-in max-w-md mx-auto">
+                    {/* User profile header */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#FF7A00] to-pink-500 p-[1.5px]">
+                          <div className="w-full h-full rounded-full bg-[#070A11] flex items-center justify-center text-[10px] font-bold text-white">
+                            KB
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs font-bold text-white">kuiro.brand</span>
+                            <span className="w-3 h-3 rounded-full bg-blue-500 text-[8px] flex items-center justify-center text-white">
+                              ✓
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-mono">Original Audio</span>
+                        </div>
+                      </div>
+                      <span className="text-slate-400 text-sm">•••</span>
+                    </div>
+
+                    {/* 4:5 Visual Aspect Ratio Mock */}
+                    <div className="aspect-[4/5] rounded-xl bg-gradient-to-br from-[#121829] via-[#0E1424] to-[#182136] border border-white/[0.08] relative overflow-hidden flex flex-col justify-between p-6">
+                      <div className="flex items-center justify-between text-xs font-mono">
+                        <span className="px-2 py-0.5 rounded bg-black/60 text-white border border-white/10">
+                          4:5 High-Res Grid
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-[#FF7A00]/20 text-[#FF7A00] font-bold border border-[#FF7A00]/30">
+                          AI Critic: {instagramPost?.aiCriticScore || 98.4}%
+                        </span>
+                      </div>
+
+                      <div className="space-y-2 text-center my-auto">
+                        <div className="w-12 h-12 rounded-2xl bg-[#FF7A00]/20 text-[#FF7A00] flex items-center justify-center mx-auto mb-2 border border-[#FF7A00]/30 shadow-lg">
+                          <Sparkles size={24} />
+                        </div>
+                        <h4 className="font-sora text-lg font-bold text-white drop-shadow">
+                          {activeCampaign.topicSummary}
+                        </h4>
+                        <p className="text-xs text-slate-300 font-inter max-w-xs mx-auto drop-shadow">
+                          Autonomous AI Production • Color Calibrated • Studio Approved
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
+                        <span>#MadeInIndia</span>
+                        <span>Auto-Tagged Brand Brain</span>
+                      </div>
+                    </div>
+
+                    {/* Post Caption & Hashtags */}
+                    <div className="space-y-2 text-xs font-inter">
+                      <p className="text-slate-200 leading-relaxed whitespace-pre-line">
+                        <strong className="text-white mr-1.5 font-sora">kuiro.brand</strong>
+                        {instagramPost?.captionText || 'Handcrafted perfection tailored for your festive season. Tap link in bio to reserve your priority order before midnight.'}
+                      </p>
+
+                      {instagramPost?.firstCommentText && (
+                        <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] text-[11px] font-mono text-slate-400">
+                          <span className="text-[#FF7A00] font-bold mr-1.5">First Comment (Auto):</span>
+                          <span>{instagramPost.firstCommentText}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. WHATSAPP 48H LOOP PREVIEW */}
+                {selectedPlatformTab === 'whatsapp' && (
+                  <div className="space-y-4 animate-fade-in max-w-md mx-auto">
+                    <div className="p-3 rounded-xl bg-[#0F1C15] border border-emerald-500/25 flex items-center justify-between text-xs font-mono text-emerald-300">
+                      <div className="flex items-center gap-2">
+                        <Smartphone size={14} className="text-emerald-400" />
+                        <span>Verified WhatsApp Cloud API</span>
+                      </div>
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    </div>
+
+                    {/* WhatsApp Chat Bubble */}
+                    <div className="rounded-2xl bg-[#121B22] border border-emerald-500/20 p-4 space-y-3 shadow-lg">
+                      <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 border-b border-white/[0.06] pb-2">
+                        <span className="text-emerald-400 font-bold">KUIRO Official VIP Updates</span>
+                        <span>10:42 AM</span>
+                      </div>
+
+                      <div className="text-xs font-inter text-slate-100 whitespace-pre-line leading-relaxed">
+                        {whatsappPost?.captionText ||
+                          `✨ *Exclusive Announcement:*\n\nNamaste Founder! Your 48-hour priority window is now live.\n\nTake advantage of this limited-run collection before general public release.\n\nReply *YES* to claim, or click below:`}
+                      </div>
+
+                      {/* WhatsApp Interactive Button */}
+                      <div className="pt-1">
+                        <div className="w-full py-2.5 px-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.08] border border-white/10 text-center text-xs font-mono text-emerald-400 font-bold cursor-pointer">
+                          🔗 View Festive Catalog & Order Now
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. LINKEDIN POST PREVIEW */}
+                {selectedPlatformTab === 'linkedin' && (
+                  <div className="space-y-3 animate-fade-in max-w-lg mx-auto">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-full bg-[#0077B5] flex items-center justify-center font-bold text-white text-xs">
+                        KB
+                      </div>
+                      <div>
+                        <h5 className="text-xs font-bold text-white">Rahul Biswas • Founder</h5>
+                        <p className="text-[10px] text-slate-400 font-mono">1st • Building KUIRO • 2h</p>
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] text-xs font-inter text-slate-200 leading-relaxed whitespace-pre-line">
+                      {linkedinPost?.captionText ||
+                        `Most brands spend 15 hours a week coordinating designers, copywriters, and schedulers.\n\nWe spent the last 6 months automating the entire loop with multi-modal AI and strict compliance rules.\n\nHere are 3 fundamental shifts we observed:`}
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. X / TWITTER PREVIEW */}
+                {selectedPlatformTab === 'x' && (
+                  <div className="space-y-3 animate-fade-in max-w-lg mx-auto">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-white">Rahul Biswas</span>
+                      <span className="text-xs text-slate-400 font-mono">@kuiro_hq • 1h</span>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] text-xs font-inter text-slate-200 leading-relaxed whitespace-pre-line">
+                      {xPost?.captionText ||
+                        `Autonomous marketing isn't about spamming feeds—it's about never missing a cultural or festive moment across India while keeping brand voice razor-sharp.\n\n48-hour auto-commit loop running at 100% compliance.`}
+                    </div>
+                  </div>
+                )}
+
+                {/* 5. EMAIL NEWSLETTER PREVIEW */}
+                {selectedPlatformTab === 'email' && (
+                  <div className="space-y-3 animate-fade-in max-w-lg mx-auto">
+                    <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-xs font-mono space-y-1">
+                      <div>
+                        <span className="text-slate-400">Subject: </span>
+                        <strong className="text-white">
+                          {emailPost?.emailSubject || `[Exclusive] Priority Festive Access: ${activeCampaign.topicSummary}`}
+                        </strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">From: </span>
+                        <span className="text-slate-200">updates@kuiro.in</span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] text-xs font-inter text-slate-200 leading-relaxed whitespace-pre-line">
+                      {emailPost?.captionText ||
+                        `Hello,\n\nWe are pleased to introduce our newest collection curated specifically for your celebratory milestones.\n\nDiscover the artisanal craft behind each piece:`}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* =================================================================
+                  INLINE AI REVISION BAR
+              ================================================================= */}
+              <div className="space-y-2 pt-2 border-t border-white/[0.06]">
+                <div className="flex items-center justify-between text-xs font-mono text-slate-400">
+                  <span className="flex items-center gap-1.5 text-white font-semibold">
+                    <Sparkles size={13} className="text-[#FF7A00]" />
+                    <span>Surgical AI Revision Prompt</span>
+                  </span>
+                  <span>{activeCampaign.revisionCount || 0} / 2 Revisions Used</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={revisionPromptText}
+                    onChange={(e) => setRevisionPromptText(e.target.value)}
+                    placeholder="e.g. 'Make tone more festive' or 'Shorten WhatsApp copy by 20%'"
+                    className="flex-1 py-2.5 px-3.5 rounded-xl bg-white/[0.03] border border-white/[0.1] focus:border-[#FF7A00] text-xs text-white focus:outline-none font-inter"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleRequestRevision(activeCampaign.id, revisionPromptText);
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    disabled={isSubmittingRevision || !revisionPromptText.trim()}
+                    onClick={() => handleRequestRevision(activeCampaign.id, revisionPromptText)}
+                    className="py-2.5 px-4 rounded-xl bg-[#FF7A00] hover:bg-[#FF881A] disabled:opacity-40 text-white text-xs font-sora font-semibold transition flex items-center gap-1.5 cursor-pointer shrink-0"
+                  >
+                    {isSubmittingRevision ? (
+                      <Loader2 size={13} className="animate-spin" />
+                    ) : (
+                      <>
+                        <span>Revise</span>
+                        <ArrowRight size={13} />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* =================================================================
+                  TACTICAL ACTION CONTROLS (Approve, Pause, Export)
+              ================================================================= */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
+                <button
+                  type="button"
+                  disabled={isUpdatingStatus}
+                  onClick={() => handleApprove(activeCampaign.id)}
+                  className="py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-sora font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 cursor-pointer disabled:opacity-50"
+                >
+                  <Check size={14} />
+                  <span>Approve Now</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isUpdatingStatus}
+                  onClick={() => handlePause(activeCampaign.id)}
+                  className="py-3 px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-white text-xs font-sora font-semibold transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {activeCampaign.status === 'PAUSED' ? (
+                    <>
+                      <Play size={14} className="text-emerald-400" />
+                      <span>Resume 48h Loop</span>
+                    </>
+                  ) : (
+                    <>
+                      <Pause size={14} className="text-amber-400" />
+                      <span>Pause Autopilot</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isExportingKit}
+                  onClick={() => handleExportCreativeKit(activeCampaign.id, activeCampaign.topicSummary)}
+                  className="py-3 px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/10 text-white text-xs font-sora font-semibold transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isExportingKit ? (
+                    <Loader2 size={14} className="animate-spin text-[#FF7A00]" />
+                  ) : (
+                    <Download size={14} className="text-[#FF7A00]" />
+                  )}
+                  <span>Export Kit ZIP</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="p-12 text-center rounded-[28px] bg-[#0A0E18] border border-white/[0.08] space-y-3">
+              <Sparkles size={32} className="text-[#FF7A00] mx-auto animate-pulse" />
+              <h3 className="font-sora text-lg font-bold text-white">No active campaign selected</h3>
+              <p className="text-xs text-slate-400">Select a campaign from the left queue to inspect multi-channel previews.</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* =========================================================================
+          SECTION 4: CONNECTED CHANNELS STATUS RADAR
+      ========================================================================= */}
+      <div id="channels" className="rounded-[24px] bg-[#0A0E18] border border-white/[0.08] p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.06] pb-3">
+          <div>
+            <h3 className="font-sora text-base font-bold text-white flex items-center gap-2">
+              <Share2 size={16} className="text-[#FF7A00]" />
+              <span>Connected Channels & API Health</span>
+            </h3>
+            <p className="text-xs text-slate-400 font-inter mt-0.5">
+              Verified OAuth bridges for Meta Graph API v21.0 & WhatsApp Cloud API.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedChannelForModal('instagram');
+              setIsChannelsModalOpen(true);
+            }}
+            className="py-2 px-3.5 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.09] text-xs font-sora font-semibold text-white transition flex items-center gap-1.5 cursor-pointer"
+          >
+            <KeyRound size={13} className="text-[#FF7A00]" />
+            <span>Manage API Connections</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-xs font-mono">
+          <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Instagram size={14} className="text-pink-400" />
+              <span className="font-semibold text-white">Instagram</span>
+            </div>
+            <span className="w-2 h-2 rounded-full bg-emerald-400" title="Active" />
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Smartphone size={14} className="text-emerald-400" />
+              <span className="font-semibold text-white">WhatsApp</span>
+            </div>
+            <span className="w-2 h-2 rounded-full bg-emerald-400" title="Cloud API Live" />
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Linkedin size={14} className="text-blue-400" />
+              <span className="font-semibold text-white">LinkedIn</span>
+            </div>
+            <span className="w-2 h-2 rounded-full bg-emerald-400" title="Active" />
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Twitter size={14} className="text-slate-300" />
+              <span className="font-semibold text-white">X / Twitter</span>
+            </div>
+            <span className="w-2 h-2 rounded-full bg-emerald-400" title="Active" />
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Mail size={14} className="text-amber-400" />
+              <span className="font-semibold text-white">Newsletter</span>
+            </div>
+            <span className="w-2 h-2 rounded-full bg-emerald-400" title="Active" />
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================================
+          SECTION 5: INTEGRATED ROI & CAMPAIGN ATTRIBUTION DASHBOARD
+      ========================================================================= */}
+      <CampaignRoiDashboard onRefreshNeeded={() => fetchCampaigns(true)} />
+
+      {/* =========================================================================
+          MODAL: INSTANT CAMPAIGN COMPOSER (SLIDE-OVER / POPOVER)
+      ========================================================================= */}
+      {isGeneratorOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-xl rounded-[28px] bg-[#0A0E18] border border-white/[0.12] p-6 sm:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.9)] space-y-5 relative">
+            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#FF7A00]/20 text-[#FF7A00] flex items-center justify-center font-bold">
+                  <Sparkles size={16} />
+                </div>
+                <div>
+                  <h3 className="font-sora text-base font-bold text-white">
+                    Instant Campaign Composer
+                  </h3>
+                  <p className="text-[11px] text-slate-400">Generate multi-channel assets with 48h loop auto-commit.</p>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setIsGeneratorOpen(false)}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-md transition"
+                className="text-slate-400 hover:text-white transition p-1.5 rounded-lg hover:bg-white/[0.05]"
               >
                 <CloseIcon size={18} />
               </button>
             </div>
 
-            {/* Step 1: Campaign Trigger / Objective */}
-            <div className="space-y-2">
-              <label className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider flex items-center justify-between">
-                <span>1. Select Broadcast Objective</span>
-                <span className="text-[10px] text-gray-400 lowercase font-normal">tailors tone & urgency</span>
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {[
-                  { id: 'FLASH_SALE', label: 'Flash Sale', emoji: '⚡', desc: 'Urgent 24-48h push' },
-                  { id: 'PRODUCT_DROP', label: 'Product Drop', emoji: '🚀', desc: 'New launch announcement' },
-                  { id: 'SEASONAL', label: 'Festive / Event', emoji: '🪔', desc: 'Cultural & holiday radar' },
-                  { id: 'THOUGHT_LEADERSHIP', label: 'Founder Post', emoji: '🎯', desc: 'Insights & brand story' },
-                ].map((t) => {
-                  const isSelected = composerTriggerType === t.id;
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => setComposerTriggerType(t.id as any)}
-                      className={`p-2.5 rounded-[12px] border text-left transition flex flex-col justify-between ${
-                        isSelected
-                          ? 'border-[#FF7A00] bg-orange-50/60 shadow-sm'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
-                      }`}
-                    >
-                      <div className="text-base mb-1">{t.emoji}</div>
-                      <div>
-                        <p className={`text-xs font-bold leading-tight ${isSelected ? 'text-[#FF7A00]' : 'text-gray-800'}`}>
-                          {t.label}
-                        </p>
-                        <p className="text-[10px] text-gray-400 leading-tight mt-0.5">{t.desc}</p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Step 2: Target Channels */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
-                  2. Target Channels
-                </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const allSelected = Object.values(selectedChannels).every(Boolean);
-                    setSelectedChannels({
-                      instagram: !allSelected,
-                      linkedin: !allSelected,
-                      x: !allSelected,
-                      whatsapp: !allSelected,
-                      email: !allSelected,
-                    });
-                  }}
-                  className="text-[10px] text-[#FF7A00] font-semibold hover:underline"
-                >
-                  {Object.values(selectedChannels).every(Boolean) ? 'Deselect All' : 'Select All'}
-                </button>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                {[
-                  { key: 'instagram', label: 'Instagram', icon: Instagram, color: 'text-pink-600 bg-pink-50' },
-                  { key: 'linkedin', label: 'LinkedIn', icon: Linkedin, color: 'text-blue-600 bg-blue-50' },
-                  { key: 'x', label: 'X (Twitter)', icon: Twitter, color: 'text-sky-500 bg-sky-50' },
-                  { key: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, color: 'text-emerald-600 bg-emerald-50' },
-                  { key: 'email', label: 'Email ESP', icon: Mail, color: 'text-amber-600 bg-amber-50' },
-                ].map((ch) => {
-                  const isChecked = selectedChannels[ch.key];
-                  const Icon = ch.icon;
-                  return (
-                    <button
-                      key={ch.key}
-                      type="button"
-                      onClick={() => setSelectedChannels((prev) => ({ ...prev, [ch.key]: !prev[ch.key] }))}
-                      className={`p-2 rounded-[10px] border flex items-center gap-2 text-left transition ${
-                        isChecked
-                          ? 'border-gray-800 bg-gray-900 text-white shadow-sm'
-                          : 'border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100'
-                      }`}
-                    >
-                      <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${isChecked ? 'bg-white/10 text-white' : ch.color}`}>
-                        <Icon size={12} />
-                      </div>
-                      <span className="text-[11px] font-medium truncate">{ch.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Step 3: Quick Presets */}
+            {/* Campaign Preset Trigger Switcher */}
             <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
-                3. Quick Topic Inspiration
+              <label className="text-xs font-mono text-slate-300 font-semibold block">
+                Trigger Type & Objective:
               </label>
-              <div className="flex flex-wrap gap-1.5">
-                {(COMPOSER_PRESETS[composerTriggerType] || COMPOSER_PRESETS.FLASH_SALE).map((preset) => (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
+                {[
+                  { key: 'FLASH_SALE', label: 'Flash Sale' },
+                  { key: 'SEASONAL', label: 'Festive / India' },
+                  { key: 'PRODUCT_DROP', label: 'New Drop' },
+                  { key: 'THOUGHT_LEADERSHIP', label: 'Thought Lead' },
+                ].map((t) => (
                   <button
-                    key={preset}
+                    key={t.key}
                     type="button"
-                    onClick={() => setCustomTopic(preset)}
-                    className="text-[11px] px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 hover:bg-orange-50 hover:text-[#FF7A00] hover:border-orange-200 border border-transparent transition text-left"
+                    onClick={() => setComposerTriggerType(t.key as any)}
+                    className={`py-2 px-2.5 rounded-xl border text-center transition cursor-pointer ${
+                      composerTriggerType === t.key
+                        ? 'bg-[#FF7A00]/20 border-[#FF7A00] text-white font-bold'
+                        : 'bg-white/[0.02] border-white/[0.06] text-slate-400 hover:text-white'
+                    }`}
                   >
-                    + {preset}
+                    {t.label}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Step 4: Campaign Topic Textarea */}
+            {/* Quick 1-Click Suggestions */}
             <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider flex items-center justify-between">
-                <span>4. Campaign Details or Custom Topic</span>
-                <span className="text-[10px] text-gray-400 font-normal">
-                  {customTopic.length}/280 chars
-                </span>
-              </label>
-              <textarea
-                value={customTopic}
-                onChange={(e) => setCustomTopic(e.target.value)}
-                placeholder="e.g. Flash 48-Hour Sale: 30% off all artisan textiles and apparel with promo code KUIRO48..."
-                rows={3}
-                className="w-full text-xs p-3 rounded-[10px] border border-gray-200 focus:outline-none focus:border-[#FF7A00] transition"
-              />
-            </div>
-
-            {/* Autopilot Safety Notice */}
-            <div className="p-3 rounded-[10px] bg-emerald-50/70 border border-emerald-200 text-emerald-900 text-[11px] flex items-start gap-2">
-              <ShieldCheck size={16} className="text-emerald-600 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-semibold">Autonomous Safety Guarantee:</span> Once synthesized, this campaign enters the 48-Hour Auto-Commit queue. WhatsApp notification will be dispatched to your admin phone for 1-click approval or voice edit before anything is posted.
+              <span className="text-[11px] font-mono text-slate-400 block">
+                1-Click Preset Ideas for {composerTriggerType}:
+              </span>
+              <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                {COMPOSER_PRESETS[composerTriggerType]?.map((preset, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setCustomTopic(preset)}
+                    className="w-full text-left p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] text-xs font-inter text-slate-300 hover:text-white transition flex items-center justify-between group"
+                  >
+                    <span className="truncate mr-2">{preset}</span>
+                    <ArrowRight size={12} className="text-slate-500 group-hover:text-[#FF7A00] shrink-0" />
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Footer Buttons */}
-            <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+            {/* Custom Topic Input */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono text-slate-300 font-semibold block">
+                Or Enter Custom Topic / Promotion:
+              </label>
+              <input
+                type="text"
+                value={customTopic}
+                onChange={(e) => setCustomTopic(e.target.value)}
+                placeholder="e.g. Navratri 9-Day Festive Saree Showcase with Free Matching Blouse"
+                className="w-full py-3 px-3.5 rounded-xl bg-white/[0.03] border border-white/[0.1] focus:border-[#FF7A00] text-xs text-white focus:outline-none font-inter"
+              />
+            </div>
+
+            {/* Channel Selectors */}
+            <div className="space-y-1.5 pt-1">
+              <span className="text-xs font-mono text-slate-300 font-semibold block">
+                Target Channels (Auto-Format):
+              </span>
+              <div className="flex items-center gap-2 flex-wrap text-xs font-mono">
+                {['instagram', 'whatsapp', 'linkedin', 'x', 'email'].map((ch) => (
+                  <label
+                    key={ch}
+                    className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 transition cursor-pointer ${
+                      selectedChannels[ch]
+                        ? 'bg-white/[0.08] border-[#FF7A00] text-white font-bold'
+                        : 'bg-white/[0.02] border-white/[0.06] text-slate-400'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={!!selectedChannels[ch]}
+                      onChange={(e) =>
+                        setSelectedChannels({ ...selectedChannels, [ch]: e.target.checked })
+                      }
+                      className="hidden"
+                    />
+                    <span>{ch.toUpperCase()}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/[0.08]">
               <button
                 type="button"
                 onClick={() => setIsGeneratorOpen(false)}
-                disabled={isGenerating}
-                className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-[8px] transition"
+                className="py-2.5 px-4 rounded-xl text-xs font-sora font-semibold text-slate-400 hover:text-white transition"
               >
                 Cancel
               </button>
+
               <button
                 type="button"
+                disabled={isGenerating || !customTopic.trim()}
                 onClick={() => handleGenerateCampaign()}
-                disabled={isGenerating || !customTopic.trim() || !Object.values(selectedChannels).some(Boolean)}
-                className="px-5 py-2.5 bg-gradient-to-r from-[#FF7A00] to-[#E66E00] hover:opacity-95 text-white text-xs font-semibold rounded-[10px] transition flex items-center gap-2 shadow-sm disabled:opacity-50 font-sora"
+                className="py-2.5 px-5 rounded-full bg-[#FF7A00] hover:bg-[#FF881A] text-white text-xs font-sora font-bold transition shadow-lg shadow-[#FF7A00]/25 flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {isGenerating ? (
                   <>
                     <Loader2 size={14} className="animate-spin" />
-                    <span>Synthesizing Multi-Channel Kit...</span>
+                    <span>Synthesizing Multi-Channel Assets...</span>
                   </>
                 ) : (
                   <>
                     <Sparkles size={14} />
-                    <span>Synthesize & Enter Queue</span>
+                    <span>Generate & Enqueue 48h Loop</span>
                   </>
                 )}
               </button>
@@ -1212,355 +1331,13 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Unified Multi-Channel Customer Inbox Activity Widget */}
-      <div className="bg-white rounded-[14px] border border-[#E5E7EB] p-5 shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E5E7EB]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[10px] bg-orange-50 border border-orange-200 flex items-center justify-center text-[#FF7A00] shrink-0">
-              <MessagesSquare size={20} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  OMNI-CHANNEL LIVE INBOX
-                </span>
-                <span className="text-xs text-gray-500">WhatsApp • Instagram • Messenger • Email</span>
-              </div>
-              <h3 className="font-sora text-sm md:text-base font-bold text-[#0B0F14] mt-0.5">
-                Shared Customer Conversations Workspace
-              </h3>
-            </div>
-          </div>
-
-          <Link
-            href="/dashboard/inbox"
-            className="px-4 py-2 rounded-[8px] bg-[#FF7A00] hover:bg-[#FF881A] text-white text-xs font-semibold font-sora transition flex items-center gap-1.5 shadow-sm self-start sm:self-auto shrink-0"
-          >
-            <span>Open Unified Inbox</span>
-            <ArrowRight size={13} />
-          </Link>
-        </div>
-
-        {/* 3 Live Inbound Teaser Rows */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <Link
-            href="/dashboard/inbox"
-            className="p-3 rounded-[10px] bg-gray-50 hover:bg-orange-50/50 border border-gray-200 hover:border-orange-200 transition space-y-1.5 block group"
-          >
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-[#0B0F14] group-hover:text-[#FF7A00] transition flex items-center gap-1.5">
-                <Smartphone size={13} className="text-emerald-600" />
-                <span>Ananya Mukherjee</span>
-              </span>
-              <span className="text-[10px] text-gray-400 font-mono">10:42 AM</span>
-            </div>
-            <p className="text-[11px] text-gray-600 line-clamp-2">
-              "Can I order 3 bespoke Banarasi silk dupattas from the new catalogue for immediate delivery?"
-            </p>
-            <div className="flex items-center gap-1.5 pt-1 text-[9px] font-mono">
-              <span className="bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded font-bold">WhatsApp</span>
-              <span className="bg-orange-100 text-[#FF7A00] px-1.5 py-0.2 rounded font-bold">#OrderInquiry</span>
-            </div>
-          </Link>
-
-          <Link
-            href="/dashboard/inbox"
-            className="p-3 rounded-[10px] bg-gray-50 hover:bg-orange-50/50 border border-gray-200 hover:border-orange-200 transition space-y-1.5 block group"
-          >
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-[#0B0F14] group-hover:text-[#FF7A00] transition flex items-center gap-1.5">
-                <Instagram size={13} className="text-pink-600" />
-                <span>Rohit Verma</span>
-              </span>
-              <span className="text-[10px] text-rose-600 font-bold font-mono">NEW INQUIRY</span>
-            </div>
-            <p className="text-[11px] text-gray-600 line-clamp-2">
-              "Hey! We love your advisory masterclass. Do you have slots open for Q2 founder coaching?"
-            </p>
-            <div className="flex items-center gap-1.5 pt-1 text-[9px] font-mono">
-              <span className="bg-pink-100 text-pink-800 px-1.5 py-0.2 rounded font-bold">Instagram DM</span>
-              <span className="bg-rose-100 text-rose-800 px-1.5 py-0.2 rounded font-bold">#GrowthAdvisory</span>
-            </div>
-          </Link>
-
-          <Link
-            href="/dashboard/inbox"
-            className="p-3 rounded-[10px] bg-gray-50 hover:bg-orange-50/50 border border-gray-200 hover:border-orange-200 transition space-y-1.5 block group"
-          >
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-[#0B0F14] group-hover:text-[#FF7A00] transition flex items-center gap-1.5">
-                <Mail size={13} className="text-amber-600" />
-                <span>Meera Deshmukh</span>
-              </span>
-              <span className="text-[10px] text-gray-400 font-mono">09:20 AM</span>
-            </div>
-            <p className="text-[11px] text-gray-600 line-clamp-2">
-              "Reviewed your corporate proposal and wholesale terms. Let us finalize the contract on Monday."
-            </p>
-            <div className="flex items-center gap-1.5 pt-1 text-[9px] font-mono">
-              <span className="bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded font-bold">Email</span>
-              <span className="bg-blue-100 text-blue-800 px-1.5 py-0.2 rounded font-bold">#CorporateB2B</span>
-            </div>
-          </Link>
-        </div>
-      </div>
-
-      {/* Connected Channel Health Grid (id="channels") */}
-      <div id="channels" className="space-y-3 pt-2">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <h3 className="font-sora text-sm font-bold text-[#0B0F14] flex items-center gap-2">
-              <span>Connected Channels & Token Vault</span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                AES-256 VAULT
-              </span>
-            </h3>
-            <p className="text-xs text-gray-500">
-              Encrypted Neon DB OAuth storage • Automated token refresh & zero-link surcharge guard
-            </p>
-          </div>
-          <button
-            onClick={() => {
-              setSelectedChannelForModal('instagram');
-              setIsChannelsModalOpen(true);
-            }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0B0F14] text-white hover:bg-gray-800 text-xs font-semibold transition shrink-0"
-          >
-            <KeyRound size={13} className="text-[#FF7A00]" />
-            <span>Manage OAuth Credentials</span>
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {/* Instagram Graph Card */}
-          <div
-            onClick={() => {
-              setSelectedChannelForModal('instagram');
-              setIsChannelsModalOpen(true);
-            }}
-            className="bg-white p-4 rounded-[12px] border border-[#E5E7EB] hover:border-pink-300 hover:shadow-md cursor-pointer transition flex items-center justify-between group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-[10px] bg-pink-50 text-pink-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
-                <Instagram size={18} />
-              </div>
-              <div className="truncate">
-                <p className="text-xs font-semibold text-[#0B0F14]">Instagram Graph</p>
-                <p className="text-[10px] text-gray-500 truncate">
-                  {channels.find((c) => c.platform === 'instagram')?.handle || '@sharmahandlooms'}
-                </p>
-              </div>
-            </div>
-            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              Active
-            </span>
-          </div>
-
-          {/* LinkedIn Card */}
-          <div
-            onClick={() => {
-              setSelectedChannelForModal('linkedin');
-              setIsChannelsModalOpen(true);
-            }}
-            className="bg-white p-4 rounded-[12px] border border-[#E5E7EB] hover:border-blue-300 hover:shadow-md cursor-pointer transition flex items-center justify-between group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-[10px] bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
-                <Linkedin size={18} />
-              </div>
-              <div className="truncate">
-                <p className="text-xs font-semibold text-[#0B0F14]">LinkedIn Page</p>
-                <p className="text-[10px] text-gray-500 truncate">
-                  {channels.find((c) => c.platform === 'linkedin')?.handle || 'Sharma Heritage Studio & Retail'}
-                </p>
-              </div>
-            </div>
-            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              Active
-            </span>
-          </div>
-
-          {/* X (Twitter) Card */}
-          <div
-            onClick={() => {
-              setSelectedChannelForModal('x');
-              setIsChannelsModalOpen(true);
-            }}
-            className="bg-white p-4 rounded-[12px] border border-[#E5E7EB] hover:border-sky-300 hover:shadow-md cursor-pointer transition flex items-center justify-between group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-[10px] bg-sky-50 text-sky-500 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
-                <Twitter size={18} />
-              </div>
-              <div className="truncate">
-                <p className="text-xs font-semibold text-[#0B0F14]">X (Twitter)</p>
-                <p className="text-[10px] text-gray-500 truncate">
-                  {channels.find((c) => c.platform === 'x')?.handle || '@sharmaretail_in'}
-                </p>
-              </div>
-            </div>
-            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              Active
-            </span>
-          </div>
-
-          {/* WhatsApp Admin Card */}
-          <div
-            onClick={() => {
-              setSelectedChannelForModal('whatsapp');
-              setIsChannelsModalOpen(true);
-            }}
-            className="bg-white p-4 rounded-[12px] border border-[#E5E7EB] hover:border-emerald-300 hover:shadow-md cursor-pointer transition flex items-center justify-between group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-[10px] bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
-                <MessageSquare size={18} />
-              </div>
-              <div className="truncate">
-                <p className="text-xs font-semibold text-[#0B0F14]">WhatsApp Admin</p>
-                <p className="text-[10px] text-gray-500 truncate">
-                  {channels.find((c) => c.platform === 'whatsapp')?.handle || '+91 98301 24589'}
-                </p>
-              </div>
-            </div>
-            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              Verified
-            </span>
-          </div>
-
-          {/* Branded Email Card */}
-          <div
-            onClick={() => {
-              setSelectedChannelForModal('email');
-              setIsChannelsModalOpen(true);
-            }}
-            className="bg-white p-4 rounded-[12px] border border-[#E5E7EB] hover:border-amber-300 hover:shadow-md cursor-pointer transition flex items-center justify-between group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-[10px] bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
-                <Mail size={18} />
-              </div>
-              <div className="truncate">
-                <p className="text-xs font-semibold text-[#0B0F14]">Branded Email (ESP)</p>
-                <p className="text-[10px] text-gray-500 truncate">
-                  {channels.find((c) => c.platform === 'email')?.handle || 'hello@kuiro.in'}
-                </p>
-              </div>
-            </div>
-            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              DKIM Pass
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Connected Channels OAuth Modal */}
+      {/* Connected Channels Modal */}
       <ConnectedChannelsModal
         isOpen={isChannelsModalOpen}
         onClose={() => setIsChannelsModalOpen(false)}
         initialPlatform={selectedChannelForModal}
-        onConnectionUpdated={() => {
-          fetchChannels();
-          showToast('OAuth connection vault updated successfully in Neon DB!', 'success');
-        }}
+        onConnectionUpdated={fetchChannels}
       />
-
-      {/* Surgical Campaign Revision Modal */}
-      {isRevisionModalOpen && activeCampaign && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-[16px] max-w-lg w-full p-6 shadow-2xl border border-gray-100 space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-[8px] bg-purple-50 text-purple-600 flex items-center justify-center">
-                  <Sparkles size={16} />
-                </div>
-                <div>
-                  <h3 className="font-sora text-sm font-bold text-[#0B0F14]">
-                    Surgical Campaign Revision
-                  </h3>
-                  <p className="text-[11px] text-gray-500">
-                    Revision {(activeCampaign.revisionCount || 0) + 1} of 2 (Free) • Gemini 2.5 Multi-Modal
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsRevisionModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded"
-              >
-                <CloseIcon size={16} />
-              </button>
-            </div>
-
-            <p className="text-xs text-gray-600 leading-relaxed">
-              Describe your revision in <span className="font-semibold text-gray-800">English, Hindi, Bengali, or Hinglish</span>. KUIRO will surgically update the existing copy across all 5 channels while maintaining the approved brand pillars.
-            </p>
-
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-gray-700">
-                Founder Revision Instruction:
-              </label>
-              <textarea
-                value={revisionPromptText}
-                onChange={(e) => setRevisionPromptText(e.target.value)}
-                placeholder="e.g. Bhai direct pricing mat daalo, thoda festive sound karo aur WhatsApp booking link highlight karo..."
-                rows={3}
-                className="w-full text-xs p-3 rounded-[10px] border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 font-sans"
-              />
-            </div>
-
-            {/* Quick Suggestions */}
-            <div className="space-y-1">
-              <span className="text-[10px] font-medium text-gray-400 uppercase">Quick Suggestions:</span>
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  'Bhai pricing mat daalo, thoda festive sound karo',
-                  'Make it punchier and emphasize WhatsApp booking',
-                  'Add our weekend timings and doorstep delivery',
-                ].map((sug) => (
-                  <button
-                    key={sug}
-                    type="button"
-                    onClick={() => setRevisionPromptText(sug)}
-                    className="text-[10px] bg-gray-50 hover:bg-purple-50 hover:text-purple-700 text-gray-600 px-2 py-1 rounded-[6px] border border-gray-200 transition"
-                  >
-                    {sug}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-              <button
-                type="button"
-                onClick={() => setIsRevisionModalOpen(false)}
-                disabled={isSubmittingRevision}
-                className="px-3 py-1.5 rounded-[8px] text-xs font-medium text-gray-600 hover:bg-gray-100 transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => handleRequestRevision(activeCampaign.id, revisionPromptText)}
-                disabled={isSubmittingRevision || !revisionPromptText.trim()}
-                className="px-4 py-2 rounded-[8px] bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-semibold hover:opacity-95 transition flex items-center gap-1.5 disabled:opacity-50"
-              >
-                {isSubmittingRevision ? (
-                  <>
-                    <Loader2 size={13} className="animate-spin" />
-                    <span>Applying Revision via Gemini...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={13} />
-                    <span>Apply Surgical Revision</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
-

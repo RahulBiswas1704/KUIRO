@@ -24,7 +24,8 @@ import {
   Clock,
   Layers,
   Award,
-  Download
+  Download,
+  X as CloseIcon
 } from 'lucide-react';
 import ExecutiveRoiExporterModal from '@/components/dashboard/ExecutiveRoiExporterModal';
 import { WorkspaceRoiSummary, CampaignRoiMetric, AttributedLeadItem } from '@/types';
@@ -106,21 +107,21 @@ export default function CampaignRoiDashboard({ onRefreshNeeded }: CampaignRoiDas
   };
 
   const channelIcons: Record<string, React.ReactNode> = {
-    whatsapp: <Smartphone size={13} className="text-emerald-500" />,
-    instagram: <Instagram size={13} className="text-pink-500" />,
-    email: <Mail size={13} className="text-blue-500" />,
-    messenger: <Smartphone size={13} className="text-purple-500" />,
+    whatsapp: <Smartphone size={13} className="text-emerald-400" />,
+    instagram: <Instagram size={13} className="text-pink-400" />,
+    email: <Mail size={13} className="text-blue-400" />,
+    messenger: <Smartphone size={13} className="text-purple-400" />,
   };
 
   if (isLoading) {
     return (
-      <div className="p-6 rounded-[14px] bg-white border border-[#E5E7EB] animate-pulse">
-        <div className="h-4 bg-gray-200 rounded w-1/4 mb-4" />
+      <div className="p-6 rounded-[24px] bg-[#0A0E18] border border-white/[0.08] animate-pulse space-y-4">
+        <div className="h-4 bg-white/10 rounded w-1/4" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="h-20 bg-gray-100 rounded-[10px]" />
-          <div className="h-20 bg-gray-100 rounded-[10px]" />
-          <div className="h-20 bg-gray-100 rounded-[10px]" />
-          <div className="h-20 bg-gray-100 rounded-[10px]" />
+          <div className="h-20 bg-white/[0.03] rounded-xl" />
+          <div className="h-20 bg-white/[0.03] rounded-xl" />
+          <div className="h-20 bg-white/[0.03] rounded-xl" />
+          <div className="h-20 bg-white/[0.03] rounded-xl" />
         </div>
       </div>
     );
@@ -134,58 +135,58 @@ export default function CampaignRoiDashboard({ onRefreshNeeded }: CampaignRoiDas
     <div className="space-y-4">
       {/* Toast Alert */}
       {toastMessage && (
-        <div className="p-3.5 rounded-[12px] bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-sm animate-fadeIn">
+        <div className="p-3.5 rounded-2xl bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 text-xs font-mono flex items-center justify-between shadow-sm animate-fade-in">
           <div className="flex items-center gap-2">
-            <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+            <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
             <span>{toastMessage}</span>
           </div>
-          <button onClick={() => setToastMessage(null)} className="text-emerald-600 hover:text-emerald-900">
-            &times;
+          <button onClick={() => setToastMessage(null)} className="text-slate-400 hover:text-white">
+            <CloseIcon size={14} />
           </button>
         </div>
       )}
 
       {/* Main ROI & Lead Attribution Banner Card */}
-      <div className="rounded-[14px] bg-white border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.02)] overflow-hidden">
+      <div className="rounded-[24px] bg-[#0A0E18] border border-white/[0.08] shadow-sm overflow-hidden text-white">
         {/* Header */}
-        <div className="p-5 border-b border-[#F3F4F6] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gradient-to-r from-orange-50/40 via-white to-white">
-          <div>
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                Live ROI Attribution
+        <div className="p-5 sm:p-6 border-b border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-[#FF7A00]/[0.05] via-transparent to-transparent">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Live ROI Attribution</span>
               </span>
-              <span className="text-[11px] text-gray-500 font-mono">
+              <span className="text-[11px] text-slate-400 font-mono">
                 Attributed to KUIRO Multi-Channel Autopilot
               </span>
             </div>
-            <h3 className="font-sora text-base sm:text-lg font-bold text-[#0B0F14]">
+            <h3 className="font-sora text-base sm:text-lg font-bold text-white">
               Campaign Revenue & Customer Lead Attribution
             </h3>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-slate-400 font-inter">
               Direct customer inquiries, client leads, and pipeline revenue generated by your automated campaigns.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
             <button
               type="button"
               onClick={() => setIsExporterModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-orange-50 border border-orange-200 text-[#FF7A00] hover:bg-orange-100 text-xs font-semibold transition shadow-2xs whitespace-nowrap active:scale-95"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.09] text-[#FF7A00] text-xs font-sora font-semibold transition cursor-pointer"
             >
               <Download size={13} />
               <span>Export Executive ROI (PDF/CSV)</span>
             </button>
             <button
               onClick={() => fetchRoiData()}
-              className="p-2 rounded-[8px] border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs transition"
+              className="p-2 rounded-full border border-white/[0.08] bg-white/[0.02] text-slate-400 hover:text-white text-xs transition cursor-pointer"
               title="Refresh Attribution Metrics"
             >
               <RefreshCw size={14} />
             </button>
             <Link
               href="/dashboard/inbox"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-[#0B0F14] text-white text-xs font-semibold hover:bg-gray-800 transition"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white text-black hover:bg-slate-100 text-xs font-sora font-semibold transition cursor-pointer"
             >
               <span>Omni-Inbox Leads</span>
               <ArrowRight size={13} />
@@ -194,85 +195,85 @@ export default function CampaignRoiDashboard({ onRefreshNeeded }: CampaignRoiDas
         </div>
 
         {/* 4-Metric ROI Ribbon */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-[#F3F4F6] border-b border-[#F3F4F6]">
+        <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-white/[0.06] border-b border-white/[0.06]">
           {/* 1. Attributed Treatment Pipeline */}
-          <div className="p-4 sm:p-5">
-            <span className="text-[11px] font-medium uppercase text-gray-500 tracking-wider block mb-1">
+          <div className="p-5 space-y-1">
+            <span className="text-[10px] font-mono uppercase text-slate-400 tracking-wider block">
               Attributed Pipeline
             </span>
-            <div className="text-2xl sm:text-3xl font-bold font-inter text-[#0B0F14]">
+            <div className="text-2xl sm:text-3xl font-bold font-inter text-white">
               ₹{roiData.totalPipelineValue.toLocaleString('en-IN')}
             </div>
-            <p className="text-[11px] text-emerald-600 font-medium mt-1 flex items-center gap-1">
+            <p className="text-[11px] font-mono text-emerald-400 flex items-center gap-1">
               <TrendingUp size={12} />
               <span>₹{roiData.totalRealizedRevenue.toLocaleString('en-IN')} confirmed</span>
             </p>
           </div>
 
           {/* 2. Customer Inquiries */}
-          <div className="p-4 sm:p-5">
-            <span className="text-[11px] font-medium uppercase text-gray-500 tracking-wider block mb-1">
+          <div className="p-5 space-y-1">
+            <span className="text-[10px] font-mono uppercase text-slate-400 tracking-wider block">
               Customer Inquiries
             </span>
-            <div className="text-2xl sm:text-3xl font-bold font-inter text-[#0B0F14]">
+            <div className="text-2xl sm:text-3xl font-bold font-inter text-white">
               {roiData.totalAttributedLeads} Leads
             </div>
-            <p className="text-[11px] text-gray-500 mt-1">
+            <p className="text-[11px] font-mono text-slate-400">
               Captured via WhatsApp & Social
             </p>
           </div>
 
           {/* 3. Confirmed Deals / Appointments */}
-          <div className="p-4 sm:p-5">
-            <span className="text-[11px] font-medium uppercase text-gray-500 tracking-wider block mb-1">
+          <div className="p-5 space-y-1">
+            <span className="text-[10px] font-mono uppercase text-slate-400 tracking-wider block">
               Confirmed Conversions
             </span>
-            <div className="text-2xl sm:text-3xl font-bold font-inter text-emerald-600">
+            <div className="text-2xl sm:text-3xl font-bold font-inter text-emerald-400">
               {roiData.totalAppointmentsBooked} Closed
             </div>
-            <p className="text-[11px] text-gray-500 mt-1">
+            <p className="text-[11px] font-mono text-slate-400">
               {roiData.overallConversionRate}% conversion rate
             </p>
           </div>
 
           {/* 4. Net ROI Multiplier */}
-          <div className="p-4 sm:p-5 bg-gradient-to-br from-orange-50/50 to-white">
-            <span className="text-[11px] font-medium uppercase text-[#FF7A00] tracking-wider block mb-1">
+          <div className="p-5 space-y-1 bg-[#FF7A00]/[0.03]">
+            <span className="text-[10px] font-mono uppercase text-[#FF7A00] tracking-wider block">
               KUIRO Net ROI
             </span>
             <div className="text-2xl sm:text-3xl font-bold font-inter text-[#FF7A00]">
               {roiData.netRoiMultiplier}x Return
             </div>
-            <p className="text-[11px] text-gray-500 mt-1 font-mono">
+            <p className="text-[11px] font-mono text-slate-400">
               vs ₹{roiData.monthlySubscriptionCost.toLocaleString('en-IN')}/mo subscription
             </p>
           </div>
         </div>
 
         {/* Channel Distribution Mini Ribbon */}
-        <div className="px-5 py-3 bg-[#FAFAFA] flex items-center gap-4 flex-wrap text-xs text-gray-600 border-b border-[#F3F4F6]">
-          <span className="text-[11px] font-mono uppercase text-gray-400 font-bold">Inbound Inquiries by Channel:</span>
-          <div className="flex items-center gap-1.5 font-medium">
-            <Smartphone size={14} className="text-emerald-600" />
+        <div className="px-5 py-3 bg-white/[0.02] flex items-center gap-4 flex-wrap text-xs text-slate-300 border-b border-white/[0.06] font-mono">
+          <span className="text-[10px] uppercase text-slate-400 font-bold">Inbound Inquiries:</span>
+          <div className="flex items-center gap-1.5">
+            <Smartphone size={13} className="text-emerald-400" />
             <span>WhatsApp: <strong>{roiData.channelBreakdown.whatsapp.leads}</strong> (₹{roiData.channelBreakdown.whatsapp.value.toLocaleString('en-IN')})</span>
           </div>
-          <div className="flex items-center gap-1.5 font-medium">
-            <Instagram size={14} className="text-pink-600" />
+          <div className="flex items-center gap-1.5">
+            <Instagram size={13} className="text-pink-400" />
             <span>Instagram: <strong>{roiData.channelBreakdown.instagram.leads}</strong> (₹{roiData.channelBreakdown.instagram.value.toLocaleString('en-IN')})</span>
           </div>
-          <div className="flex items-center gap-1.5 font-medium">
-            <Mail size={14} className="text-blue-600" />
-            <span>Email Newsletter: <strong>{roiData.channelBreakdown.email.leads}</strong> (₹{roiData.channelBreakdown.email.value.toLocaleString('en-IN')})</span>
+          <div className="flex items-center gap-1.5">
+            <Mail size={13} className="text-blue-400" />
+            <span>Newsletter: <strong>{roiData.channelBreakdown.email.leads}</strong> (₹{roiData.channelBreakdown.email.value.toLocaleString('en-IN')})</span>
           </div>
         </div>
 
         {/* Campaign Breakdown Table */}
-        <div className="p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-xs font-bold font-sora uppercase tracking-wider text-gray-700">
+        <div className="p-5 sm:p-6 space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
               Campaign Attribution Breakdown
             </h4>
-            <span className="text-[11px] text-gray-500 font-mono">
+            <span className="text-[11px] font-mono text-slate-400">
               {roiData.campaignBreakdown.length} Active & Recent Campaigns
             </span>
           </div>
@@ -280,60 +281,61 @@ export default function CampaignRoiDashboard({ onRefreshNeeded }: CampaignRoiDas
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-gray-200 text-gray-400 text-[10px] font-mono uppercase tracking-wider">
+                <tr className="border-b border-white/[0.08] text-slate-400 text-[10px] font-mono uppercase tracking-wider">
                   <th className="py-2.5 font-medium">Campaign Topic</th>
                   <th className="py-2.5 font-medium">Trigger Type</th>
                   <th className="py-2.5 font-medium">Top Channel</th>
                   <th className="py-2.5 font-medium text-center">Inquiries</th>
-                  <th className="py-2.5 font-medium text-center">Booked Consultations</th>
+                  <th className="py-2.5 font-medium text-center">Booked</th>
                   <th className="py-2.5 font-medium text-right">Attributed Value</th>
-                  <th className="py-2.5 font-medium text-right">ROI Multiplier</th>
+                  <th className="py-2.5 font-medium text-right">ROI</th>
                   <th className="py-2.5 font-medium text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-white/[0.04]">
                 {roiData.campaignBreakdown.map((camp) => (
-                  <tr key={camp.campaignId} className="hover:bg-gray-50/80 transition-colors">
+                  <tr key={camp.campaignId} className="hover:bg-white/[0.02] transition-colors">
                     <td className="py-3 pr-3">
-                      <div className="font-semibold text-[#0B0F14]">{camp.topicSummary}</div>
-                      <span className="text-[10px] text-gray-400 font-mono">
+                      <div className="font-semibold text-white font-sora">{camp.topicSummary}</div>
+                      <span className="text-[10px] text-slate-400 font-mono">
                         Published: {new Date(camp.publishAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
                       </span>
                     </td>
                     <td className="py-3">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold uppercase bg-gray-100 text-gray-700">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-white/[0.04] text-slate-300 border border-white/[0.06]">
                         {camp.triggerType}
                       </span>
                     </td>
                     <td className="py-3">
-                      <div className="flex items-center gap-1.5 capitalize text-gray-700">
+                      <div className="flex items-center gap-1.5 capitalize text-slate-300 font-mono">
                         {channelIcons[camp.topInboundChannel] || <Smartphone size={13} />}
                         <span>{camp.topInboundChannel}</span>
                       </div>
                     </td>
-                    <td className="py-3 text-center font-bold text-gray-800">
+                    <td className="py-3 text-center font-bold text-white font-mono">
                       {camp.inquiriesCount}
                     </td>
                     <td className="py-3 text-center">
-                      <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full text-[11px]">
-                        <Check size={11} />
+                      <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded-full text-[10px] font-mono">
+                        <Check size={10} />
                         {camp.appointmentsBookedCount} Booked
                       </span>
                     </td>
-                    <td className="py-3 text-right font-bold text-gray-900 font-inter">
+                    <td className="py-3 text-right font-bold text-white font-inter">
                       ₹{camp.estimatedPipelineValue.toLocaleString('en-IN')}
                     </td>
                     <td className="py-3 text-right">
-                      <span className="font-extrabold text-[#FF7A00] font-inter">
+                      <span className="font-extrabold text-[#FF7A00] font-mono">
                         {camp.roiMultiplier}x
                       </span>
                     </td>
                     <td className="py-3 text-right">
                       <button
+                        type="button"
                         onClick={() => setSelectedCampaignForModal(camp)}
-                        className="px-2.5 py-1 rounded-[6px] bg-gray-100 hover:bg-gray-200 text-gray-700 text-[11px] font-medium transition"
+                        className="px-2.5 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white border border-white/[0.08] text-[11px] font-mono transition cursor-pointer"
                       >
-                        Inspect Leads
+                        Inspect
                       </button>
                     </td>
                   </tr>
@@ -346,35 +348,36 @@ export default function CampaignRoiDashboard({ onRefreshNeeded }: CampaignRoiDas
 
       {/* Inspect Leads Modal */}
       {selectedCampaignForModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-[16px] max-w-2xl w-full p-6 shadow-2xl space-y-4 border border-gray-200 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-start justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-[#0A0E18] rounded-[24px] max-w-2xl w-full p-6 sm:p-8 shadow-2xl space-y-4 border border-white/[0.12] max-h-[90vh] overflow-y-auto text-white">
+            <div className="flex items-start justify-between border-b border-white/[0.06] pb-3">
               <div>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-[#FF7A00]/10 text-[#FF7A00] font-bold">
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-[#FF7A00]/20 text-[#FF7A00] font-bold border border-[#FF7A00]/30">
                   Campaign Lead Attribution
                 </span>
-                <h3 className="font-sora text-lg font-bold text-[#0B0F14] mt-1">
+                <h3 className="font-sora text-base sm:text-lg font-bold text-white mt-1">
                   {selectedCampaignForModal.topicSummary}
                 </h3>
-                <p className="text-xs text-gray-500">
-                  {selectedCampaignForModal.inquiriesCount} inquiries • ₹{selectedCampaignForModal.estimatedPipelineValue.toLocaleString('en-IN')} attributed pipeline
+                <p className="text-xs text-slate-400 font-mono">
+                  {selectedCampaignForModal.inquiriesCount} inquiries • ₹{selectedCampaignForModal.estimatedPipelineValue.toLocaleString('en-IN')} pipeline
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => setSelectedCampaignForModal(null)}
-                className="text-gray-400 hover:text-gray-700 text-lg leading-none p-1"
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/[0.05]"
               >
-                &times;
+                <CloseIcon size={18} />
               </button>
             </div>
 
             <div className="space-y-3 pt-2">
-              <h4 className="text-xs font-bold text-gray-700 uppercase font-mono tracking-wider">
-                Inbound Patient Conversations:
+              <h4 className="text-xs font-bold text-slate-300 uppercase font-mono tracking-wider">
+                Inbound Customer Conversations:
               </h4>
 
               {selectedCampaignForModal.recentLeads.length === 0 ? (
-                <div className="p-8 text-center text-xs text-gray-400 bg-gray-50 rounded-[12px]">
+                <div className="p-8 text-center text-xs text-slate-400 bg-white/[0.02] border border-dashed border-white/[0.06] rounded-2xl">
                   No inbound inquiries have arrived for this campaign yet.
                 </div>
               ) : (
@@ -382,22 +385,22 @@ export default function CampaignRoiDashboard({ onRefreshNeeded }: CampaignRoiDas
                   {selectedCampaignForModal.recentLeads.map((lead) => (
                     <div
                       key={lead.id}
-                      className="p-3.5 rounded-[12px] bg-gray-50 border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                      className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-[#0B0F14]">{lead.customerName}</span>
-                          <span className="text-[10px] text-gray-400 font-mono">({lead.customerHandle})</span>
-                          <span className="capitalize text-[10px] px-2 py-0.5 rounded bg-white border border-gray-200 font-semibold flex items-center gap-1">
+                          <span className="font-bold text-white font-sora">{lead.customerName}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">({lead.customerHandle})</span>
+                          <span className="capitalize text-[10px] px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.06] font-mono flex items-center gap-1">
                             {channelIcons[lead.channel]}
                             {lead.channel}
                           </span>
                         </div>
-                        <p className="text-gray-600 text-[11px] line-clamp-1 italic">
+                        <p className="text-slate-300 text-[11px] line-clamp-1 italic">
                           &quot;{lead.lastMessageText}&quot;
                         </p>
-                        <div className="flex items-center gap-2 text-[10px] text-gray-400">
-                          <span>Est. Value: <strong className="text-gray-800">₹{lead.estimatedValue.toLocaleString('en-IN')}</strong></span>
+                        <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
+                          <span>Est. Value: <strong className="text-white">₹{lead.estimatedValue.toLocaleString('en-IN')}</strong></span>
                           <span>•</span>
                           <span>Source: {lead.campaignSource}</span>
                         </div>
@@ -405,18 +408,19 @@ export default function CampaignRoiDashboard({ onRefreshNeeded }: CampaignRoiDas
 
                       <div className="flex items-center gap-2 shrink-0">
                         {lead.isBooked ? (
-                          <span className="px-2.5 py-1 rounded-[6px] bg-emerald-100 text-emerald-800 text-[11px] font-bold flex items-center gap-1">
+                          <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[11px] font-mono font-bold flex items-center gap-1">
                             <Check size={12} />
                             Confirmed & Closed
                           </span>
                         ) : (
                           <button
+                            type="button"
                             onClick={() => {
                               setSelectedLeadForBooking(lead);
                               setCustomBookingValue(String(lead.estimatedValue || 5000));
                               setIsBookingModalOpen(true);
                             }}
-                            className="px-2.5 py-1 rounded-[6px] bg-[#0B0F14] hover:bg-gray-800 text-white text-[11px] font-semibold transition flex items-center gap-1"
+                            className="px-3 py-1.5 rounded-full bg-white text-black hover:bg-slate-100 text-[11px] font-sora font-semibold transition flex items-center gap-1 cursor-pointer"
                           >
                             <Calendar size={12} />
                             <span>Mark Closed</span>
@@ -424,7 +428,7 @@ export default function CampaignRoiDashboard({ onRefreshNeeded }: CampaignRoiDas
                         )}
                         <Link
                           href="/dashboard/inbox"
-                          className="p-1.5 rounded-[6px] border border-gray-300 text-gray-600 hover:bg-gray-100"
+                          className="p-1.5 rounded-lg border border-white/[0.08] text-slate-400 hover:text-white hover:bg-white/[0.05]"
                           title="Open in Omni-Inbox"
                         >
                           <ExternalLink size={13} />
@@ -436,10 +440,11 @@ export default function CampaignRoiDashboard({ onRefreshNeeded }: CampaignRoiDas
               )}
             </div>
 
-            <div className="pt-3 border-t border-gray-200 flex justify-end">
+            <div className="pt-3 border-t border-white/[0.06] flex justify-end">
               <button
+                type="button"
                 onClick={() => setSelectedCampaignForModal(null)}
-                className="px-4 py-2 rounded-[8px] bg-gray-100 hover:bg-gray-200 text-xs font-semibold text-gray-700 transition"
+                className="px-4 py-2 rounded-full bg-white/[0.06] hover:bg-white/[0.1] text-xs font-sora font-semibold text-white transition cursor-pointer"
               >
                 Close
               </button>
@@ -450,27 +455,27 @@ export default function CampaignRoiDashboard({ onRefreshNeeded }: CampaignRoiDas
 
       {/* Quick Mark Booked Modal */}
       {isBookingModalOpen && selectedLeadForBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-[16px] max-w-md w-full p-6 shadow-2xl space-y-4 border border-gray-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-[#0A0E18] rounded-[24px] max-w-md w-full p-6 shadow-2xl space-y-4 border border-white/[0.12] text-white">
             <div>
-              <span className="text-[10px] font-mono uppercase text-emerald-600 font-bold">
-                Confirm Patient Appointment
+              <span className="text-[10px] font-mono uppercase text-emerald-400 font-bold">
+                Confirm Customer Conversion
               </span>
-              <h3 className="font-sora text-base font-bold text-[#0B0F14] mt-1">
+              <h3 className="font-sora text-base font-bold text-white mt-1">
                 Record Booking for {selectedLeadForBooking.customerName}
               </h3>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-slate-400 font-mono mt-0.5">
                 Attributed to: {selectedLeadForBooking.campaignSource}
               </p>
             </div>
 
             <form onSubmit={handleConfirmBooking} className="space-y-3.5">
               <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-1">
-                  Confirmed Procedure / Consultation Value (INR):
+                <label className="text-xs font-mono font-semibold text-slate-300 block mb-1">
+                  Confirmed Conversion / Order Value (INR):
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-xs">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs font-mono">
                     ₹
                   </span>
                   <input
@@ -479,12 +484,12 @@ export default function CampaignRoiDashboard({ onRefreshNeeded }: CampaignRoiDas
                     onChange={(e) => setCustomBookingValue(e.target.value)}
                     required
                     min="100"
-                    className="w-full pl-7 pr-3 py-2 rounded-[8px] border border-gray-300 text-xs focus:outline-none focus:border-[#FF7A00]"
-                    placeholder="e.g. 45000 for Invisalign, 1500 for Consultation"
+                    className="w-full pl-7 pr-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.1] text-xs text-white focus:outline-none focus:border-[#FF7A00] font-mono"
+                    placeholder="e.g. 45000 for High-Value Order, 1500 for Consultation"
                   />
                 </div>
-                <p className="text-[10px] text-gray-400 mt-1">
-                  This confirmed amount will directly update your clinic’s realized ROI metrics.
+                <p className="text-[10px] font-mono text-slate-400 mt-1">
+                  Directly updates your realized ROI metrics in Neon PostgreSQL.
                 </p>
               </div>
 
@@ -492,22 +497,23 @@ export default function CampaignRoiDashboard({ onRefreshNeeded }: CampaignRoiDas
                 <button
                   type="button"
                   onClick={() => setIsBookingModalOpen(false)}
-                  className="px-3 py-1.5 rounded-[8px] border border-gray-300 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                  className="px-3 py-1.5 rounded-full border border-white/[0.08] text-xs font-sora font-semibold text-slate-400 hover:text-white"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingBooking}
-                  className="px-4 py-1.5 rounded-[8px] bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5"
+                  className="px-4 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-sora font-semibold shadow-sm transition flex items-center gap-1.5 cursor-pointer"
                 >
-                  {isSubmittingBooking ? 'Saving...' : 'Confirm Appointment Booking'}
+                  {isSubmittingBooking ? 'Saving...' : 'Confirm Booking'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
       {/* Executive ROI Exporter Modal */}
       <ExecutiveRoiExporterModal
         isOpen={isExporterModalOpen}
@@ -517,4 +523,3 @@ export default function CampaignRoiDashboard({ onRefreshNeeded }: CampaignRoiDas
     </div>
   );
 }
-
