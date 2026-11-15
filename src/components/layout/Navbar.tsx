@@ -50,7 +50,7 @@ export default function Navbar({
 
   return (
     <header 
-      className={`sticky top-0 sm:top-3.5 z-50 transition-all duration-300 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto ${className}`}
+      className={`sticky top-0 sm:top-3.5 z-50 transition-all duration-300 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full ${className}`}
     >
       <div 
         className={`transition-all duration-300 rounded-2xl sm:rounded-full px-4 sm:px-6 py-2.5 sm:py-3 border backdrop-blur-2xl flex items-center justify-between ${

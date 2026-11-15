@@ -165,7 +165,7 @@ export default function ZorchaInspiredHomePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#070A11] text-white flex flex-col font-sans selection:bg-[#FF7A00] selection:text-white relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#070A11] text-white flex flex-col font-sans selection:bg-[#FF7A00] selection:text-white relative overflow-x-clip">
       {/* Top Subtle Announcement */}
       <AnnouncementBar
         badge="Autonomous 2.0"

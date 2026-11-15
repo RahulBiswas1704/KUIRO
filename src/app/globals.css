@@ -24,7 +24,7 @@ body {
   background: var(--background);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   font-weight: 400;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Typography Hierarchy Directives */
