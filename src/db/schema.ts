@@ -475,6 +475,21 @@ export const inboxAutomations = pgTable('inbox_automations', {
 ]);
 
 // ==============================================================================
+// 8d. Real-Time Distributed Pub/Sub Notifications Queue
+// ==============================================================================
+export const realtimePubSubEvents = pgTable('realtime_pubsub_events', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  channel: text('channel').notNull(), // e.g. "workspace:{workspaceId}:inbox"
+  workspaceId: uuid('workspace_id').references(() => workspaces.id, { onDelete: 'cascade' }),
+  eventType: text('event_type').notNull(), // e.g. "new_message", "conversation_updated", "agent_presence"
+  payload: jsonb('payload').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index('idx_pubsub_channel_created').on(table.channel, table.createdAt),
+  index('idx_pubsub_ws_created').on(table.workspaceId, table.createdAt),
+]);
+
+// ==============================================================================
 // 9. Drizzle Relations
 // ==============================================================================
 export const usersRelations = relations(users, ({ many }) => ({
@@ -503,6 +518,11 @@ export const workspaceRelations = relations(workspaces, ({ one, many }) => ({
   subscriptions: many(subscriptions),
   payments: many(payments),
   durableEvents: many(durableEvents),
+  realtimePubSubEvents: many(realtimePubSubEvents),
+}));
+
+export const realtimePubSubEventsRelations = relations(realtimePubSubEvents, ({ one }) => ({
+  workspace: one(workspaces, { fields: [realtimePubSubEvents.workspaceId], references: [workspaces.id] }),
 }));
 
 export const durableEventsRelations = relations(durableEvents, ({ one }) => ({

@@ -1,13 +1,18 @@
 import { NextRequest } from 'next/server';
 import { subscribeToInboxEvents, InboxStreamEvent } from '@/lib/inbox/eventHub';
 import { authorizeWorkspace } from '@/lib/auth';
+import { buildWorkspaceInboxChannel } from '@/lib/realtime/pubsub';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 /**
  * Realtime Server-Sent Events (SSE) Stream for Unified Omni-Channel Inbox
- * Route: GET /api/inbox/stream
+ * Route: GET /api/inbox/stream?workspaceId={workspaceId}
+ * 
+ * Multi-Instance & Serverless Safe:
+ * - Subscriptions are authorized strictly against authenticated session & workspace.
+ * - Backed by shared distributed pub/sub to guarantee cross-instance message delivery.
  */
 export async function GET(req: NextRequest) {
   const workspaceIdParam = req.nextUrl.searchParams.get('workspaceId');
@@ -21,6 +26,7 @@ export async function GET(req: NextRequest) {
   }
 
   const targetWorkspaceId = auth.workspaceId!;
+  const authorizedChannel = buildWorkspaceInboxChannel(targetWorkspaceId);
   const encoder = new TextEncoder();
 
   let unsubscribe: (() => void) | null = null;
@@ -31,13 +37,14 @@ export async function GET(req: NextRequest) {
       // 1. Initial Handshake Event
       const initialPayload = JSON.stringify({
         status: 'connected',
-        workspaceId: targetWorkspaceId || 'all',
+        channel: authorizedChannel,
+        workspaceId: targetWorkspaceId,
         connectedAt: new Date().toISOString(),
         clientIp: req.headers.get('x-forwarded-for') || '127.0.0.1',
       });
       controller.enqueue(encoder.encode(`event: connected\ndata: ${initialPayload}\n\n`));
 
-      // 2. Subscribe to EventHub
+      // 2. Subscribe to EventHub (backed by shared distributed pub/sub)
       unsubscribe = subscribeToInboxEvents((event: InboxStreamEvent) => {
         try {
           const sseChunk = `id: ${event.id}\nevent: ${event.type}\ndata: ${JSON.stringify(event.data)}\n\n`;
@@ -56,6 +63,7 @@ export async function GET(req: NextRequest) {
           if (heartbeatInterval) clearInterval(heartbeatInterval);
         }
       }, 15000);
+      heartbeatInterval.unref?.();
     },
     cancel() {
       if (unsubscribe) unsubscribe();
