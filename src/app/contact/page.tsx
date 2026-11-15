@@ -18,28 +18,22 @@ import {
   SendHorizontal,
   Building2,
   Briefcase,
-  Layers,
-  Calendar,
-  HelpCircle,
   ChevronDown,
-  ChevronUp,
-  MessageSquare,
+  ChevronRight,
+  Headphones,
+  ExternalLink,
+  RefreshCw,
+  Store,
+  UserCheck,
+  Stethoscope,
   Globe2,
   Lock,
-  Headphones,
-  TrendingUp,
-  Zap,
-  Users,
-  ShoppingBag,
-  User,
-  Stethoscope,
-  RefreshCw,
-  ExternalLink
+  MessageCircle
 } from 'lucide-react';
 
-export default function RedesignedContactPage() {
+export default function ContactPage() {
   const { isLoggedIn, handleGetStarted } = useAuth();
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -59,25 +53,25 @@ export default function RedesignedContactPage() {
     setFormStatus('submitting');
     setTimeout(() => {
       setFormStatus('success');
-    }, 1100);
+    }, 1000);
   };
 
   const contactFaqs = [
     {
-      q: 'Who can use KUIRO?',
-      a: 'KUIRO is built for everyone: small and medium businesses (SMBs), local retail stores, personal brands, creators, freelancers, startup founders, consultants, and professional practices. If you want consistent, high-converting digital marketing without spending hours on design or paying expensive agency retainers, KUIRO is for you.',
+      q: 'Who is KUIRO built for?',
+      a: 'KUIRO is engineered for Indian SMBs, retail store owners, D2C brands, creators, startup founders, consultants, and clinical practices. If you want consistent, high-converting digital marketing without spending hours on design or paying expensive agency retainers, KUIRO is for you.',
     },
     {
       q: 'How fast will someone respond after I reach out?',
-      a: 'During standard Indian business hours (Mon–Sat, 9:00 AM – 8:00 PM IST), our onboarding engineers respond on WhatsApp in under 15 minutes. For email inquiries, you will receive a detailed answer within 2 hours.',
+      a: 'During standard Indian business hours (Mon–Sat, 9:00 AM – 8:00 PM IST), our solutions onboarding engineers respond on WhatsApp in under 15 minutes. For email inquiries, you will receive a detailed answer within 2 hours.',
     },
     {
       q: 'Can you help set up WhatsApp review on our existing business number?',
-      a: 'Yes! Our team will guide you through connecting your existing mobile or virtual number via official Meta Cloud API utility templates so you never lose any customer chat history.',
+      a: 'Yes! Our team guides you through connecting your existing mobile or virtual number via official Meta Cloud API utility templates so you never lose any customer chat history.',
     },
     {
       q: 'Can KUIRO ingest our existing logos, brand colors, and guidelines?',
-      a: 'Absolutely. During setup, KUIRO extracts your brand hex colors, logos, pricing, and voice guidelines into persistent Neon DB vector memory, ensuring all future campaigns are 100% on-brand.',
+      a: 'Absolutely. During setup, KUIRO extracts your brand hex colors, SVG logos, pricing, and voice guidelines into persistent Neon PostgreSQL vector memory, ensuring all future campaigns are 100% on-brand.',
     },
     {
       q: 'Do you offer white-labeling and custom plans for marketing agencies?',
@@ -90,76 +84,58 @@ export default function RedesignedContactPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans selection:bg-[#FF7A00] selection:text-white">
-      {/* 1. Top Announcement Notification Bar */}
+    <div className="min-h-screen bg-[#070A11] text-white flex flex-col font-sans selection:bg-[#FF7A00] selection:text-white relative overflow-x-clip">
+      {/* Top Subtle Announcement */}
       <AnnouncementBar
         badge="Priority Support Online"
         tagline="Instant WhatsApp Triage Active."
         subtitle="— Average response time under 15 minutes."
       />
 
-      {/* 2. Unified Sticky Navbar */}
-      <Navbar
-        activeRoute="contact"
-        badgeText="Contact & Support"
-        statusText="Support Online"
-        rightContent={
-          <div className="flex items-center gap-3">
-            <a
-              href="https://wa.me/919876543210?text=Hi%20KUIRO%20Team%2C%20I%20have%20a%20question%20about%20putting%20my%20marketing%20on%20autopilot"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden sm:inline-flex text-[11px] text-emerald-400 items-center gap-1.5 font-medium bg-emerald-950/40 px-3 py-1.5 rounded-full border border-emerald-500/20 hover:border-emerald-500/50 transition"
-            >
-              <Smartphone size={13} className="text-emerald-400" />
-              <span>WhatsApp Helpline</span>
-            </a>
+      {/* Floating Glassmorphic Navbar (Zorcha Inspired) */}
+      <Navbar activeRoute="contact" />
 
-            <button
-              onClick={handleGetStarted}
-              className="px-4 py-1.5 rounded-[10px] bg-[#FF7A00] hover:bg-[#FF881A] text-white text-xs font-semibold font-sora transition shadow-md shadow-[#FF7A00]/25"
-            >
-              <span>{isLoggedIn ? 'Dashboard' : 'Get Started'}</span>
-            </button>
-          </div>
-        }
-      />
+      {/* =========================================================================
+          HERO SECTION (ZORCHA INSPIRED: HIGH-IMPACT, CLEAN, BOLD)
+      ========================================================================= */}
+      <section className="relative pt-12 pb-16 md:pt-20 md:pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full text-center">
+        {/* Subtle Warm Backdrop Lighting */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-full max-w-4xl h-[420px] bg-gradient-to-b from-[#FF7A00]/[0.08] via-transparent to-transparent pointer-events-none -z-10 blur-3xl" />
 
-      {/* 3. Hero Header Section */}
-      <section className="relative pt-16 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
-        {/* Radiant Ambient Glows */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#FF7A00]/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute top-10 right-10 w-72 h-72 bg-emerald-500/5 blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 max-w-3xl mx-auto space-y-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FF7A00]/10 border border-[#FF7A00]/30 text-[#FF7A00] text-xs font-semibold tracking-wide">
-            <Headphones className="h-4 w-4 text-[#FF7A00]" />
-            <span>Dedicated Customer Support & Solutions</span>
+        <div className="max-w-4xl mx-auto space-y-6">
+          {/* Eyebrow Pill */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.05] border border-white/10 backdrop-blur-xl text-xs shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-[#FF7A00] animate-pulse" />
+            <span className="font-semibold text-slate-200">Real Human Support & Onboarding</span>
+            <span className="text-white/20">•</span>
+            <span className="text-[#FF7A00] font-medium font-mono text-[11px]">&lt; 15 Mins Avg Response</span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-sora font-bold text-white tracking-tight leading-tight">
+          {/* Primary Headline */}
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-sora font-extrabold tracking-tight text-white leading-[1.08]">
             We’re Here to Put Your <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF7A00] via-[#FFA34D] to-emerald-400">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-[#FF7A00]">
               Marketing on Autopilot.
             </span>
           </h1>
 
-          <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto font-inter leading-relaxed">
+          {/* Subtitle */}
+          <p className="text-base sm:text-lg md:text-xl text-slate-300 max-w-2xl mx-auto font-inter leading-relaxed">
             Have questions about Brand Brain ingestion, our 48-hour WhatsApp approval loop, Campaign ROI tracking, or agency workspaces? Connect with our team directly.
           </p>
 
-          {/* Quick Metrics Bar */}
+          {/* Quick SLA Metrics Strip */}
           <div className="pt-4 flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-xs text-slate-400 font-mono">
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-white font-bold">&lt; 15 Mins</span> Avg WhatsApp Response
             </div>
-            <span className="hidden sm:inline text-slate-600">•</span>
+            <span className="hidden sm:inline text-slate-700">•</span>
             <div className="flex items-center gap-1.5">
               <CheckCircle2 size={13} className="text-emerald-400" />
               <span>Free 1-on-1 Onboarding Call</span>
             </div>
-            <span className="hidden sm:inline text-slate-600">•</span>
+            <span className="hidden sm:inline text-slate-700">•</span>
             <div className="flex items-center gap-1.5">
               <ShieldCheck size={13} className="text-[#FF7A00]" />
               <span>GST Invoicing & Input Tax Credit</span>
@@ -168,15 +144,18 @@ export default function RedesignedContactPage() {
         </div>
       </section>
 
-      {/* 4. Main 2-Column Contact & Consultation Grid */}
+      {/* =========================================================================
+          MAIN 2-COLUMN CONTACT & DIRECT CONSULTATION GRID
+      ========================================================================= */}
       <section className="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Column (5 cols): Direct Channels & SLA Metrics */}
+          
+          {/* Left Column (5 cols): Direct Reach Channels & SLA Cards */}
           <div className="lg:col-span-5 space-y-6 text-left">
-            {/* Priority WhatsApp Support Card */}
-            <div className="p-6 rounded-[20px] bg-gradient-to-br from-[#0C151B] to-[#0B0F14] border border-emerald-500/30 shadow-2xl space-y-4 relative overflow-hidden">
+            {/* Priority WhatsApp Direct Channel Card */}
+            <div className="p-7 rounded-[32px] bg-gradient-to-br from-[#0C151B] to-[#0A0E18] border border-emerald-500/30 shadow-[0_20px_50px_rgba(0,0,0,0.6)] space-y-5 relative overflow-hidden">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full font-bold">
+                <span className="text-[10px] font-mono uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-full font-bold">
                   Fastest Channel
                 </span>
                 <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-mono font-medium">
@@ -186,16 +165,16 @@ export default function RedesignedContactPage() {
               </div>
 
               <div>
-                <h3 className="font-sora text-xl font-bold text-white">Chat on WhatsApp</h3>
-                <p className="text-xs text-slate-300 font-inter mt-1 leading-relaxed">
-                  Message our solutions engineers directly for instant onboarding help, setup questions, or live bot previews.
+                <h3 className="font-sora text-2xl font-bold text-white">Chat on WhatsApp</h3>
+                <p className="text-xs text-slate-300 font-inter mt-1.5 leading-relaxed">
+                  Message our solutions engineers directly for instant onboarding assistance, setup questions, or live bot previews.
                 </p>
               </div>
 
-              <div className="p-4 rounded-[12px] bg-[#111620] border border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="p-4 rounded-2xl bg-black/40 border border-white/[0.06] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                    <Smartphone size={18} />
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                    <Smartphone size={20} />
                   </div>
                   <div>
                     <span className="text-sm font-mono font-bold text-white block">+91 98765 43210</span>
@@ -207,7 +186,7 @@ export default function RedesignedContactPage() {
                   href="https://wa.me/919876543210?text=Hi%20KUIRO%20Team%2C%20I%20want%20to%20learn%20more%20about%20putting%20my%20marketing%20on%20autopilot"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2 rounded-[8px] bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold font-sora transition whitespace-nowrap shadow-md shadow-emerald-500/20 flex items-center gap-1.5"
+                  className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold font-sora transition whitespace-nowrap shadow-md shadow-emerald-500/20 flex items-center gap-1.5"
                 >
                   <span>Chat Now</span>
                   <ExternalLink size={12} />
@@ -215,13 +194,13 @@ export default function RedesignedContactPage() {
               </div>
             </div>
 
-            {/* Direct Communication Channels Card */}
-            <div className="p-6 rounded-[20px] bg-[#0B0F14] border border-white/10 space-y-5">
-              <h3 className="font-sora text-lg font-bold text-white">Direct Communication Hubs</h3>
+            {/* Direct Communication Hubs Card */}
+            <div className="p-7 rounded-[32px] bg-[#0A0E18] border border-white/[0.08] space-y-5 shadow-2xl">
+              <h3 className="font-sora text-xl font-bold text-white">Direct Communication Hubs</h3>
 
               <div className="space-y-3.5 text-xs font-inter">
-                <div className="p-3.5 rounded-[12px] bg-[#11141A] border border-white/5 flex items-start gap-3.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05] flex items-start gap-3.5">
+                  <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
                     <Mail size={16} />
                   </div>
                   <div className="space-y-1">
@@ -238,19 +217,19 @@ export default function RedesignedContactPage() {
                   </div>
                 </div>
 
-                <div className="p-3.5 rounded-[12px] bg-[#11141A] border border-white/5 flex items-start gap-3.5">
-                  <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/30 text-purple-400 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05] flex items-start gap-3.5">
+                  <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-400 flex items-center justify-center shrink-0 mt-0.5">
                     <Phone size={16} />
                   </div>
                   <div>
                     <span className="font-semibold text-white block">Telephone Helpline</span>
                     <p className="text-slate-300 font-mono text-[11px] mt-0.5">+91 (080) 4123 9870</p>
-                    <p className="text-slate-500 text-[10px]">Toll-free customer line (Mon–Sat, 9 AM – 8 PM)</p>
+                    <p className="text-slate-500 text-[10px] mt-0.5">Toll-free customer line (Mon–Sat, 9 AM – 8 PM IST)</p>
                   </div>
                 </div>
 
-                <div className="p-3.5 rounded-[12px] bg-[#11141A] border border-white/5 flex items-start gap-3.5">
-                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05] flex items-start gap-3.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
                     <MapPin size={16} />
                   </div>
                   <div>
@@ -265,29 +244,29 @@ export default function RedesignedContactPage() {
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-[12px] bg-white/[0.03] border border-white/10 text-[11px] text-slate-300 flex items-center gap-2.5">
+              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] text-[11px] text-slate-300 flex items-center gap-2.5">
                 <ShieldCheck size={16} className="text-emerald-400 shrink-0" />
                 <span>GST Invoicing Available. Input Tax Credit (ITC) details issued on all paid plans.</span>
               </div>
             </div>
           </div>
 
-          {/* Right Column (7 cols): Interactive Contact & Consultation Form */}
-          <div className="lg:col-span-7 bg-[#0B0F14] p-6 sm:p-8 rounded-[20px] border border-white/15 shadow-2xl text-left">
+          {/* Right Column (7 cols): Tactile Direct Message & Consultation Form */}
+          <div className="lg:col-span-7 bg-[#0A0E18] p-7 sm:p-10 rounded-[32px] border border-white/[0.09] shadow-2xl text-left">
             <div className="mb-6 space-y-1.5">
               <span className="text-xs font-mono uppercase text-[#FF7A00] font-bold tracking-wider">
                 Direct Message
               </span>
-              <h2 className="text-2xl sm:text-3xl font-sora font-bold text-white">
+              <h2 className="text-2xl sm:text-3xl font-sora font-extrabold text-white tracking-tight">
                 Tell Us About Your Venture
               </h2>
               <p className="text-xs text-slate-400 font-inter leading-relaxed">
-                Whether you run an SMB, personal brand, startup, clinical practice, or agency, tell us what you are looking for. We will configure your Brand Brain preview and answer any questions.
+                Whether you run an SMB, personal brand, startup, clinical practice, or agency, tell us what you need. We will calibrate your Brand Brain preview and answer any questions.
               </p>
             </div>
 
             {formStatus === 'success' ? (
-              <div className="p-8 rounded-[16px] bg-emerald-950/40 border border-emerald-500/40 text-center space-y-4 animate-fade-in">
+              <div className="p-8 rounded-2xl bg-emerald-950/30 border border-emerald-500/30 text-center space-y-4 animate-fade-in">
                 <div className="w-14 h-14 rounded-full bg-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center">
                   <Check size={28} />
                 </div>
@@ -301,7 +280,7 @@ export default function RedesignedContactPage() {
                     href={`https://wa.me/919876543210?text=Hi%20KUIRO%20Team%2C%20this%20is%20${encodeURIComponent(formData.name)}%20from%20${encodeURIComponent(formData.businessName)}.%20I%20just%20submitted%20the%20contact%20form%20for%20${encodeURIComponent(formData.inquiryTopic)}.`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full sm:w-auto px-6 py-2.5 rounded-[10px] bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold font-sora transition shadow-md shadow-emerald-500/25 flex items-center justify-center gap-2"
+                    className="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold font-sora transition shadow-md shadow-emerald-500/25 flex items-center justify-center gap-2"
                   >
                     <Smartphone size={14} />
                     <span>Continue on WhatsApp Now</span>
@@ -321,7 +300,7 @@ export default function RedesignedContactPage() {
                         message: ''
                       });
                     }}
-                    className="w-full sm:w-auto px-5 py-2.5 rounded-[10px] bg-white/10 hover:bg-white/20 text-white text-xs font-semibold font-sora transition"
+                    className="w-full sm:w-auto px-5 py-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-white text-xs font-semibold font-sora transition border border-white/10"
                   >
                     Send Another Inquiry
                   </button>
@@ -341,7 +320,7 @@ export default function RedesignedContactPage() {
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="e.g. Rohan Sharma / Vikram Malhotra"
-                      className="w-full px-3.5 py-2.5 rounded-[10px] bg-[#11141A] border border-white/15 text-white focus:outline-none focus:border-[#FF7A00] transition"
+                      className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.1] text-white focus:outline-none focus:border-[#FF7A00] transition"
                     />
                   </div>
 
@@ -355,7 +334,7 @@ export default function RedesignedContactPage() {
                       value={formData.businessName}
                       onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
                       placeholder="e.g. Kolkata Chai Co. / Studio Apex"
-                      className="w-full px-3.5 py-2.5 rounded-[10px] bg-[#11141A] border border-white/15 text-white focus:outline-none focus:border-[#FF7A00] transition"
+                      className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.1] text-white focus:outline-none focus:border-[#FF7A00] transition"
                     />
                   </div>
                 </div>
@@ -372,7 +351,7 @@ export default function RedesignedContactPage() {
                       value={formData.whatsapp}
                       onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
                       placeholder="+91 98765 43210"
-                      className="w-full px-3.5 py-2.5 rounded-[10px] bg-[#11141A] border border-white/15 text-white focus:outline-none focus:border-[#FF7A00] transition font-mono"
+                      className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.1] text-white focus:outline-none focus:border-[#FF7A00] transition font-mono"
                     />
                   </div>
 
@@ -386,7 +365,7 @@ export default function RedesignedContactPage() {
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       placeholder="rohan@mybrand.in"
-                      className="w-full px-3.5 py-2.5 rounded-[10px] bg-[#11141A] border border-white/15 text-white focus:outline-none focus:border-[#FF7A00] transition"
+                      className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.1] text-white focus:outline-none focus:border-[#FF7A00] transition"
                     />
                   </div>
                 </div>
@@ -400,7 +379,7 @@ export default function RedesignedContactPage() {
                     <select
                       value={formData.ventureType}
                       onChange={(e) => setFormData({ ...formData, ventureType: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-[10px] bg-[#11141A] border border-white/15 text-white focus:outline-none focus:border-[#FF7A00] transition"
+                      className="w-full px-4 py-3 rounded-xl bg-[#0A0E18] border border-white/[0.1] text-white focus:outline-none focus:border-[#FF7A00] transition cursor-pointer"
                     >
                       <option value="Small & Medium Business (Retail, Store, E-commerce)">Small & Medium Business (Retail, Store, E-commerce)</option>
                       <option value="Personal Brand & Creator">Personal Brand / Creator / Executive / Coach</option>
@@ -420,7 +399,7 @@ export default function RedesignedContactPage() {
                     <select
                       value={formData.inquiryTopic}
                       onChange={(e) => setFormData({ ...formData, inquiryTopic: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-[10px] bg-[#11141A] border border-white/15 text-white focus:outline-none focus:border-[#FF7A00] transition"
+                      className="w-full px-4 py-3 rounded-xl bg-[#0A0E18] border border-white/[0.1] text-white focus:outline-none focus:border-[#FF7A00] transition cursor-pointer"
                     >
                       <option value="14-Day Free Trial & Onboarding">14-Day Free Trial & Onboarding</option>
                       <option value="Brand Brain Extraction Walkthrough">Brand Brain Extraction Walkthrough</option>
@@ -440,7 +419,7 @@ export default function RedesignedContactPage() {
                   <select
                     value={formData.preferredContact}
                     onChange={(e) => setFormData({ ...formData, preferredContact: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-[10px] bg-[#11141A] border border-white/15 text-white focus:outline-none focus:border-[#FF7A00] transition"
+                    className="w-full px-4 py-3 rounded-xl bg-[#0A0E18] border border-white/[0.1] text-white focus:outline-none focus:border-[#FF7A00] transition cursor-pointer"
                   >
                     <option value="WhatsApp Message (Fastest)">WhatsApp Message (Fastest • Avg &lt; 15 mins)</option>
                     <option value="Phone Call">Phone Call from a Solutions Engineer</option>
@@ -459,15 +438,15 @@ export default function RedesignedContactPage() {
                     value={formData.message}
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                     placeholder="Tell us about your brand goals, monthly post schedule, channels you want to automate, or specific questions..."
-                    className="w-full px-3.5 py-2.5 rounded-[10px] bg-[#11141A] border border-white/15 text-white focus:outline-none focus:border-[#FF7A00] transition resize-none"
+                    className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.1] text-white focus:outline-none focus:border-[#FF7A00] transition resize-none"
                   />
                 </div>
 
-                {/* Submit Button */}
+                {/* High-Contrast Action Button */}
                 <button
                   type="submit"
                   disabled={formStatus === 'submitting'}
-                  className="w-full py-3.5 rounded-[10px] bg-[#FF7A00] hover:bg-[#FF881A] text-white text-xs font-sora font-semibold transition shadow-lg shadow-[#FF7A00]/25 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                  className="w-full py-4 rounded-2xl bg-white text-black font-extrabold text-xs sm:text-sm font-sora hover:scale-105 transition-all duration-300 shadow-[0_10px_25px_-5px_rgba(255,255,255,0.3)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {formStatus === 'submitting' ? (
                     <>
@@ -477,7 +456,7 @@ export default function RedesignedContactPage() {
                   ) : (
                     <>
                       <SendHorizontal size={14} />
-                      <span>Send Inquiry & Request Priority Walkthrough</span>
+                      <span>Send Inquiry & Request Priority Walkthrough →</span>
                     </>
                   )}
                 </button>
@@ -487,66 +466,73 @@ export default function RedesignedContactPage() {
         </div>
       </section>
 
-      {/* 5. Agency & Multi-Client Partnership Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full border-t border-white/10">
-        <div className="p-8 sm:p-10 rounded-[20px] bg-gradient-to-r from-[#0B0F14] via-[#111722] to-[#0B0F14] border border-white/15 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl text-left">
+      {/* =========================================================================
+          AGENCY & MULTI-CLIENT PARTNERSHIP SECTION
+      ========================================================================= */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <div className="p-8 sm:p-12 rounded-[32px] bg-[#0A0E18] border border-white/[0.09] flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl text-left">
           <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30 text-[10px] font-mono uppercase font-bold">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/30 text-[10px] font-mono uppercase font-bold">
               Agencies & Operators
             </div>
-            <h3 className="font-sora text-xl sm:text-2xl font-bold text-white">
+            <h3 className="font-sora text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
               Managing 10+ Client Accounts, Stores, or Franchises?
             </h3>
-            <p className="text-xs text-slate-300 font-inter leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-300 font-inter leading-relaxed">
               We offer dedicated multi-tenant workspaces, white-labeled WhatsApp sender IDs, custom Inngest queues, volume discounts, and specialized billing agreements for agency operators.
             </p>
           </div>
 
           <a
             href="mailto:partners@kuiro.in?subject=Agency%20Partnership%20Inquiry%20-%20KUIRO"
-            className="px-6 py-3 rounded-[10px] bg-white text-[#0B0F14] hover:bg-gray-100 font-sora font-semibold text-xs transition shadow-md shrink-0 flex items-center gap-2 whitespace-nowrap"
+            className="px-7 py-3.5 rounded-2xl bg-white text-black font-extrabold font-sora text-xs sm:text-sm hover:scale-105 transition-all duration-300 shadow-lg shrink-0 flex items-center gap-2 whitespace-nowrap"
           >
             <Briefcase size={14} />
-            <span>Schedule Agency Meeting</span>
+            <span>Schedule Agency Meeting →</span>
           </a>
         </div>
       </section>
 
-      {/* 6. FAQ Accordion Section */}
+      {/* =========================================================================
+          FREQUENTLY ASKED CONTACT QUESTIONS (ACCORDION)
+      ========================================================================= */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto w-full text-left">
-        <div className="text-center mb-10 space-y-1">
-          <span className="text-xs font-mono uppercase text-[#FF7A00] font-bold tracking-wider">
+        <div className="text-center mb-10 space-y-2">
+          <span className="text-xs font-mono uppercase tracking-wider text-[#FF7A00] font-bold">
             Quick Answers
           </span>
-          <h2 className="text-2xl sm:text-3xl font-sora font-bold text-white tracking-tight">
-            Frequently Asked Contact Questions
+          <h2 className="text-3xl sm:text-4xl font-sora font-bold text-white tracking-tight">
+            Frequently Asked Questions
           </h2>
-          <p className="text-xs text-slate-400 font-inter">
+          <p className="text-slate-400 text-sm font-inter">
             Got questions before getting started? Here is how our team and platform work.
           </p>
         </div>
 
         <div className="space-y-3">
           {contactFaqs.map((faq, idx) => {
-            const isOpen = openFaq === idx;
+            const isOpen = openFaqIndex === idx;
             return (
               <div
                 key={idx}
-                className="rounded-[12px] bg-[#0B0F14] border border-white/10 overflow-hidden transition-colors"
+                className="rounded-2xl border border-white/[0.08] bg-[#0A0E18] overflow-hidden transition"
               >
                 <button
-                  onClick={() => setOpenFaq(isOpen ? null : idx)}
-                  className="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 focus:outline-none font-sora font-semibold text-sm text-white hover:text-[#FF7A00] transition"
+                  onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
+                  className="w-full p-5 text-left flex items-center justify-between gap-4 focus:outline-none"
                 >
-                  <span>{faq.q}</span>
-                  {isOpen ? (
-                    <ChevronUp size={16} className="text-[#FF7A00] shrink-0" />
-                  ) : (
-                    <ChevronDown size={16} className="text-slate-400 shrink-0" />
-                  )}
+                  <span className="text-sm sm:text-base font-sora font-semibold text-white">
+                    {faq.q}
+                  </span>
+                  <ChevronDown
+                    size={18}
+                    className={`text-slate-400 shrink-0 transition-transform duration-200 ${
+                      isOpen ? 'rotate-180 text-[#FF7A00]' : ''
+                    }`}
+                  />
                 </button>
                 {isOpen && (
-                  <div className="px-4 pb-5 sm:px-5 text-xs text-slate-300 font-inter leading-relaxed border-t border-white/5 pt-3 animate-fade-in">
+                  <div className="px-5 pb-5 text-xs sm:text-sm text-slate-300 font-inter leading-relaxed border-t border-white/[0.05] pt-3 animate-fade-in">
                     {faq.a}
                   </div>
                 )}
@@ -556,49 +542,48 @@ export default function RedesignedContactPage() {
         </div>
       </section>
 
-      {/* 7. Bottom Conversion Banner */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full text-center">
-        <div className="p-8 sm:p-12 rounded-[20px] bg-gradient-to-br from-[#0B0F14] via-[#1A1208] to-[#0B0F14] border-2 border-[#FF7A00]/40 relative overflow-hidden shadow-2xl">
-          <div className="relative z-10 max-w-2xl mx-auto space-y-4">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FF7A00]/20 text-[#FF7A00] text-xs font-semibold">
-              <Sparkles size={13} />
-              <span>14-Day Risk-Free Trial</span>
+      {/* =========================================================================
+          BOTTOM HIGH-IMPACT CONVERSION BANNER
+      ========================================================================= */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full text-center">
+        <div className="p-8 sm:p-14 rounded-[32px] bg-gradient-to-b from-[#0F1420] to-[#070A11] border border-white/[0.12] relative overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)] space-y-6">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FF7A00]/15 border border-[#FF7A00]/30 text-[#FF7A00] text-xs font-mono font-bold">
+            <Sparkles size={13} />
+            <span>14-Day Risk-Free Trial</span>
+          </div>
+
+          <h2 className="text-3xl sm:text-5xl font-sora font-extrabold text-white tracking-tight leading-tight max-w-2xl mx-auto">
+            Ready to automate your marketing <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-[#FF7A00]">
+              with zero routine work?
             </span>
+          </h2>
 
-            <h2 className="font-sora text-3xl sm:text-5xl font-bold text-white tracking-tight leading-tight">
-              Ready to automate your marketing <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF7A00] via-[#FFA34D] to-emerald-400">
-                with zero routine work?
-              </span>
-            </h2>
+          <p className="text-sm text-slate-300 font-inter max-w-xl mx-auto leading-relaxed">
+            Launch your Brand Brain in 60 seconds. Experience your first WhatsApp campaign review in minutes.
+          </p>
 
-            <p className="text-sm text-slate-300 font-inter leading-relaxed">
-              Launch your Brand Brain in 60 seconds. Experience your first WhatsApp campaign review in minutes.
-            </p>
-
-            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button
-                onClick={handleGetStarted}
-                className="w-full sm:w-auto px-7 py-3.5 rounded-[12px] bg-[#FF7A00] hover:bg-[#FF881A] text-white text-sm font-sora font-semibold transition shadow-lg shadow-[#FF7A00]/30 active:scale-95 flex items-center justify-center gap-2"
-              >
-                <span>{isLoggedIn ? 'Go to Dashboard' : 'Start 14-Day Free Trial (₹0)'}</span>
-                <ArrowRight size={15} />
-              </button>
-              <a
-                href="https://wa.me/919876543210"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto px-6 py-3.5 rounded-[12px] bg-white text-[#0B0F14] hover:bg-gray-100 text-sm font-semibold transition flex items-center justify-center gap-2"
-              >
-                <Smartphone size={16} />
-                <span>Chat on WhatsApp</span>
-              </a>
-            </div>
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button
+              onClick={handleGetStarted}
+              className="w-full sm:w-auto bg-white text-black font-extrabold text-sm sm:text-base rounded-2xl px-8 py-4 hover:scale-105 shadow-[0_10px_25px_-5px_rgba(255,255,255,0.25)] transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>{isLoggedIn ? 'Go to Dashboard →' : 'Start 14-Day Free Trial (₹0) →'}</span>
+            </button>
+            <a
+              href="https://wa.me/919876543210"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-white/[0.05] hover:bg-white/[0.1] text-white text-sm font-semibold transition border border-white/10 flex items-center justify-center gap-2 backdrop-blur-md"
+            >
+              <Smartphone size={16} />
+              <span>Chat on WhatsApp</span>
+            </a>
           </div>
         </div>
       </section>
 
-      {/* 8. Unified Global Footer */}
+      {/* Global Footer */}
       <Footer />
     </div>
   );
