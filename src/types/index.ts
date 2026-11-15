@@ -1,6 +1,6 @@
 /**
  * Central Type Definitions for KUIRO
- * Organized by domain models: Workspace, Campaign, Inbox, ROI, and Channels.
+ * Organized by domain models: Workspace, Campaign, Inbox, ROI, Channels, Observability, and Events.
  */
 
 // Domain Types
@@ -17,3 +17,28 @@ export type { PlatformKey, ChannelConfig } from '@/constants/channels';
 export type { PlanTier } from '@/components/billing';
 export type { MilestoneCategory } from '@/components/calendar';
 export type { QuickSnippetItem, GeneratedPaymentData } from '@/components/inbox';
+
+// Observability & Telemetry Types
+export type {
+  LogLevel,
+  LogService,
+  StructuredLogEvent,
+} from '@/lib/observability/logger';
+export type {
+  AlertSeverity,
+  AlertCategory,
+  AlertInput,
+} from '@/lib/observability/alerts';
+
+// Durable Events & Idempotency Types
+export type {
+  EventStatus,
+  ErrorClassification,
+  IdempotencyExecutionOptions,
+  IdempotencyExecutionResult,
+} from '@/lib/events/idempotency';
+
+// Real-Time Pub/Sub Types
+export type {
+  PubSubNotification,
+} from '@/lib/realtime/pubsub';
