@@ -294,3 +294,118 @@ export async function publishToAllChannels(
   return results;
 }
 
+import { executeWithIdempotency, IdempotencyKeyBuilder } from '@/lib/events/idempotency';
+import { db, platformPosts } from '@/db';
+import { eq, and } from 'drizzle-orm';
+
+/**
+ * Idempotent Channel Publishing Wrapper
+ * Guarantees that a campaign is NEVER published twice to the same social platform for the same content version.
+ * 
+ * If called multiple times with the same (campaignId, platform, contentVersionHash):
+ * 1. Checks durable_events receipt table.
+ * 2. If already COMPLETED: returns cached ChannelPublishResult immediately without calling the external API.
+ * 3. If in-flight: protects against concurrent duplicate posting.
+ * 4. If timed out on social API: attempts reconciliation before re-attempting.
+ */
+export async function publishCampaignChannelWithIdempotency({
+  campaignId,
+  platform,
+  contentVersionHash,
+  workspaceId,
+  payload,
+  pageId,
+  authorUrn,
+  accessToken,
+}: {
+  campaignId: string;
+  platform: 'facebook' | 'instagram' | 'linkedin' | 'x' | 'email';
+  contentVersionHash: string;
+  workspaceId?: string;
+  payload: PublishPayload;
+  pageId?: string;
+  authorUrn?: string;
+  accessToken?: string;
+}): Promise<ChannelPublishResult> {
+  const idempotencyKey = IdempotencyKeyBuilder.campaignPublish({
+    campaignId,
+    platform,
+    contentVersionHash,
+  });
+
+  const res = await executeWithIdempotency<ChannelPublishResult>(
+    {
+      idempotencyKey,
+      eventType: `social_publish/${platform}`,
+      workspaceId,
+      relatedEntityId: campaignId,
+      payload: { platform, contentVersionHash, captionSnippet: payload.caption.slice(0, 80) },
+      maxRetries: 3,
+      lockTimeoutMs: 90000,
+      reconcileFn: async () => {
+        if (db) {
+          const [existingPost] = await db
+            .select()
+            .from(platformPosts)
+            .where(
+              and(
+                eq(platformPosts.campaignId, campaignId),
+                eq(platformPosts.platform, platform)
+              )
+            )
+            .limit(1);
+
+          if (existingPost?.platformPostId) {
+            return {
+              reconciled: true,
+              result: {
+                platform,
+                status: 'PUBLISHED',
+                platformPostId: existingPost.platformPostId,
+                postUrl: `https://${platform}.com/posts/${existingPost.platformPostId}`,
+              },
+            };
+          }
+        }
+        return { reconciled: false, stillUncertain: false };
+      },
+    },
+    async () => {
+      if (platform === 'facebook') {
+        return publishFacebookChannel({ payload, workspaceId, pageId, campaignId, accessToken });
+      } else if (platform === 'instagram') {
+        return publishToInstagram({ payload, igAccountId: pageId, accessToken });
+      } else if (platform === 'linkedin') {
+        return publishToLinkedIn({ payload, authorUrn, accessToken });
+      } else if (platform === 'x') {
+        return publishToX({ payload });
+      } else {
+        const emailRes = await sendAutonomousEmailNewsletter({
+          to: payload.subscriberList || ['subscribers@sharmaheritage.in'],
+          subject: payload.emailSubject || 'Brand Update',
+          brandName: payload.brandName || 'Brand Autopilot',
+          headline: payload.emailSubject || 'Brand Update',
+          bodyContentHtml: `<p>${payload.caption.replace(/\n/g, '<br/>')}</p>`,
+        });
+        return {
+          platform: 'email',
+          status: emailRes.status as any,
+          platformPostId: emailRes.campaignId,
+          error: emailRes.error,
+        };
+      }
+    }
+  );
+
+  if (res.result) {
+    return res.result;
+  }
+
+  return {
+    platform,
+    status: 'FAILED',
+    error: res.error || 'Idempotent publishing failed',
+  };
+}
+
+

@@ -170,6 +170,33 @@ export const adminAuditLogs = pgTable('admin_audit_logs', {
   index('idx_admin_audit_logs_created_at').on(table.createdAt),
 ]);
 
+// 2g. Durable Event Receipts & Idempotency Ledger
+export const durableEvents = pgTable('durable_events', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  idempotencyKey: text('idempotency_key').notNull().unique(),
+  eventType: text('event_type').notNull(),
+  workspaceId: uuid('workspace_id').references(() => workspaces.id, { onDelete: 'cascade' }),
+  relatedEntityId: text('related_entity_id'),
+  payloadVersion: integer('payload_version').default(1).notNull(),
+  status: text('status', {
+    enum: ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'RECONCILIATION_REQUIRED', 'EXHAUSTED']
+  }).default('PENDING').notNull(),
+  retryCount: integer('retry_count').default(0).notNull(),
+  maxRetries: integer('max_retries').default(3).notNull(),
+  lastError: text('last_error'),
+  errorType: text('error_type', { enum: ['TRANSIENT', 'PERMANENT', 'TIMEOUT', 'UNKNOWN'] }),
+  payload: jsonb('payload'),
+  resultPayload: jsonb('result_payload'),
+  lockedUntil: timestamp('locked_until', { withTimezone: true }),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index('idx_durable_events_idempotency_key').on(table.idempotencyKey),
+  index('idx_durable_events_ws_type_status').on(table.workspaceId, table.eventType, table.status),
+  index('idx_durable_events_status_locked').on(table.status, table.lockedUntil),
+]);
+
 // ==============================================================================
 // 3. The Brand Brain (Persistent Knowledge & Guardrails)
 // ==============================================================================
@@ -475,6 +502,11 @@ export const workspaceRelations = relations(workspaces, ({ one, many }) => ({
   inboxAutomations: many(inboxAutomations),
   subscriptions: many(subscriptions),
   payments: many(payments),
+  durableEvents: many(durableEvents),
+}));
+
+export const durableEventsRelations = relations(durableEvents, ({ one }) => ({
+  workspace: one(workspaces, { fields: [durableEvents.workspaceId], references: [workspaces.id] }),
 }));
 
 export const workspaceMembersRelations = relations(workspaceMembers, ({ one }) => ({

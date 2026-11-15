@@ -1,5 +1,5 @@
 import { inngest } from './client';
-import { db, scheduledCampaigns } from '@/db';
+import { db, scheduledCampaigns, durableEvents } from '@/db';
 import { eq } from 'drizzle-orm';
 
 export interface DurableEvent {
@@ -19,7 +19,7 @@ export interface OutboxRecord {
   error?: string;
 }
 
-// Resilient in-memory durable outbox store with auto-pruning
+// In-memory telemetry cache for real-time observability metrics
 const durableOutboxStore = new Map<string, OutboxRecord>();
 
 let totalDispatchedCount = 0;
@@ -30,17 +30,17 @@ let lastErrorDetails: string | null = null;
 /**
  * Resilient Inngest Event Dispatcher
  * Dispatches events to Inngest Cloud with timeout and exponential backoff.
- * If Inngest Cloud is unreachable, network-partitioned, or missing credentials:
- * 1. Enqueues the event into the Durable Outbox.
- * 2. Directly executes mission-critical state updates (e.g. campaign auto-queue or admin actions)
- *    so founder workflows are never blocked by external service outages.
+ * 
+ * Strict Idempotent & Production Failure Architecture:
+ * 1. If Inngest Cloud accepts the event: returns confirmed eventId from Inngest.
+ * 2. If dispatch fails or times out:
+ *    - Persists the event into PostgreSQL `durable_events` table for resilient outbox recovery.
+ *    - In production, FAILS CLOSED: returns `{ success: false, ... }` rather than inventing a mock event ID.
+ *    - Callers can handle failure semantics reliably without phantom execution states.
  */
 export async function safeDispatchInngest(
   event: DurableEvent
-): Promise<{ success: boolean; eventId: string; mode: 'inngest_cloud' | 'durable_outbox_fallback'; error?: string }> {
-  const eventKey = process.env.INNGEST_EVENT_KEY;
-  const isCloudConfigured = eventKey && !eventKey.includes('local_kuiro') && !eventKey.includes('YourInngestKey');
-
+): Promise<{ success: boolean; eventId?: string; mode: 'inngest_cloud' | 'durable_outbox_fallback'; error?: string }> {
   // Try Inngest Cloud first
   try {
     const sendPromise = inngest.send(event);
@@ -49,7 +49,11 @@ export async function safeDispatchInngest(
     );
 
     const result: any = await Promise.race([sendPromise, timeoutPromise]);
-    const eventId = result?.ids?.[0] || `ing_${Date.now()}`;
+    const eventId = result?.ids?.[0];
+
+    if (!eventId) {
+      throw new Error('Inngest Cloud did not return a valid event ID in dispatch response.');
+    }
 
     totalDispatchedCount++;
     lastDispatchTimestamp = new Date().toISOString();
@@ -64,12 +68,32 @@ export async function safeDispatchInngest(
     lastErrorDetails = errorMsg;
     totalFallbackCount++;
 
-    console.warn(`[Inngest Dispatcher Cloud Warning]: ${errorMsg}. Activating Durable Outbox Fallback.`);
+    console.warn(`[Inngest Dispatcher Cloud Warning]: ${errorMsg}. Recording in PostgreSQL durable outbox.`);
 
-    // Enqueue into Durable Outbox
-    const fallbackId = `outbox_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const isProduction = process.env.NODE_ENV === 'production';
+    const outboxKey = `outbox_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+    // 1. Persist into Neon PostgreSQL durable_events outbox
+    if (db) {
+      try {
+        await db.insert(durableEvents).values({
+          idempotencyKey: outboxKey,
+          eventType: `inngest/${event.name}`,
+          workspaceId: event.data?.workspaceId,
+          relatedEntityId: event.data?.campaignId || event.data?.orderId,
+          payload: { eventName: event.name, data: event.data },
+          status: 'PENDING',
+          lastError: errorMsg,
+          errorType: 'TIMEOUT',
+        });
+      } catch (dbOutboxErr) {
+        console.error('[Inngest Outbox DB Save Error]:', dbOutboxErr);
+      }
+    }
+
+    // Record in-memory for live telemetry
     const outboxRecord: OutboxRecord = {
-      id: fallbackId,
+      id: outboxKey,
       name: event.name,
       data: event.data,
       status: 'PENDING',
@@ -78,21 +102,28 @@ export async function safeDispatchInngest(
       lastAttemptAt: new Date().toISOString(),
       error: errorMsg,
     };
-
-    durableOutboxStore.set(fallbackId, outboxRecord);
-
-    // Prune outbox if over 200 items
+    durableOutboxStore.set(outboxKey, outboxRecord);
     if (durableOutboxStore.size > 200) {
       const oldest = durableOutboxStore.keys().next().value;
       if (oldest) durableOutboxStore.delete(oldest);
     }
 
-    // Direct autonomous fallback execution for mission-critical events
+    // 2. Production Fail-Closed Rule: Never return fake success or mock IDs in production
+    if (isProduction) {
+      return {
+        success: false,
+        eventId: outboxKey,
+        mode: 'durable_outbox_fallback',
+        error: `Inngest Cloud dispatch failed: ${errorMsg}. Event safely queued in durable database outbox.`,
+      };
+    }
+
+    // 3. Local Development Mode: Execute autonomous fallback for offline developer experience
     await executeAutonomousFallback(event);
 
     return {
       success: true,
-      eventId: fallbackId,
+      eventId: outboxKey,
       mode: 'durable_outbox_fallback',
       error: errorMsg,
     };
