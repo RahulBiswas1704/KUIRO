@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import KuiroLogo from '@/components/brand/KuiroLogo';
@@ -18,7 +18,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 
-export default function AdminLoginPage() {
+function AdminLoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectPath = searchParams?.get('redirect') || '/admin';
@@ -252,5 +252,22 @@ export default function AdminLoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#070A11] text-white flex items-center justify-center font-mono text-xs">
+          <div className="flex items-center gap-2 text-slate-400">
+            <RefreshCw size={14} className="animate-spin text-[#FF7A00]" />
+            <span>Loading Operator Terminal...</span>
+          </div>
+        </div>
+      }
+    >
+      <AdminLoginForm />
+    </Suspense>
   );
 }
