@@ -50,17 +50,19 @@ export default function Navbar({
 
   return (
     <header 
-      className={`sticky top-0 z-50 transition-all duration-300 ${
-        scrolled 
-          ? 'bg-[#0B0F14]/92 backdrop-blur-xl border-b border-white/[0.12] shadow-[0_12px_32px_-12px_rgba(0,0,0,0.85)] py-2.5' 
-          : 'bg-[#0B0F14]/75 backdrop-blur-md border-b border-white/[0.06] py-3.5'
-      } ${className}`}
+      className={`sticky top-0 sm:top-3.5 z-50 transition-all duration-300 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto ${className}`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+      <div 
+        className={`transition-all duration-300 rounded-2xl sm:rounded-full px-4 sm:px-6 py-2.5 sm:py-3 border backdrop-blur-2xl flex items-center justify-between ${
+          scrolled 
+            ? 'bg-[#080B11]/88 border-white/[0.14] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.85),0_0_24px_rgba(255,122,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.16)]' 
+            : 'bg-[#0A0E17]/70 border-white/[0.09] shadow-[0_12px_32px_-10px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.08)]'
+        }`}
+      >
         {/* Left: Brand Identity Lockup */}
         <div className="flex items-center gap-3.5 flex-shrink-0">
           <Link href="/" className="focus:outline-none flex items-center flex-shrink-0 group">
-            <KuiroLogo variant="primary" theme="dark" symbolSize={36} showTagline={false} />
+            <KuiroLogo variant="primary" theme="dark" symbolSize={34} showTagline={false} />
           </Link>
           {badgeText && (
             <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] text-[11px] font-mono text-slate-400">
@@ -125,7 +127,7 @@ export default function Navbar({
           ) : (
             <>
               {statusText && (
-                <span className="hidden sm:inline-flex text-[11px] text-emerald-400 items-center gap-1.5 font-medium bg-emerald-950/40 px-3 py-1 rounded-full border border-emerald-500/20">
+                <span className="hidden sm:inline-flex text-[11px] text-emerald-400 items-center gap-1.5 font-medium bg-emerald-950/40 px-3 py-1 rounded-full border border-emerald-500/20 backdrop-blur-md">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   <span>{statusText}</span>
                 </span>
@@ -134,7 +136,7 @@ export default function Navbar({
               {!isLoggedIn && (
                 <button
                   onClick={() => openAuthModal('login')}
-                  className="hidden sm:inline-block text-xs text-slate-300 hover:text-white px-2 py-1 transition"
+                  className="hidden sm:inline-block text-xs font-medium text-slate-300 hover:text-white px-3 py-1.5 rounded-full hover:bg-white/[0.05] transition"
                 >
                   Sign In
                 </button>
@@ -157,7 +159,7 @@ export default function Navbar({
 
       {/* Mobile Navigation Dropdown Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-b border-white/10 bg-[#0B0F14]/98 backdrop-blur-2xl px-4 py-5 space-y-3 animate-fade-in shadow-2xl">
+        <div className="md:hidden mt-2 rounded-2xl border border-white/10 bg-[#080B11]/95 backdrop-blur-2xl px-4 py-5 space-y-3 animate-fade-in shadow-[0_20px_40px_rgba(0,0,0,0.85)]">
           <div className="grid grid-cols-2 gap-2 pb-2">
             <Link
               href="/"
