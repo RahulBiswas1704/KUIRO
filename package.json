@@ -9,6 +9,10 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:check": "drizzle-kit check",
+    "db:studio": "drizzle-kit studio",
     "test:security": "node scratch/test-meta-webhook-verification.js && node scratch/test-ssrf-protection.js",
     "test:all": "node scratch/test-auth-hardening.js && node scratch/test-passwordless-bypass.js && node scratch/test-api-session-enforcement.js && node scratch/test-tenant-isolation-enforcement.js && node scratch/test-ssrf-protection.js && node scratch/test-meta-webhook-verification.js && node scratch/test-production-infrastructure.js && node scratch/test-ai-campaign-workflows.js"
   },

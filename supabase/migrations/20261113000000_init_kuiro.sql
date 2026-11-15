@@ -1,5 +1,8 @@
 -- ==============================================================================
--- KUIRO: Database Initialization & Multi-Tenant Schema
+-- [DEPRECATED / ARCHIVED LEGACY REFERENCE - DO NOT EXECUTE]
+-- KUIRO Canonical Database Source of Truth: Drizzle ORM on Neon PostgreSQL
+-- Active migrations are managed via Drizzle Kit in `src/db/migrations/`.
+-- To run canonical migrations: `npm run db:migrate`
 -- ==============================================================================
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

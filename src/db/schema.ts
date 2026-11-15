@@ -6,11 +6,16 @@ import {
   integer, 
   jsonb, 
   date, 
-  boolean 
+  boolean,
+  index,
+  uniqueIndex,
+  unique,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
+// ==============================================================================
 // 1. Better Auth / User Authentication Tables
+// ==============================================================================
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
@@ -20,7 +25,10 @@ export const users = pgTable('users', {
   emailVerified: boolean('email_verified').default(false),
   image: text('image'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index('idx_users_email').on(table.email),
+]);
 
 export const accounts = pgTable('accounts', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -35,7 +43,10 @@ export const accounts = pgTable('accounts', {
   password: text('password'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('idx_accounts_user_id').on(table.userId),
+  unique('accounts_provider_account_unique').on(table.providerId, table.accountId),
+]);
 
 export const sessions = pgTable('sessions', {
   id: text('id').primaryKey(),
@@ -45,7 +56,10 @@ export const sessions = pgTable('sessions', {
   ipAddress: text('ip_address'),
   userAgent: text('user_agent'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('idx_sessions_user_id').on(table.userId),
+  index('idx_sessions_token').on(table.token),
+]);
 
 export const verificationTokens = pgTable('verification_tokens', {
   id: text('id').primaryKey(),
@@ -57,9 +71,14 @@ export const verificationTokens = pgTable('verification_tokens', {
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   usedAt: timestamp('used_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('idx_verification_tokens_token').on(table.token),
+  unique('verification_tokens_ident_token_unique').on(table.identifier, table.token),
+]);
 
-// 2. Workspaces (Multi-Tenant Isolation)
+// ==============================================================================
+// 2. Workspaces & Tenant Governance
+// ==============================================================================
 export const workspaces = pgTable('workspaces', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
@@ -74,7 +93,10 @@ export const workspaces = pgTable('workspaces', {
   publishHourOfDay: integer('publish_hour_of_day').default(10).notNull(),
   lateRevisionGraceMinutes: integer('late_revision_grace_minutes').default(60).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index('idx_workspaces_owner_id').on(table.ownerId),
+]);
 
 // 2b. Workspace Members (Multi-User Agency Membership & Role-Based Access)
 export const workspaceMembers = pgTable('workspace_members', {
@@ -83,7 +105,11 @@ export const workspaceMembers = pgTable('workspace_members', {
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   role: text('role', { enum: ['OWNER', 'ADMIN', 'MARKETER', 'INBOX_AGENT'] }).default('MARKETER').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index('idx_workspace_members_ws_user').on(table.workspaceId, table.userId),
+  unique('workspace_members_ws_user_unique').on(table.workspaceId, table.userId),
+]);
 
 // 2c. Subscriptions & Billing State
 export const subscriptions = pgTable('subscriptions', {
@@ -97,7 +123,9 @@ export const subscriptions = pgTable('subscriptions', {
   razorpaySubscriptionId: text('razorpay_subscription_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('idx_subscriptions_ws_status').on(table.workspaceId, table.status),
+]);
 
 // 2d. Payments (Ledger of verified transactions)
 export const payments = pgTable('payments', {
@@ -113,7 +141,10 @@ export const payments = pgTable('payments', {
   invoiceNumber: text('invoice_number'),
   rawEventData: jsonb('raw_event_data'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('idx_payments_ws_created').on(table.workspaceId, table.createdAt),
+  index('idx_payments_order_id').on(table.orderId),
+]);
 
 // 2e. Processed Webhook Events (Idempotency Ledger)
 export const processedWebhookEvents = pgTable('processed_webhook_events', {
@@ -134,9 +165,14 @@ export const adminAuditLogs = pgTable('admin_audit_logs', {
   ipAddress: text('ip_address'),
   userAgent: text('user_agent'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('idx_admin_audit_logs_operator').on(table.operatorEmail, table.createdAt),
+  index('idx_admin_audit_logs_created_at').on(table.createdAt),
+]);
 
+// ==============================================================================
 // 3. The Brand Brain (Persistent Knowledge & Guardrails)
+// ==============================================================================
 export const brandProfiles = pgTable('brand_profiles', {
   id: uuid('id').defaultRandom().primaryKey(),
   workspaceId: uuid('workspace_id').references(() => workspaces.id, { onDelete: 'cascade' }).notNull().unique(),
@@ -163,9 +199,14 @@ export const brandProfiles = pgTable('brand_profiles', {
   }>>().notNull(),
   negativeConstraints: text('negative_constraints').array().default([]).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index('idx_brand_profiles_ws_id').on(table.workspaceId),
+]);
 
+// ==============================================================================
 // 4. Encrypted Token Vault (OAuth Connections)
+// ==============================================================================
 export const socialConnections = pgTable('social_connections', {
   id: uuid('id').defaultRandom().primaryKey(),
   workspaceId: uuid('workspace_id').references(() => workspaces.id, { onDelete: 'cascade' }).notNull(),
@@ -188,9 +229,16 @@ export const socialConnections = pgTable('social_connections', {
   tokenVersion: integer('token_version').default(1).notNull(),
   lockedUntil: timestamp('locked_until', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  unique('social_connections_ws_platform_acc_unique').on(table.workspaceId, table.platform, table.platformAccountId),
+  index('idx_social_connections_ws_platform').on(table.workspaceId, table.platform),
+  index('idx_social_connections_platform_acc').on(table.platform, table.platformAccountId),
+]);
 
+// ==============================================================================
 // 5. 365-Day Cultural & Regional Calendar Triggers
+// ==============================================================================
 export const culturalEventsCalendar = pgTable('cultural_events_calendar', {
   id: uuid('id').defaultRandom().primaryKey(),
   eventName: text('event_name').notNull(),
@@ -199,9 +247,14 @@ export const culturalEventsCalendar = pgTable('cultural_events_calendar', {
   targetIndustries: text('target_industries').array().notNull(), // e.g. ['Retail', 'Healthcare', 'All']
   promptContext: text('prompt_context').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index('idx_cultural_events_date').on(table.eventDate),
+]);
 
+// ==============================================================================
 // 6. Scheduled Campaigns (The 48-Hour State Machine)
+// ==============================================================================
 export const scheduledCampaigns = pgTable('scheduled_campaigns', {
   id: uuid('id').defaultRandom().primaryKey(),
   workspaceId: uuid('workspace_id').references(() => workspaces.id, { onDelete: 'cascade' }).notNull(),
@@ -232,9 +285,15 @@ export const scheduledCampaigns = pgTable('scheduled_campaigns', {
   diagnosticMetadata: jsonb('diagnostic_metadata'),
   lockAcquiredAt: timestamp('lock_acquired_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index('idx_campaigns_ws_status_publish').on(table.workspaceId, table.status, table.publishAt),
+  index('idx_campaigns_publish_at').on(table.publishAt),
+]);
 
+// ==============================================================================
 // 7. Platform-Native Posts (Channel Payloads & Critic Scores)
+// ==============================================================================
 export const platformPosts = pgTable('platform_posts', {
   id: uuid('id').defaultRandom().primaryKey(),
   campaignId: uuid('campaign_id').references(() => scheduledCampaigns.id, { onDelete: 'cascade' }).notNull(),
@@ -257,7 +316,10 @@ export const platformPosts = pgTable('platform_posts', {
     leadsGenerated?: number;
   }>(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index('idx_platform_posts_campaign_platform').on(table.campaignId, table.platform),
+]);
 
 // 7b. Campaign Revisions History & Spoken Audit Log
 export const campaignRevisions = pgTable('campaign_revisions', {
@@ -280,9 +342,13 @@ export const campaignRevisions = pgTable('campaign_revisions', {
   }>>().notNull(),
   revisionSummary: text('revision_summary').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('idx_campaign_rev_campaign_num').on(table.campaignId, table.revisionNumber),
+]);
 
+// ==============================================================================
 // 8. Unified Multi-Channel Customer Inbox & Conversations Hub
+// ==============================================================================
 export const conversations = pgTable('conversations', {
   id: uuid('id').defaultRandom().primaryKey(),
   workspaceId: uuid('workspace_id').references(() => workspaces.id, { onDelete: 'cascade' }).notNull(),
@@ -319,7 +385,11 @@ export const conversations = pgTable('conversations', {
   windowExpiresAt: timestamp('window_expires_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('idx_conv_ws_updated').on(table.workspaceId, table.updatedAt),
+  index('idx_conv_ws_channel_status').on(table.workspaceId, table.channel, table.status),
+  index('idx_conv_ws_handle').on(table.workspaceId, table.customerHandle),
+]);
 
 export const inboxMessages = pgTable('inbox_messages', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -348,7 +418,10 @@ export const inboxMessages = pgTable('inbox_messages', {
   }>>(),
   metadata: jsonb('metadata'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  index('idx_inbox_msgs_conv_created').on(table.conversationId, table.createdAt),
+  index('idx_inbox_msgs_provider_msg_id').on(table.providerMessageId),
+]);
 
 export const inboxAutomations = pgTable('inbox_automations', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -369,13 +442,19 @@ export const inboxAutomations = pgTable('inbox_automations', {
   enabled: boolean('enabled').default(true).notNull(),
   triggerCount: integer('trigger_count').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index('idx_inbox_automations_ws_enabled').on(table.workspaceId, table.enabled),
+]);
 
-// Relations
+// ==============================================================================
+// 9. Drizzle Relations
+// ==============================================================================
 export const usersRelations = relations(users, ({ many }) => ({
   workspaces: many(workspaces),
   accounts: many(accounts),
   sessions: many(sessions),
+  memberships: many(workspaceMembers),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -388,11 +467,27 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
 
 export const workspaceRelations = relations(workspaces, ({ one, many }) => ({
   owner: one(users, { fields: [workspaces.ownerId], references: [users.id] }),
+  members: many(workspaceMembers),
   brandProfile: one(brandProfiles, { fields: [workspaces.id], references: [brandProfiles.workspaceId] }),
   socialConnections: many(socialConnections),
   campaigns: many(scheduledCampaigns),
   conversations: many(conversations),
   inboxAutomations: many(inboxAutomations),
+  subscriptions: many(subscriptions),
+  payments: many(payments),
+}));
+
+export const workspaceMembersRelations = relations(workspaceMembers, ({ one }) => ({
+  workspace: one(workspaces, { fields: [workspaceMembers.workspaceId], references: [workspaces.id] }),
+  user: one(users, { fields: [workspaceMembers.userId], references: [users.id] }),
+}));
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  workspace: one(workspaces, { fields: [subscriptions.workspaceId], references: [workspaces.id] }),
+}));
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  workspace: one(workspaces, { fields: [payments.workspaceId], references: [workspaces.id] }),
 }));
 
 export const conversationRelations = relations(conversations, ({ one, many }) => ({
@@ -418,4 +513,3 @@ export const campaignRevisionRelations = relations(campaignRevisions, ({ one }) 
 export const postRelations = relations(platformPosts, ({ one }) => ({
   campaign: one(scheduledCampaigns, { fields: [platformPosts.campaignId], references: [scheduledCampaigns.id] }),
 }));
-
