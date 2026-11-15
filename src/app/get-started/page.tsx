@@ -46,6 +46,19 @@ export default function GetStartedAuthPage() {
   // Resend Timer
   const [resendTimer, setResendTimer] = useState<number>(0);
 
+  // Sync mode with URL search parameters (?mode=signin, ?mode=login, ?mode=signup)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const mode = params.get('mode');
+      if (mode === 'signin' || mode === 'login') {
+        setAuthMode('signin');
+      } else if (mode === 'signup') {
+        setAuthMode('signup');
+      }
+    }
+  }, []);
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (resendTimer > 0) {

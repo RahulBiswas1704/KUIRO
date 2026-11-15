@@ -134,12 +134,14 @@ export default function Navbar({
               )}
 
               {!isLoggedIn && (
-                <button
-                  onClick={() => openAuthModal('login')}
-                  className="hidden sm:inline-block text-xs font-medium text-slate-300 hover:text-white px-3 py-1.5 rounded-full hover:bg-white/[0.05] transition"
+                <Link
+                  href="/get-started?mode=signin"
+                  className={`hidden sm:inline-block text-xs font-medium text-slate-300 hover:text-white px-3.5 py-1.5 rounded-full hover:bg-white/[0.06] transition cursor-pointer ${
+                    activeRoute === 'get-started' ? 'text-white font-semibold' : ''
+                  }`}
                 >
                   Sign In
-                </button>
+                </Link>
               )}
 
               <GetStartedButton />
@@ -227,39 +229,33 @@ export default function Navbar({
             </a>
 
             {isLoggedIn ? (
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  router.push('/dashboard');
-                }}
-                className="w-full py-3 rounded-[10px] bg-gradient-to-r from-[#FF7A00] to-[#FF881A] text-white text-xs font-sora font-semibold transition shadow-md shadow-[#FF7A00]/30 flex items-center justify-center gap-2"
+              <Link
+                href="/dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-[#FF7A00] to-[#FF881A] text-white text-xs font-sora font-semibold transition shadow-md shadow-[#FF7A00]/30 flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span className="w-2 h-2 rounded-full bg-emerald-400" />
                 <span>Go to Dashboard</span>
                 <ArrowRight size={14} />
-              </button>
+              </Link>
             ) : (
               <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    openAuthModal('signup');
-                  }}
-                  className="py-2.5 px-3 rounded-[10px] bg-[#FF7A00] text-white text-xs font-sora font-semibold hover:bg-[#FF881A] transition text-center shadow-md shadow-[#FF7A00]/25 flex items-center justify-center gap-1.5"
+                <Link
+                  href="/get-started"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="py-2.5 px-3 rounded-xl bg-[#FF7A00] text-white text-xs font-sora font-semibold hover:bg-[#FF881A] transition text-center shadow-md shadow-[#FF7A00]/25 flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <UserPlus size={13} />
-                  <span>Sign Up Free</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    openAuthModal('login');
-                  }}
-                  className="py-2.5 px-3 rounded-[10px] bg-white/[0.08] hover:bg-white/[0.12] text-white text-xs font-sora font-semibold transition text-center border border-white/10 flex items-center justify-center gap-1.5"
+                  <span>Get Started</span>
+                </Link>
+                <Link
+                  href="/get-started?mode=signin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="py-2.5 px-3 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] text-white text-xs font-sora font-semibold transition text-center border border-white/10 flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <LogIn size={13} />
                   <span>Sign In</span>
-                </button>
+                </Link>
               </div>
             )}
           </div>

@@ -342,13 +342,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   /**
    * Smart Get Started click handler:
    * - If user is already logged in -> redirects directly to /dashboard
-   * - If not logged in -> opens modal
+   * - If not logged in -> routes directly to frictionless /get-started
    */
   const handleGetStarted = () => {
     if (user) {
       router.push('/dashboard');
     } else {
-      openAuthModal('signup');
+      router.push('/get-started');
     }
   };
 
