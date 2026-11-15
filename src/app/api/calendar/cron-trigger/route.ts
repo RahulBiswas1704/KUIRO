@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const { searchParams } = new URL(req.url);
-    const action = (searchParams.get('action') as any) || 'all';
+    const action = (searchParams.get('action') as any) || 'pulse';
     const targetDate = searchParams.get('targetDate') || undefined;
     const forceNext = searchParams.get('force') === 'true';
     const workspaceId = searchParams.get('workspaceId') || undefined;
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const action = body.action || (searchParams.get('action') as any) || 'all';
+    const action = body.action || (searchParams.get('action') as any) || 'pulse';
     const targetDate = body.targetDate || searchParams.get('targetDate') || undefined;
     const forceNext = body.forceNext ?? (searchParams.get('force') === 'true');
     const workspaceId = body.workspaceId || searchParams.get('workspaceId') || undefined;

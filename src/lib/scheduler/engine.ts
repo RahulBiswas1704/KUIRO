@@ -5,6 +5,7 @@ import { publishToAllChannels } from '@/lib/social/publisher';
 import { retryOutboxEvents } from '@/lib/inngest/dispatcher';
 import { updateSchedulerTelemetry } from '@/lib/scheduler/telemetry';
 import { refreshExpiringTokens } from '@/lib/social/tokenRefresh';
+import { executeWithIdempotency } from '@/lib/events/idempotency';
 import {
   acquirePublishLock,
   releasePublishLock,
@@ -12,8 +13,78 @@ import {
   calculateTargetPublishTime,
 } from '@/lib/campaigns/stateMachine';
 
+/**
+ * ============================================================================
+ * KUIRO AUTHORITATIVE SCHEDULER INVENTORY & DEDUPLICATION LEDGER
+ * ============================================================================
+ * 
+ * Strict Single Ownership Architecture:
+ * Every periodic or scheduled task in KUIRO has exactly ONE authoritative owner.
+ * Schedulers never duplicate the same logical business task.
+ */
+export interface SchedulerTaskDefinition {
+  task: string;
+  owner: 'Inngest' | 'Vercel Cron';
+  schedule: string;
+  description: string;
+  functionId?: string;
+  endpoint?: string;
+  idempotencyScope: string;
+}
+
+export const SCHEDULER_INVENTORY: readonly SchedulerTaskDefinition[] = [
+  {
+    task: 'Cultural calendar scan',
+    owner: 'Inngest',
+    schedule: '0 4 * * * (Daily 09:30 AM IST)',
+    description: 'Evaluates upcoming T-48h cultural events across active workspaces and enqueues campaigns',
+    functionId: 'kuiro-cultural-radar-daily-cron',
+    idempotencyScope: 'cron_cultural_{workspaceId}_{eventDate}_{eventName}',
+  },
+  {
+    task: 'Campaign generation',
+    owner: 'Inngest',
+    schedule: 'Event-triggered (kuiro/campaign.initiate)',
+    description: 'Synthesizes multi-channel copy, AI Critic evaluation, 48h review window, and publishing',
+    functionId: 'kuiro-48h-autopilot-workflow',
+    idempotencyScope: 'campaign_publish_{campaignId}_{platform}_{versionHash}',
+  },
+  {
+    task: 'Token refresh',
+    owner: 'Inngest',
+    schedule: '0 2 * * * (Daily 07:30 AM IST)',
+    description: 'Proactively checks and refreshes social tokens expiring in <= 7 days in encrypted vault',
+    functionId: 'kuiro-token-refresh-daily-cron',
+    idempotencyScope: 'cron_token_refresh_{dateString}',
+  },
+  {
+    task: 'Subscription renewal checks',
+    owner: 'Inngest',
+    schedule: '0 3 * * * (Daily 08:30 AM IST)',
+    description: 'Audits subscription periods and transitions overdue accounts',
+    functionId: 'kuiro-subscription-renewal-daily-cron',
+    idempotencyScope: 'cron_sub_renewal_{subscriptionId}_{dateString}',
+  },
+  {
+    task: 'Cleanup and retention',
+    owner: 'Inngest',
+    schedule: '0 1 * * 0 (Weekly Sunday 06:30 AM IST)',
+    description: 'Purges expired sessions, reaps stale publish locks, and archives logs',
+    functionId: 'kuiro-cleanup-retention-cron',
+    idempotencyScope: 'cron_cleanup_retention_{weekString}',
+  },
+  {
+    task: 'Fail-Safe Health Pulse & Lock Reaper',
+    owner: 'Vercel Cron',
+    schedule: '0 0 * * * (Daily 05:30 AM IST)',
+    description: 'Lightweight fail-safe reaper: checks for overdue uncommitted campaigns and reports health',
+    endpoint: '/api/calendar/cron-trigger?action=pulse',
+    idempotencyScope: 'cron_sweep_{campaignId}',
+  },
+] as const;
+
 export interface SchedulerExecutionParams {
-  action?: 'sweep' | 'generate' | 'housekeeping' | 'all';
+  action?: 'pulse' | 'sweep' | 'generate' | 'housekeeping' | 'all';
   targetDate?: string;
   forceNext?: boolean;
   workspaceId?: string;
@@ -54,13 +125,14 @@ export interface SchedulerExecutionResult {
     outbox: { attempted: number; succeeded: number; remaining: number };
     tokenHealthWarnings: number;
   };
+  schedulerInventory: readonly SchedulerTaskDefinition[];
   message: string;
 }
 
 /**
  * Shared Core Autonomous Scheduler Engine:
  * 1. Fail-Safe Auto-Commit Sweep: Dispatches overdue T-0h campaigns where 48h review passed.
- * 2. Cultural Radar Scan: Evaluates T-48h upcoming milestones and auto-generates multi-channel campaigns.
+ * 2. Cultural Radar Scan: Evaluates T-48h upcoming milestones (Owned by Inngest; tenant-scoped when manual).
  * 3. Housekeeping: Flushes durable outbox queue and monitors token health.
  */
 export async function executeAutonomousScheduler(
@@ -68,7 +140,8 @@ export async function executeAutonomousScheduler(
 ): Promise<SchedulerExecutionResult> {
   const startTime = Date.now();
   const database = db;
-  const action = params.action || 'all';
+  // Default action is 'pulse' (lightweight fail-safe sweep) rather than duplicate campaign generation
+  const action = params.action || 'pulse';
 
   if (!database) {
     throw new Error('Neon PostgreSQL database is not connected');
@@ -96,9 +169,9 @@ export async function executeAutonomousScheduler(
 
   // =========================================================================
   // STEP 1: FAIL-SAFE AUTO-COMMIT PUBLISHING SWEEP (T-0h Overdue Campaigns)
-  // Runs if action is 'sweep' or 'all'
+  // Runs if action is 'pulse', 'sweep', or 'all'
   // =========================================================================
-  if (action === 'sweep' || action === 'all') {
+  if (action === 'pulse' || action === 'sweep' || action === 'all') {
     const now = new Date();
     const overdueCampaigns = await database
       .select()
@@ -208,8 +281,13 @@ export async function executeAutonomousScheduler(
   }
 
   // =========================================================================
-  // STEP 2: CULTURAL RADAR SCAN (T-48h Campaigns Generation)
-  // Runs if action is 'generate' or 'all'
+  // STEP 2: CULTURAL RADAR SCAN (Campaign Generation)
+  // Authoritative Owner: Inngest (kuiro-cultural-radar-daily-cron)
+  //
+  // Deduplication Guard:
+  // - Global generation is skipped if triggered via Vercel Cron pulse/sweep.
+  // - Only runs when action === 'generate' or when explicit workspaceId is passed (e.g. tenant radar scan).
+  // - Strictly protected by unique constraints and distributed idempotency.
   // =========================================================================
   let targetDateStr = params.targetDate;
   if (!targetDateStr) {
@@ -221,7 +299,9 @@ export async function executeAutonomousScheduler(
   let matchingEvents: any[] = [];
   let activeWorkspaces: any[] = [];
 
-  if (action === 'generate' || action === 'all') {
+  const shouldRunGeneration = action === 'generate' || (action === 'all' && (params.workspaceId || params.forceNext));
+
+  if (shouldRunGeneration) {
     matchingEvents = await database
       .select()
       .from(culturalEventsCalendar)
@@ -248,53 +328,73 @@ export async function executeAutonomousScheduler(
 
     for (const ws of activeWorkspaces) {
       for (const event of matchingEvents) {
-        // Check if campaign already exists for this event & workspace
-        const existing = await database
-          .select()
-          .from(scheduledCampaigns)
-          .where(
-            and(
-              eq(scheduledCampaigns.workspaceId, ws.id),
-              eq(scheduledCampaigns.topicSummary, event.eventName)
-            )
+        const eventSlug = event.eventName.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+        const idempotencyKey = `cron_cultural_${ws.id}_${targetDateStr}_${eventSlug}`;
+
+        try {
+          const exec = await executeWithIdempotency(
+            {
+              idempotencyKey,
+              eventType: 'cron.cultural_campaign_generate',
+              workspaceId: ws.id,
+              relatedEntityId: event.id || eventSlug,
+            },
+            async () => {
+              // Check if campaign already exists for this event & workspace
+              const existing = await database
+                .select()
+                .from(scheduledCampaigns)
+                .where(
+                  and(
+                    eq(scheduledCampaigns.workspaceId, ws.id),
+                    eq(scheduledCampaigns.topicSummary, event.eventName)
+                  )
+                );
+
+              if (existing.length > 0) {
+                return {
+                  campaignId: existing[0].id,
+                  workspaceId: ws.id,
+                  workspaceName: ws.name,
+                  eventName: event.eventName,
+                  eventDate: event.eventDate,
+                  status: 'ALREADY_EXISTS' as const,
+                };
+              }
+
+              const targetPublishAt = calculateTargetPublishTime({
+                timezone: ws.timezone || 'Asia/Kolkata',
+                publishHourOfDay: ws.publishHourOfDay ?? 10,
+                reviewWindowHours: ws.reviewWindowHours ?? 48,
+              });
+
+              const res = await createAutonomousCampaign({
+                workspaceId: ws.id,
+                topic: event.eventName,
+                triggerType: 'FESTIVAL',
+                targetPublishAt,
+              });
+
+              return {
+                campaignId: res.campaign.id,
+                workspaceId: ws.id,
+                workspaceName: ws.name,
+                eventName: event.eventName,
+                eventDate: event.eventDate,
+                status: 'CREATED' as const,
+                postsCount: res.posts.length,
+              };
+            }
           );
 
-        if (existing.length === 0) {
-          try {
-            const targetPublishAt = calculateTargetPublishTime({
-              timezone: ws.timezone || 'Asia/Kolkata',
-              publishHourOfDay: ws.publishHourOfDay ?? 10,
-              reviewWindowHours: ws.reviewWindowHours ?? 48,
-            });
-
-            const res = await createAutonomousCampaign({
-              workspaceId: ws.id,
-              topic: event.eventName,
-              triggerType: 'FESTIVAL',
-              targetPublishAt,
-            });
-
-            createdCampaigns.push({
-              campaignId: res.campaign.id,
-              workspaceId: ws.id,
-              workspaceName: ws.name,
-              eventName: event.eventName,
-              eventDate: event.eventDate,
-              status: 'CREATED',
-              postsCount: res.posts.length,
-            });
-          } catch (genErr) {
-            console.error(`[Autonomous Campaign Generator Error for ${ws.name}]:`, genErr);
+          if (exec.result) {
+            const item = exec.idempotent
+              ? { ...exec.result, status: 'ALREADY_EXISTS' as const }
+              : exec.result;
+            createdCampaigns.push(item as any);
           }
-        } else {
-          createdCampaigns.push({
-            campaignId: existing[0].id,
-            workspaceId: ws.id,
-            workspaceName: ws.name,
-            eventName: event.eventName,
-            eventDate: event.eventDate,
-            status: 'ALREADY_EXISTS',
-          });
+        } catch (genErr) {
+          console.error(`[Autonomous Campaign Generator Error for ${ws.name}]:`, genErr);
         }
       }
     }
@@ -309,12 +409,9 @@ export async function executeAutonomousScheduler(
       // 1. Retry queued Inngest Outbox events
       outboxRetryResult = await retryOutboxEvents();
 
-      // 2. Token Health Scan & Automated Proactive Refresh
+      // 2. Token Health Scan & Automated Proactive Refresh (if triggered directly)
       const refreshSummary = await refreshExpiringTokens({ thresholdDays: 7 });
       tokenHealthWarnings = refreshSummary.failed;
-      if (refreshSummary.refreshed > 0) {
-        console.log(`[Token Vault Housekeeping] Proactively refreshed ${refreshSummary.refreshed} social tokens.`);
-      }
     } catch (housekeepingErr) {
       console.warn('[Housekeeping Non-Fatal Error]:', housekeepingErr);
     }
@@ -354,6 +451,7 @@ export async function executeAutonomousScheduler(
       outbox: outboxRetryResult,
       tokenHealthWarnings,
     },
+    schedulerInventory: SCHEDULER_INVENTORY,
     message: `Autonomous scheduler (${action}) completed in ${durationMs}ms. ${autoCommittedResults.length} overdue campaigns auto-committed. ${createdCampaigns.filter((c) => c.status === 'CREATED').length} campaigns generated.`,
   };
 }
