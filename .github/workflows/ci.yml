@@ -1,0 +1,50 @@
+name: KUIRO Enterprise CI & Quality Gates
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-and-gate:
+    name: Typecheck, Security & Release Gates
+    runs-on: ubuntu-latest
+
+    env:
+      NODE_ENV: test
+      KUIRO_TEST_MOCK_PROVIDERS: 'true'
+      OAUTH_ENCRYPTION_KEY: ${{ secrets.OAUTH_ENCRYPTION_KEY || 'kuiro_production_oauth_vault_master_key_2026' }}
+      META_WA_VERIFY_TOKEN: ${{ secrets.META_WA_VERIFY_TOKEN || 'kuiro_wa_verify_token_secure_123' }}
+      META_APP_SECRET: ${{ secrets.META_APP_SECRET || 'kuiro_meta_app_secret_test_32chars' }}
+      RAZORPAY_KEY_SECRET: ${{ secrets.RAZORPAY_KEY_SECRET || 'kuiro_razorpay_secret_ci_at_least_32_characters' }}
+      KUIRO_MANAGEMENT_PASSKEY: ${{ secrets.KUIRO_MANAGEMENT_PASSKEY || 'kuiro_management_secure_passkey_at_least_32_characters_long_2026' }}
+      KUIRO_MANAGEMENT_JWT_SECRET: ${{ secrets.KUIRO_MANAGEMENT_JWT_SECRET || 'kuiro_management_jwt_secret_at_least_32_characters_long_2026' }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Verify TypeScript Type Integrity
+        run: npm run typecheck
+
+      - name: Execute Automated Test Suites & Release Gates (Unit Tests)
+        run: npm run test:unit
+
+      - name: Execute Automated Integration & E2E Suites
+        if: env.DATABASE_URL != ''
+        run: npm test

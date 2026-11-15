@@ -434,6 +434,7 @@ export async function dispatchOutboundReply(params: OutboundDispatchParams): Pro
     }
 
     // 4. Outbound Provider Dispatch
+    const isMockMode = process.env.NODE_ENV === 'test' || process.env.KUIRO_TEST_MOCK_PROVIDERS === 'true';
     let dispatchSuccess = false;
     let providerMessageId: string | undefined;
     let dispatchError: string | undefined;
@@ -445,7 +446,7 @@ export async function dispatchOutboundReply(params: OutboundDispatchParams): Pro
       const phoneId = process.env.META_WA_PHONE_NUMBER_ID || process.env.WHATSAPP_PHONE_NUMBER_ID;
       const toPhone = conv.customerHandle.replace(/[^\d+]/g, '');
 
-      if (token && phoneId && !token.startsWith('EAAxxxx')) {
+      if (token && phoneId && !token.startsWith('EAAxxxx') && !isMockMode) {
         try {
           const bodyPayload: any = {
             messaging_product: 'whatsapp',
@@ -499,7 +500,7 @@ export async function dispatchOutboundReply(params: OutboundDispatchParams): Pro
     // B. Instagram Direct Messages via Meta Graph API
     else if (channel === 'instagram') {
       const igToken = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.META_PAGE_ACCESS_TOKEN;
-      if (igToken && !igToken.startsWith('EAAxxxx')) {
+      if (igToken && !igToken.startsWith('EAAxxxx') && !isMockMode) {
         try {
           const res = await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
             method: 'POST',
@@ -535,7 +536,7 @@ export async function dispatchOutboundReply(params: OutboundDispatchParams): Pro
     // C. Facebook Messenger via Meta Graph API
     else if (channel === 'messenger') {
       const pageToken = process.env.FACEBOOK_PAGE_ACCESS_TOKEN || process.env.META_PAGE_ACCESS_TOKEN;
-      if (pageToken && !pageToken.startsWith('EAAxxxx')) {
+      if (pageToken && !pageToken.startsWith('EAAxxxx') && !isMockMode) {
         try {
           const res = await fetch(`https://graph.facebook.com/v21.0/me/messages`, {
             method: 'POST',
