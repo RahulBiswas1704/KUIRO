@@ -88,7 +88,7 @@ src/
 ├── components/                 # Domain-partitioned UI components
 │   ├── auth/                   # AuthModal, GetStartedButton
 │   ├── billing/                # SubscriptionCheckoutModal
-│   ├── brand/                  # KuiroLogo SVG component
+│   ├── brand/                  # KuiroLogo SVG, KuiroLoader & RouteLoaderProvider
 │   ├── calendar/               # CustomMilestoneModal
 │   ├── contact/                # ContactHeroSection, ContactHubAndFormSection, ContactFaqAndCta
 │   ├── dashboard/              # BrandStudioCanvas, CampaignRoiDashboard, Exporter

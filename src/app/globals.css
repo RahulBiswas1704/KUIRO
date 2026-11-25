@@ -167,7 +167,111 @@ button, .kuiro-btn {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-marquee {
-    animation: none;
+  .animate-marquee,
+  .kuiro-loader-ring,
+  .kuiro-loader-spine,
+  .kuiro-loader-upper,
+  .kuiro-loader-lower,
+  .kuiro-loader-halo,
+  .kuiro-loader-bar {
+    animation: none !important;
   }
+}
+
+/* ==========================================================================
+   Personalized KUIRO Brand Logo Loader Keyframes
+   ========================================================================== */
+@keyframes kuiroOrbitSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes kuiroArcPulse {
+  0% {
+    stroke-dashoffset: 185;
+  }
+  50% {
+    stroke-dashoffset: 52;
+  }
+  100% {
+    stroke-dashoffset: 185;
+  }
+}
+
+@keyframes kuiroPartAssemble {
+  0%,
+  12% {
+    opacity: 0.25;
+    transform: translate(var(--kuiro-dx, 0px), var(--kuiro-dy, 0px)) scale(0.94);
+  }
+  38%,
+  72% {
+    opacity: 1;
+    transform: translate(0px, 0px) scale(1);
+  }
+  92%,
+  100% {
+    opacity: 0.25;
+    transform: translate(var(--kuiro-dx, 0px), var(--kuiro-dy, 0px)) scale(0.94);
+  }
+}
+
+@keyframes kuiroHaloBreathe {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes kuiroBarGlide {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(220%);
+  }
+}
+
+.kuiro-loader-ring {
+  transform-origin: center;
+  animation: kuiroOrbitSpin 1.75s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite,
+    kuiroArcPulse 1.75s ease-in-out infinite;
+}
+
+.kuiro-loader-spine {
+  --kuiro-dx: 0px;
+  --kuiro-dy: -28px;
+  transform-origin: center;
+  animation: kuiroPartAssemble 1.85s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.kuiro-loader-upper {
+  --kuiro-dx: 28px;
+  --kuiro-dy: -20px;
+  transform-origin: center;
+  animation: kuiroPartAssemble 1.85s cubic-bezier(0.22, 1, 0.36, 1) 0.14s infinite;
+}
+
+.kuiro-loader-lower {
+  --kuiro-dx: 28px;
+  --kuiro-dy: 20px;
+  transform-origin: center;
+  animation: kuiroPartAssemble 1.85s cubic-bezier(0.22, 1, 0.36, 1) 0.28s infinite;
+}
+
+.kuiro-loader-halo {
+  animation: kuiroHaloBreathe 2.2s ease-in-out infinite;
+}
+
+.kuiro-loader-bar {
+  animation: kuiroBarGlide 1.35s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }

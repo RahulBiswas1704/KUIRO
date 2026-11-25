@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/context/AuthContext';
 import { AuthModal } from '@/components/auth';
+import { RouteLoaderProvider } from '@/components/brand';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 
@@ -42,7 +43,9 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-[#0B0F14] text-[#FFFFFF] font-sans antialiased selection:bg-[#FF7A00] selection:text-white">
         <AuthProvider>
-          {children}
+          <RouteLoaderProvider>
+            {children}
+          </RouteLoaderProvider>
           <AuthModal />
         </AuthProvider>
         <Analytics />
