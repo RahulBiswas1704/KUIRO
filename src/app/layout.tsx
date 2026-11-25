@@ -28,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         <link rel="icon" type="image/svg+xml" href="/brand/kuiro-favicon-circle.svg" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
@@ -41,7 +41,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen bg-[#0B0F14] text-[#FFFFFF] font-sans antialiased selection:bg-[#FF7A00] selection:text-white">
+      <body
+        suppressHydrationWarning
+        className="min-h-screen bg-[#0B0F14] text-[#FFFFFF] font-sans antialiased selection:bg-[#FF7A00] selection:text-white"
+      >
         <AuthProvider>
           <RouteLoaderProvider>
             {children}
