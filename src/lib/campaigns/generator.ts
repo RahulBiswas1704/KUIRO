@@ -1,6 +1,5 @@
 import { db, workspaces, brandProfiles, scheduledCampaigns, platformPosts } from '@/db';
 import { eq } from 'drizzle-orm';
-import { inngest } from '@/lib/inngest/client';
 import { safeDispatchInngest } from '@/lib/inngest/dispatcher';
 import { evaluateAndRefineCampaignCopy } from '@/lib/ai/critic';
 import { GeneratedAssetPayload } from '@/types';

@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
-import { inngest } from '@/lib/inngest/client';
 import { safeDispatchInngest } from '@/lib/inngest/dispatcher';
 import { db, scheduledCampaigns, conversations, workspaces, socialConnections } from '@/db';
 import { eq, and, desc, inArray } from 'drizzle-orm';
-import { reviseCampaignSurgically } from '@/lib/campaigns/reviser';
-import { whatsappClient } from '@/lib/whatsapp/client';
-import { publishInboxEvent } from '@/lib/inbox/eventHub';
 import { ingestInboundMessage } from '@/lib/inbox/dispatchService';
 import { matchAutoResponderRule, executeAutoResponderReply } from '@/lib/inbox/autoResponder';
 import {
@@ -26,7 +21,6 @@ import {
 } from '@/lib/campaigns/stateMachine';
 import { logger, getCorrelationId } from '@/lib/observability/logger';
 import { metrics } from '@/lib/observability/metrics';
-import { alertManager } from '@/lib/observability/alerts';
 
 function normalizePhone(phone: string): string {
   return phone.replace(/\D/g, '').slice(-10);

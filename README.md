@@ -67,7 +67,8 @@ KUIRO/
 │   │   ├── home/               # Redesigned editorial landing page sections
 │   │   ├── inbox/              # DynamicSnippetManagerModal & InChatPaymentModal
 │   │   ├── layout/             # AnnouncementBar, Navbar, Footer
-│   │   └── marketing/          # CampaignRoiCalculator
+│   │   ├── marketing/          # CampaignRoiCalculator
+│   │   └── services/           # ServicesHero, CapabilitiesExplorer, IndustriesAndSavings, ServicesFaq
 │   ├── constants/              # Multi-tenant personas, social channels configuration
 │   ├── context/                # Client-side AuthContext & persona simulation provider
 │   ├── db/                     # Neon PostgreSQL Drizzle connection, schema & migrations

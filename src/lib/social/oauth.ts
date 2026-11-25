@@ -2,7 +2,6 @@ import crypto from 'crypto';
 import { PlatformKey } from '@/constants/channels';
 import { db, socialConnections } from '@/db';
 import { and, eq } from 'drizzle-orm';
-import { decryptToken } from '@/lib/crypto/vault';
 
 export interface OAuthPlatformConfig {
   name: string;

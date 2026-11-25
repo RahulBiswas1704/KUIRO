@@ -1,7 +1,6 @@
 import { db, conversations, inboxMessages } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { publishInboxEvent } from '@/lib/inbox/eventHub';
-import { decryptToken } from '@/lib/crypto/vault';
 import { sendAutonomousEmailNewsletter } from '@/lib/email/publisher';
 import { logger } from '@/lib/observability/logger';
 import { metrics } from '@/lib/observability/metrics';

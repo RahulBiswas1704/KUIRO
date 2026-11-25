@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, workspaces, brandProfiles, scheduledCampaigns, platformPosts } from '@/db';
 import { eq, desc, and } from 'drizzle-orm';
-import { inngest } from '@/lib/inngest/client';
 import { safeDispatchInngest } from '@/lib/inngest/dispatcher';
 import { evaluateAndRefineCampaignCopy } from '@/lib/ai/critic';
 import { reviseCampaignSurgically } from '@/lib/campaigns/reviser';

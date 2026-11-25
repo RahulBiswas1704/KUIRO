@@ -7,3 +7,4 @@ export * from './home';
 export * from './inbox';
 export * from './layout';
 export * from './marketing';
+export * from './services';
