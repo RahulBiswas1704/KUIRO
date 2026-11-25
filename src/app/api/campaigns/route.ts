@@ -827,6 +827,8 @@ export async function PATCH(req: NextRequest) {
         .from(platformPosts)
         .where(eq(platformPosts.campaignId, campaignId));
 
+      const nextRevisionCount = (camp.revisionCount || 0) + 1;
+
       // Surgically revise the existing posts using Gemini and founder feedback (Hindi/Bengali/Hinglish/English)
       const revisionResult = await reviseCampaignSurgically({
         posts: existingPosts.map((p) => ({
@@ -844,6 +846,10 @@ export async function PATCH(req: NextRequest) {
         tones,
         pillars,
         negativeConstraints,
+        campaignId,
+        revisionNumber: nextRevisionCount,
+        requestedBy: session.user.id || auth.session!.user.id,
+        requesterName: session.user.name || auth.session!.user.name || 'Dashboard User',
       });
 
       // Check for late revision and automatically extend publishing window if needed
@@ -853,7 +859,6 @@ export async function PATCH(req: NextRequest) {
         revisionPrompt: revisionPrompt.trim(),
       });
 
-      const nextRevisionCount = (camp.revisionCount || 0) + 1;
       const [updatedCamp] = await database
         .update(scheduledCampaigns)
         .set({

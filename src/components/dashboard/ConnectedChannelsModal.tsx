@@ -8,6 +8,7 @@ import {
   Instagram,
   Linkedin,
   Twitter,
+  Youtube,
   MessageSquare,
   Mail,
   ShieldCheck,
@@ -163,6 +164,7 @@ export default function ConnectedChannelsModal({
             { id: 'instagram', label: 'Meta (IG / FB)', icon: Instagram, color: 'text-pink-500' },
             { id: 'linkedin', label: 'LinkedIn Page', icon: Linkedin, color: 'text-blue-500' },
             { id: 'x', label: 'X (Twitter)', icon: Twitter, color: 'text-sky-400' },
+            { id: 'youtube', label: 'YouTube Shorts', icon: Youtube, color: 'text-red-500' },
             { id: 'whatsapp', label: 'WhatsApp Cloud', icon: MessageSquare, color: 'text-emerald-400' },
             { id: 'email', label: 'Branded ESP', icon: Mail, color: 'text-amber-400' },
           ].map((tab) => {
@@ -251,6 +253,18 @@ export default function ConnectedChannelsModal({
             </div>
           )}
 
+          {activePlatform === 'youtube' && (
+            <div className="p-3.5 rounded-xl bg-red-950/30 border border-red-900/50 flex items-start gap-3">
+              <Youtube className="text-red-400 shrink-0 mt-0.5" size={18} />
+              <div>
+                <p className="font-semibold text-red-200">YouTube Data API v3 (Shorts)</p>
+                <p className="text-gray-400 text-[11px] mt-0.5">
+                  Uploads vertical 9:16 video clips as #Shorts directly to your brand YouTube channel via Google OAuth 2.0 resumable uploads.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* 1-Click OAuth 2.0 Connect Action */}
           <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#161C24] border border-[#27313F]">
             <div className="flex items-center gap-2.5">
@@ -286,6 +300,7 @@ export default function ConnectedChannelsModal({
                 {activePlatform === 'linkedin' && 'LinkedIn Organization URN or Vanity Name'}
                 {activePlatform === 'x' && 'X (Twitter) Handle or Developer App ID'}
                 {activePlatform === 'whatsapp' && 'WhatsApp Business Phone Number ID'}
+                {activePlatform === 'youtube' && 'YouTube Channel Handle or Channel ID'}
                 {activePlatform === 'email' && 'Sender Email Address / Domain'}
               </label>
               <input
@@ -299,6 +314,8 @@ export default function ConnectedChannelsModal({
                     ? 'urn:li:organization:8472910'
                     : activePlatform === 'x'
                     ? '@sharmaheritage_in'
+                    : activePlatform === 'youtube'
+                    ? '@sharmaheritage_shorts'
                     : activePlatform === 'whatsapp'
                     ? '+91 98301 24589'
                     : 'hello@kuiro.in'

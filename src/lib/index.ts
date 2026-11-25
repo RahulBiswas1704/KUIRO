@@ -26,5 +26,4 @@ export * as scheduler from './scheduler';
 export * as security from './security';
 export * as social from './social';
 export * as storage from './storage';
-export * as supabase from './supabase';
 export * as whatsapp from './whatsapp';

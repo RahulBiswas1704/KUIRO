@@ -91,6 +91,7 @@ export interface AutomationFlowRule {
   }[];
   enabled: boolean;
   triggerCount: number;
+  persistedInDb?: boolean;
 }
 
 export interface InboxAnalyticsSummary {

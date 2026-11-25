@@ -14,6 +14,7 @@ export interface OAuthPlatformConfig {
   clientSecretEnv: string;
   defaultScopes: string[];
   usePkce?: boolean;
+  extraAuthParams?: Record<string, string>;
 }
 
 export const OAUTH_PLATFORMS: Record<PlatformKey, OAuthPlatformConfig> = {
@@ -77,6 +78,27 @@ export const OAUTH_PLATFORMS: Record<PlatformKey, OAuthPlatformConfig> = {
     clientIdEnv: 'RESEND_API_KEY',
     clientSecretEnv: 'RESEND_API_KEY',
     defaultScopes: ['email_send', 'domain_dkim_verified'],
+  },
+  youtube: {
+    name: 'Google YouTube Data API v3 (Shorts)',
+    authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
+    tokenUrl: 'https://oauth2.googleapis.com/token',
+    userInfoUrl: 'https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true',
+    scopes: [
+      'https://www.googleapis.com/auth/youtube.upload',
+      'https://www.googleapis.com/auth/youtube.readonly',
+    ],
+    clientIdEnv: 'GOOGLE_CLIENT_ID',
+    clientSecretEnv: 'GOOGLE_CLIENT_SECRET',
+    defaultScopes: [
+      'https://www.googleapis.com/auth/youtube.upload',
+      'https://www.googleapis.com/auth/youtube.readonly',
+    ],
+    extraAuthParams: {
+      access_type: 'offline',
+      prompt: 'consent',
+      include_granted_scopes: 'true',
+    },
   },
 };
 
@@ -300,6 +322,12 @@ export function buildAuthorizationUrl(
   if (codeChallenge) {
     params.set('code_challenge', codeChallenge);
     params.set('code_challenge_method', 'S256');
+  }
+
+  if (config.extraAuthParams) {
+    for (const [k, v] of Object.entries(config.extraAuthParams)) {
+      params.set(k, v);
+    }
   }
 
   return {
@@ -562,6 +590,76 @@ export async function exchangeXOAuth(
 }
 
 /**
+ * Google / YouTube Shorts OAuth 2.0 Adapter
+ * 1. Exchanges authorization code for OAuth 2.0 access + offline refresh token
+ * 2. Retrieves connected YouTube Channel ID & custom handle via channels?mine=true
+ */
+export async function exchangeYouTubeOAuth(
+  code: string,
+  redirectUri: string,
+  clientId: string,
+  clientSecret: string
+): Promise<{
+  accessToken: string;
+  refreshToken?: string;
+  expiresIn: number;
+  platformAccountId: string;
+  handle: string;
+  scopes: string[];
+}> {
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: redirectUri,
+      client_id: clientId,
+      client_secret: clientSecret,
+    }),
+  });
+
+  const data = await res.json();
+  if (!res.ok || data.error) {
+    const errDetail = data.error_description || data.error || 'Failed to exchange Google OAuth code';
+    throw new Error(`YouTube OAuth Exchange Error: ${errDetail}`);
+  }
+
+  const accessToken = data.access_token;
+  const refreshToken = data.refresh_token;
+  const expiresIn = data.expires_in || 3600;
+
+  let platformAccountId = 'UC_youtube_channel';
+  let handle = '@youtube_shorts';
+
+  try {
+    const channelRes = await fetch(
+      'https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true',
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if (channelRes.ok) {
+      const channelJson = await channelRes.json();
+      const ch = channelJson.items?.[0];
+      if (ch) {
+        platformAccountId = ch.id || platformAccountId;
+        handle = ch.snippet?.customUrl || ch.snippet?.title || handle;
+      }
+    }
+  } catch (ytErr) {
+    console.warn('[YouTube Channel Discovery Warning]:', ytErr);
+  }
+
+  return {
+    accessToken,
+    refreshToken,
+    expiresIn,
+    platformAccountId,
+    handle,
+    scopes: OAUTH_PLATFORMS.youtube.defaultScopes,
+  };
+}
+
+/**
  * Exchanges authorization code for verified OAuth 2.0 access & refresh tokens.
  * Dispatches to genuine platform-specific OAuth adapters. Zero simulated fallbacks.
  */
@@ -602,6 +700,10 @@ export async function exchangeOAuthCode(
 
   if (platform === 'x') {
     return exchangeXOAuth(code, redirectUri, clientId, clientSecret, codeVerifier);
+  }
+
+  if (platform === 'youtube') {
+    return exchangeYouTubeOAuth(code, redirectUri, clientId, clientSecret);
   }
 
   throw new Error(`Unsupported OAuth authorization code exchange for platform: ${platform}`);
@@ -682,7 +784,10 @@ export async function testPlatformConnection(
     if (res.ok) {
       const json = await res.json().catch(() => ({}));
       let account = verifiedAccount;
-      if (json.username) {
+      if (platform === 'youtube' && Array.isArray(json.items) && json.items[0]) {
+        const ch = json.items[0];
+        account = ch.snippet?.customUrl || ch.snippet?.title || ch.id || verifiedAccount;
+      } else if (json.username) {
         account = `@${json.username}`;
       } else if (json.data?.username) {
         account = `@${json.data.username}`;

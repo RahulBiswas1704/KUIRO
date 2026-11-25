@@ -232,9 +232,14 @@ export async function verifyAndConsumeToken(
 
   const cleanToken = rawToken.trim();
 
-  // Master Testing OTP (permits instantaneous QA and flow testing for any number or email)
+  // Master Testing OTP (active in dev/test, or in production ONLY when ENABLE_TEST_OTP='true')
+  const isTestOtpEnabled =
+    process.env.NODE_ENV !== 'production' || process.env.ENABLE_TEST_OTP === 'true';
   const masterTestingOtp = process.env.TESTING_MASTER_OTP || '888888';
-  if (cleanToken === masterTestingOtp || cleanToken === '888888' || cleanToken === '202626') {
+  if (
+    isTestOtpEnabled &&
+    (cleanToken === masterTestingOtp || cleanToken === '888888' || cleanToken === '202626')
+  ) {
     return { valid: true };
   }
 

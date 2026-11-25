@@ -291,7 +291,71 @@ export async function refreshConnectionToken(
       }
     }
 
-    // D. Static API Key Channels (e.g. Email / Resend)
+    // D. Google / YouTube Shorts Token Refresh Flow
+    else if (platform === 'youtube') {
+      if (!conn.refreshTokenEncrypted) {
+        const probe = await testPlatformConnection(platform, decryptToken(conn.accessTokenEncrypted), conn.platformAccountId, conn.workspaceId);
+        await releaseRefreshLock(conn.id);
+        return {
+          connectionId: conn.id,
+          workspaceId: conn.workspaceId,
+          platform,
+          success: probe.success,
+          status: probe.success ? 'CONNECTED' : (probe.status as any),
+          message: probe.message,
+          latencyMs: Date.now() - startTime,
+        };
+      }
+
+      if (!clientId || !clientSecret) {
+        throw new Error(`Missing Google client credentials (${config.clientIdEnv} / ${config.clientSecretEnv}).`);
+      }
+
+      const decryptedRefreshToken = decryptToken(conn.refreshTokenEncrypted);
+      const res = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          refresh_token: decryptedRefreshToken,
+          client_id: clientId,
+          client_secret: clientSecret,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        const msg = data.error_description || data.error || 'Google OAuth refresh token rejected.';
+        if (db) {
+          await db
+            .update(socialConnections)
+            .set({
+              status: 'REVOKED',
+              lastError: msg,
+              lockedUntil: null,
+            })
+            .where(eq(socialConnections.id, conn.id));
+        }
+
+        return {
+          connectionId: conn.id,
+          workspaceId: conn.workspaceId,
+          platform,
+          success: false,
+          status: 'REVOKED',
+          message: msg,
+          latencyMs: Date.now() - startTime,
+        };
+      }
+
+      newAccessToken = data.access_token;
+      expiresInSec = data.expires_in || 3600;
+      if (data.refresh_token) {
+        newRefreshToken = data.refresh_token;
+      }
+    }
+
+    // E. Static API Key Channels (e.g. Email / Resend)
     else {
       const probe = await testPlatformConnection(platform, decryptToken(conn.accessTokenEncrypted), conn.platformAccountId, conn.workspaceId);
       await releaseRefreshLock(conn.id);

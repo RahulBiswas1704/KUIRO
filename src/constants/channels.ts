@@ -1,4 +1,4 @@
-export type PlatformKey = 'facebook' | 'instagram' | 'linkedin' | 'x' | 'whatsapp' | 'email';
+export type PlatformKey = 'facebook' | 'instagram' | 'linkedin' | 'x' | 'whatsapp' | 'youtube' | 'email';
 
 export interface ChannelConfig {
   platform: PlatformKey;
@@ -92,6 +92,19 @@ export const DEFAULT_CHANNELS: ChannelConfig[] = [
     color: 'text-amber-400',
     badge: 'DKIM Pass',
     description: 'Sends branded newsletters, customer product drops, and announcement updates using authenticated domain credentials.',
+  },
+  {
+    platform: 'youtube',
+    name: 'YouTube Shorts API v3',
+    handle: '@sharmaheritage_shorts',
+    platformAccountId: 'UC_kuiro_channel_pending',
+    status: 'CONNECTED',
+    scopes: ['https://www.googleapis.com/auth/youtube.upload', 'https://www.googleapis.com/auth/youtube.readonly'],
+    expiresInDays: 60,
+    isConfigured: true,
+    color: 'text-red-500',
+    badge: 'Shorts Ready',
+    description: 'Uploads vertical 9:16 video drops and promotional clips directly to YouTube Shorts via Google YouTube Data API v3.',
   },
 ];
 

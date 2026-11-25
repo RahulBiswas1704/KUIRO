@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
 
     if (!platform || !OAUTH_PLATFORMS[platform as PlatformKey]) {
       return NextResponse.json(
-        { error: 'Valid platform is required (instagram, linkedin, x, whatsapp, or email).' },
+        { error: 'Valid platform is required (facebook, instagram, linkedin, x, whatsapp, youtube, or email).' },
         { status: 400 }
       );
     }

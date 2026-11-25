@@ -5,9 +5,13 @@
  * with automatic link-surcharge avoidance (placing URLs in the first reply on X).
  */
 
+import { validateUrlForSSRF } from '@/lib/security/safeFetch';
+
 export interface PublishPayload {
   caption: string;
   mediaUrls: string[];
+  videoUrl?: string;
+  youtubeTitle?: string;
   firstReply?: string;
   aspectRatio?: '1:1' | '4:5' | '9:16';
   emailSubject?: string;
@@ -16,7 +20,7 @@ export interface PublishPayload {
 }
 
 export interface ChannelPublishResult {
-  platform: 'instagram' | 'facebook' | 'linkedin' | 'x' | 'email';
+  platform: 'instagram' | 'facebook' | 'linkedin' | 'x' | 'youtube' | 'email';
   status: 'PUBLISHED' | 'FAILED' | 'MOCK_PUBLISHED';
   platformPostId?: string;
   postUrl?: string;
@@ -260,11 +264,126 @@ export async function publishFacebookChannel({
 }
 
 /**
- * Parallel Dispatcher for All Channels (Facebook, Instagram, LinkedIn, X + Email Newsletter)
+ * Publish vertical 9:16 clip to YouTube Shorts via YouTube Data API v3 (Resumable Upload)
+ * Automatically sets snippet.categoryId = "22" (People & Blogs) and ensures #Shorts discovery tag.
+ */
+export async function publishToYouTubeShorts({
+  accessToken,
+  payload,
+}: {
+  accessToken?: string;
+  payload: PublishPayload;
+}): Promise<ChannelPublishResult> {
+  const token = accessToken || process.env.YOUTUBE_ACCESS_TOKEN;
+  const candidateVideoUrl =
+    payload.videoUrl ||
+    payload.mediaUrls.find((u) => /\.(mp4|mov|webm|m4v)(\?|$)/i.test(u));
+
+  if (!token || !candidateVideoUrl || candidateVideoUrl.startsWith('data:')) {
+    console.log('[YouTube Shorts Mock Publisher] Short queued:', payload.caption.substring(0, 50));
+    return {
+      platform: 'youtube',
+      status: 'MOCK_PUBLISHED',
+      platformPostId: `yt_short_mock_${Date.now()}`,
+      postUrl: 'https://youtube.com/shorts/mock_short',
+    };
+  }
+
+  try {
+    const ssrfCheck = validateUrlForSSRF(candidateVideoUrl);
+    if (!ssrfCheck.valid) {
+      throw new Error(`YouTube media source rejected by SSRF policy: ${ssrfCheck.error || 'Untrusted URL'}`);
+    }
+
+    // 1. Download video asset from verified CDN (e.g. Cloudflare R2 / Neon Object Storage)
+    const videoFetch = await fetch(candidateVideoUrl, { signal: AbortSignal.timeout(20000) });
+    if (!videoFetch.ok) {
+      throw new Error(`Failed to fetch Shorts video media (${videoFetch.status})`);
+    }
+    const videoContentType = videoFetch.headers.get('content-type') || 'video/mp4';
+    const videoArrayBuffer = await videoFetch.arrayBuffer();
+    const videoBuffer = Buffer.from(videoArrayBuffer);
+
+    // Prepare YouTube metadata ensuring #Shorts discovery compliance
+    const rawFirstLine = payload.youtubeTitle || payload.caption.split('\n')[0] || 'Brand Highlight';
+    const normalizedTitle = rawFirstLine.toLowerCase().includes('#shorts')
+      ? rawFirstLine.slice(0, 98)
+      : `${rawFirstLine.slice(0, 90)} #Shorts`;
+    const normalizedDescription = payload.caption.toLowerCase().includes('#shorts')
+      ? payload.caption
+      : `${payload.caption}\n\n#Shorts`;
+
+    // 2. Initiate Resumable Upload Session
+    const initRes = await fetch(
+      'https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json; charset=UTF-8',
+          'X-Upload-Content-Length': String(videoBuffer.length),
+          'X-Upload-Content-Type': videoContentType,
+        },
+        body: JSON.stringify({
+          snippet: {
+            title: normalizedTitle,
+            description: normalizedDescription,
+            tags: ['Shorts', payload.brandName || 'KUIRO'].filter(Boolean),
+            categoryId: '22',
+          },
+          status: {
+            privacyStatus: 'public',
+            selfDeclaredMadeForKids: false,
+          },
+        }),
+      }
+    );
+
+    if (!initRes.ok) {
+      const initErr = await initRes.json().catch(() => ({}));
+      throw new Error(initErr.error?.message || `YouTube upload init failed (${initRes.status})`);
+    }
+
+    const uploadUrl = initRes.headers.get('location');
+    if (!uploadUrl) {
+      throw new Error('YouTube Data API v3 did not return a resumable upload Location header.');
+    }
+
+    // 3. Stream binary video bytes to resumable session endpoint
+    const uploadRes = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': videoContentType,
+        'Content-Length': String(videoBuffer.length),
+      },
+      body: videoBuffer,
+    });
+
+    const uploadData = await uploadRes.json().catch(() => ({}));
+    if (!uploadRes.ok || !uploadData.id) {
+      throw new Error(uploadData.error?.message || `YouTube binary upload failed (${uploadRes.status})`);
+    }
+
+    return {
+      platform: 'youtube',
+      status: 'PUBLISHED',
+      platformPostId: uploadData.id,
+      postUrl: `https://youtube.com/shorts/${uploadData.id}`,
+    };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error('[YouTube Shorts Publish Error]', errorMsg);
+    return { platform: 'youtube', status: 'FAILED', error: errorMsg };
+  }
+}
+
+/**
+ * Parallel Dispatcher for All Channels (Facebook, Instagram, LinkedIn, X, Optional YouTube Shorts & Email Newsletter)
  */
 export async function publishToAllChannels(
   payload: PublishPayload,
-  options?: { workspaceId?: string; pageId?: string }
+  options?: { workspaceId?: string; pageId?: string; includeYouTube?: boolean }
 ): Promise<ChannelPublishResult[]> {
   const tasks: Promise<ChannelPublishResult>[] = [
     publishFacebookChannel({ payload, workspaceId: options?.workspaceId, pageId: options?.pageId }),
@@ -272,6 +391,10 @@ export async function publishToAllChannels(
     publishToLinkedIn({ payload }),
     publishToX({ payload }),
   ];
+
+  if (options?.includeYouTube || payload.videoUrl) {
+    tasks.push(publishToYouTubeShorts({ payload }));
+  }
 
   if (payload.emailSubject) {
     tasks.push(
@@ -322,7 +445,7 @@ export async function publishCampaignChannelWithIdempotency({
   accessToken,
 }: {
   campaignId: string;
-  platform: 'facebook' | 'instagram' | 'linkedin' | 'x' | 'email';
+  platform: 'facebook' | 'instagram' | 'linkedin' | 'x' | 'youtube' | 'email';
   contentVersionHash: string;
   workspaceId?: string;
   payload: PublishPayload;
@@ -382,7 +505,9 @@ export async function publishCampaignChannelWithIdempotency({
       } else if (platform === 'linkedin') {
         return publishToLinkedIn({ payload, authorUrn, accessToken });
       } else if (platform === 'x') {
-        return publishToX({ payload });
+        return publishToX({ payload, accessToken });
+      } else if (platform === 'youtube') {
+        return publishToYouTubeShorts({ payload, accessToken });
       } else {
         const emailRes = await sendAutonomousEmailNewsletter({
           to: payload.subscriberList || ['subscribers@sharmaheritage.in'],

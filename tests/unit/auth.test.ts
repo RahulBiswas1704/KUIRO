@@ -12,6 +12,10 @@ import {
   verifyAndConsumeToken,
 } from '@/lib/auth';
 import {
+  createTeamInviteToken,
+  verifyTeamInviteToken,
+} from '@/lib/email/invitation';
+import {
   encryptToken,
   decryptToken,
   maskToken,
@@ -178,6 +182,47 @@ export async function runAuthUnitTests(): Promise<TestSuiteContext> {
         sanitized.metadata.nestedPassword.startsWith('••••••••••••'),
       'Token Vault: Recursively redacts sensitive auth fields before logging'
     );
+  }
+
+  // 7. Production Master OTP Guard & Team Invite Token Integrity
+  {
+    const origEnv = process.env.NODE_ENV;
+    const origEnableTestOtp = process.env.ENABLE_TEST_OTP;
+    try {
+      (process.env as any).NODE_ENV = 'production';
+      delete process.env.ENABLE_TEST_OTP;
+
+      const blockedInProd = await verifyAndConsumeToken('prod.user@kuiro.in', '888888', 'EMAIL_VERIFICATION');
+      ctx.assert(!blockedInProd.valid, 'OTP Security: Rejects master test OTP in production when ENABLE_TEST_OTP is unset');
+
+      process.env.ENABLE_TEST_OTP = 'true';
+      const allowedWithFlag = await verifyAndConsumeToken('prod.user@kuiro.in', '888888', 'EMAIL_VERIFICATION');
+      ctx.assert(allowedWithFlag.valid, 'OTP Security: Permits master test OTP in production only when ENABLE_TEST_OTP=true');
+    } finally {
+      (process.env as any).NODE_ENV = origEnv;
+      if (origEnableTestOtp === undefined) {
+        delete process.env.ENABLE_TEST_OTP;
+      } else {
+        process.env.ENABLE_TEST_OTP = origEnableTestOtp;
+      }
+    }
+
+    const inviteTok = createTeamInviteToken({
+      workspaceId: 'ws_test_123',
+      userId: 'usr_test_456',
+      email: 'member@sharmaheritage.in',
+      role: 'Marketer',
+    });
+    const verifiedInvite = verifyTeamInviteToken(inviteTok);
+    ctx.assert(
+      verifiedInvite.valid &&
+        verifiedInvite.payload?.email === 'member@sharmaheritage.in' &&
+        verifiedInvite.payload?.role === 'Marketer',
+      'Team Invite Token: Generates and verifies signed HMAC invite token'
+    );
+
+    const tamperedInvite = verifyTeamInviteToken(inviteTok.slice(0, -3) + 'xxx');
+    ctx.assert(!tamperedInvite.valid, 'Team Invite Token: Rejects tampered invitation signature');
   }
 
   return ctx;

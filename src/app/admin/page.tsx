@@ -84,6 +84,7 @@ export default function AdminPage() {
   // Authentication State
   const [operatorEmail, setOperatorEmail] = useState<string>('');
   const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [usingDefaultCredentials, setUsingDefaultCredentials] = useState(false);
 
   // System Data
   const [metrics, setMetrics] = useState<MetricOverview | null>(null);
@@ -165,6 +166,7 @@ export default function AdminPage() {
       if (data.email) {
         setOperatorEmail(data.email);
       }
+      setUsingDefaultCredentials(Boolean(data.usingDefaultCredentials));
     } catch {
       window.location.href = '/admin/login';
     } finally {
@@ -485,7 +487,21 @@ export default function AdminPage() {
           MAIN OPERATOR VIEWPORT
       ========================================================================= */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-        
+        {usingDefaultCredentials && (
+          <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/35 text-amber-200 flex items-start sm:items-center justify-between gap-3 text-xs font-inter">
+            <div className="flex items-start sm:items-center gap-2.5">
+              <AlertTriangle size={17} className="text-amber-400 shrink-0 mt-0.5 sm:mt-0" />
+              <div>
+                <span className="font-semibold text-amber-100">Fallback Operator Credentials Active: </span>
+                <span className="text-amber-200/90">
+                  Set dedicated <code className="font-mono bg-black/40 px-1.5 py-0.5 rounded text-amber-300">KUIRO_MANAGEMENT_PASSKEY</code> and{' '}
+                  <code className="font-mono bg-black/40 px-1.5 py-0.5 rounded text-amber-300">KUIRO_MANAGEMENT_JWT_SECRET</code> in Vercel environment variables before public rollout.
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Navigation Tabs Pill Bar */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none border-b border-white/[0.06] pt-1">
           {[

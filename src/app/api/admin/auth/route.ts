@@ -27,11 +27,15 @@ function getClientIp(req: NextRequest): string {
 
 export async function GET(req: NextRequest) {
   const auth = await verifyManagementAuth(req);
+  const secretsHealth = checkManagementSecretsHealth();
   return NextResponse.json({
     authenticated: auth.authorized,
     email: auth.email || null,
     role: auth.authorized ? 'KUIRO Platform Operator' : null,
     clearanceLevel: auth.authorized ? 'LEVEL 5 (OPERATOR)' : null,
+    usingDefaultCredentials: auth.authorized
+      ? secretsHealth.usingFallbackPasskey || secretsHealth.usingFallbackJwtSecret
+      : false,
     errorCode: auth.errorCode || null,
     reason: auth.reason || null,
   });

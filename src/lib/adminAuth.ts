@@ -145,22 +145,32 @@ export const MANAGEMENT_PASSKEY = process.env.KUIRO_MANAGEMENT_PASSKEY || proces
  */
 export function checkManagementSecretsHealth(): {
   configured: boolean;
+  usingFallbackPasskey: boolean;
+  usingFallbackJwtSecret: boolean;
   error?: string;
   code?: 'ADMIN_SECRETS_NOT_CONFIGURED' | 'BANNED_SECRET_REJECTED' | 'INSUFFICIENT_ENTROPY' | 'HEALTHY';
 } {
+  const usingFallbackPasskey = !process.env.KUIRO_MANAGEMENT_PASSKEY && !process.env.ADMIN_SECRET_KEY;
+  const usingFallbackJwtSecret = !process.env.KUIRO_MANAGEMENT_JWT_SECRET && !process.env.BETTER_AUTH_SECRET;
+
   try {
     getManagementPasskey();
     getManagementJwtSecret();
-    return { configured: true, code: 'HEALTHY' };
+    return {
+      configured: true,
+      usingFallbackPasskey,
+      usingFallbackJwtSecret,
+      code: 'HEALTHY',
+    };
   } catch (err: any) {
     const message = err?.message || 'Secrets unconfigured';
     if (message.includes('BANNED_SECRET_REJECTED')) {
-      return { configured: false, error: message, code: 'BANNED_SECRET_REJECTED' };
+      return { configured: false, usingFallbackPasskey, usingFallbackJwtSecret, error: message, code: 'BANNED_SECRET_REJECTED' };
     }
     if (message.includes('INSUFFICIENT_ENTROPY')) {
-      return { configured: false, error: message, code: 'INSUFFICIENT_ENTROPY' };
+      return { configured: false, usingFallbackPasskey, usingFallbackJwtSecret, error: message, code: 'INSUFFICIENT_ENTROPY' };
     }
-    return { configured: false, error: message, code: 'ADMIN_SECRETS_NOT_CONFIGURED' };
+    return { configured: false, usingFallbackPasskey, usingFallbackJwtSecret, error: message, code: 'ADMIN_SECRETS_NOT_CONFIGURED' };
   }
 }
 

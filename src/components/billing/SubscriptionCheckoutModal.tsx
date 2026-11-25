@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X as CloseIcon,
   ShieldCheck,
@@ -81,6 +81,35 @@ export default function SubscriptionCheckoutModal({
   const [completedOrder, setCompletedOrder] = useState<any | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
+  // Dynamically loads the Razorpay Checkout SDK cleanly on demand (idempotent across clicks)
+  const loadRazorpayCheckoutScript = (): Promise<boolean> => {
+    if (typeof window === 'undefined') return Promise.resolve(false);
+    if ((window as any).Razorpay) return Promise.resolve(true);
+
+    return new Promise((resolve) => {
+      const existing = document.querySelector<HTMLScriptElement>('script[data-razorpay-checkout="true"]');
+      if (existing) {
+        existing.addEventListener('load', () => resolve(Boolean((window as any).Razorpay)), { once: true });
+        existing.addEventListener('error', () => resolve(false), { once: true });
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.dataset.razorpayCheckout = 'true';
+      script.onload = () => resolve(Boolean((window as any).Razorpay));
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  useEffect(() => {
+    if (isOpen && gateway === 'razorpay') {
+      void loadRazorpayCheckoutScript();
+    }
+  }, [isOpen, gateway]);
+
   if (!isOpen) return null;
 
   const currentPlan = PLANS_CONFIG[selectedTier];
@@ -135,54 +164,61 @@ export default function SubscriptionCheckoutModal({
     setPaymentError(null);
 
     try {
-      // 1. If Razorpay Checkout SDK is loaded on window, trigger genuine gateway checkout
-      if (typeof window !== 'undefined' && (window as any).Razorpay && pendingOrder.gateway === 'razorpay') {
-        const rzp = new (window as any).Razorpay({
-          key: pendingOrder.keyId || 'rzp_test_kuiro',
-          amount: pendingOrder.totalAmount * 100, // Amount in paise
-          currency: 'INR',
-          name: 'KUIRO Technologies',
-          description: `KUIRO ${selectedTier} Plan Autopilot`,
-          order_id: pendingOrder.orderId,
-          prefill: {
-            name: businessName,
-            contact: '+919876543210',
-          },
-          handler: async function (response: any) {
-            // Forward genuine gateway cryptographic signature to server
-            try {
-              const res = await fetch('/api/billing/verify-payment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  orderId: response.razorpay_order_id || pendingOrder.orderId,
-                  paymentId: response.razorpay_payment_id,
-                  signature: response.razorpay_signature,
-                  gateway: 'razorpay',
-                }),
-              });
-
-              const data = await res.json();
-              if (data.success && data.order) {
-                setCompletedOrder({ ...data.order, gateway: 'razorpay' });
-                setPendingOrder(null);
-                if (onSuccess) onSuccess(selectedTier);
-              } else {
-                setPaymentError(data.error || 'Payment signature verification failed.');
-              }
-            } catch (err: any) {
-              setPaymentError(err.message || 'Payment verification failed.');
-            }
-          },
-          modal: {
-            ondismiss: function () {
-              setPaymentError('Payment window closed. Your subscription order remains PENDING.');
+      // 1. Dynamically load Razorpay Checkout SDK on demand when Razorpay is the active gateway
+      if (pendingOrder.gateway === 'razorpay') {
+        const sdkLoaded = await loadRazorpayCheckoutScript();
+        if (sdkLoaded && typeof window !== 'undefined' && (window as any).Razorpay) {
+          const rzp = new (window as any).Razorpay({
+            key: pendingOrder.keyId || 'rzp_test_kuiro',
+            amount: pendingOrder.totalAmount * 100, // Amount in paise
+            currency: 'INR',
+            name: 'KUIRO Technologies',
+            description: `KUIRO ${selectedTier} Plan Autopilot`,
+            order_id: pendingOrder.orderId,
+            prefill: {
+              name: businessName,
+              contact: '+919876543210',
             },
-          },
-        });
-        rzp.open();
-        setIsVerifying(false);
-        return;
+            handler: async function (response: any) {
+              // Forward genuine gateway cryptographic signature to server
+              setIsVerifying(true);
+              try {
+                const res = await fetch('/api/billing/verify-payment', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    orderId: response.razorpay_order_id || pendingOrder.orderId,
+                    paymentId: response.razorpay_payment_id,
+                    signature: response.razorpay_signature,
+                    gateway: 'razorpay',
+                  }),
+                });
+
+                const data = await res.json();
+                if (data.success && data.order) {
+                  setCompletedOrder({ ...data.order, gateway: 'razorpay' });
+                  setPendingOrder(null);
+                  if (onSuccess) onSuccess(selectedTier);
+                } else {
+                  setPaymentError(data.error || 'Payment signature verification failed.');
+                }
+              } catch (err: any) {
+                setPaymentError(err.message || 'Payment verification failed.');
+              } finally {
+                setIsVerifying(false);
+              }
+            },
+            modal: {
+              ondismiss: function () {
+                setIsVerifying(false);
+                setPaymentError('Payment window closed. Your subscription order remains PENDING.');
+              },
+            },
+          });
+          rzp.open();
+          setIsVerifying(false);
+          return;
+        }
       }
 
       // 2. Fallback for QR Code / UPI App: Check server status to verify if payment was captured by webhook

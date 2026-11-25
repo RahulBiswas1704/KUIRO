@@ -9,6 +9,7 @@ import { reviseCampaignSurgically } from '@/lib/campaigns/reviser';
 import { whatsappClient } from '@/lib/whatsapp/client';
 import { publishInboxEvent } from '@/lib/inbox/eventHub';
 import { ingestInboundMessage } from '@/lib/inbox/dispatchService';
+import { matchAutoResponderRule, executeAutoResponderReply } from '@/lib/inbox/autoResponder';
 import {
   verifyMetaWebhookChallenge,
   verifyMetaSignature,
@@ -546,7 +547,7 @@ export async function POST(req: NextRequest) {
           }
 
           // Ingest inbound customer message into Unified Omni-Channel Inbox via dispatchService
-          await ingestInboundMessage({
+          const ingestResult = await ingestInboundMessage({
             workspaceId: targetWs.id,
             channel: 'whatsapp',
             customerHandle: senderPhone,
@@ -561,6 +562,33 @@ export async function POST(req: NextRequest) {
               isVoiceNote: isVoice,
             },
           });
+
+          // Keyword Auto-Responder Engine: Evaluate triggers and dispatch automated response
+          if (messageContent && !isVoice) {
+            try {
+              const autoMatch = await matchAutoResponderRule({
+                workspaceId: targetWs.id,
+                channel: 'whatsapp',
+                senderPhone,
+                customerName: contactName,
+                messageContent,
+                conversationId: ingestResult.conversation?.id,
+              });
+
+              if (autoMatch.matched && autoMatch.responseContent) {
+                await executeAutoResponderReply({
+                  workspaceId: targetWs.id,
+                  senderPhone,
+                  responseContent: autoMatch.responseContent,
+                  ruleName: autoMatch.ruleName,
+                  conversationId: ingestResult.conversation?.id,
+                  sendWhatsAppFn: sendWhatsAppReply,
+                });
+              }
+            } catch (autoErr) {
+              console.warn('[WhatsApp AutoResponder Notice]:', autoErr);
+            }
+          }
         }
       } catch (dbErr) {
         console.error('[WhatsApp DB Save Error]:', dbErr);

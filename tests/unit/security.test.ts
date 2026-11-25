@@ -17,6 +17,7 @@ import {
   isPrivateOrRestrictedIPv6,
   isProhibitedHostname,
 } from '@/lib/security/safeFetch';
+import { publishToYouTubeShorts } from '@/lib/social/publisher';
 
 export async function runSecurityUnitTests(): Promise<TestSuiteContext> {
   const ctx = new TestSuiteContext('Level A: Webhook & SSRF Security Unit Tests');
@@ -176,6 +177,33 @@ export async function runSecurityUnitTests(): Promise<TestSuiteContext> {
     ctx.assert(isPrivateOrRestrictedIPv6('fe80::1'), 'IP Guard: Identifies fe80::/10 as link-local IPv6');
     ctx.assert(isPrivateOrRestrictedIPv6('::ffff:127.0.0.1'), 'IP Guard: Identifies IPv4-mapped loopback in IPv6');
     ctx.assert(!isPrivateOrRestrictedIPv6('2606:4700:4700::1111'), 'IP Guard: Identifies public Cloudflare IPv6 as allowed');
+  }
+
+  // 8. YouTube Shorts Adapter Safe Defaults & SSRF Media Enforcement
+  {
+    const mockRes = await publishToYouTubeShorts({
+      payload: {
+        caption: 'Artisanal Banarasi silk weave drop',
+        mediaUrls: [],
+      },
+    });
+    ctx.assert(
+      mockRes.platform === 'youtube' && mockRes.status === 'MOCK_PUBLISHED',
+      'YouTube Shorts Adapter: Falls back cleanly to MOCK_PUBLISHED when token/video missing'
+    );
+
+    const ssrfRes = await publishToYouTubeShorts({
+      accessToken: 'yt_dummy_token_for_ssrf_check',
+      payload: {
+        caption: 'SSRF check clip',
+        videoUrl: 'http://127.0.0.1:8080/internal-secret.mp4',
+        mediaUrls: [],
+      },
+    });
+    ctx.assert(
+      ssrfRes.platform === 'youtube' && ssrfRes.status === 'FAILED' && (ssrfRes.error || '').includes('SSRF'),
+      'YouTube Shorts Adapter: Blocks private/loopback videoUrl via SSRF validation'
+    );
   }
 
   return ctx;

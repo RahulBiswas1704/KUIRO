@@ -1,6 +1,7 @@
 import { generateWithGemini } from '@/lib/ai/gemini';
 import { evaluateAndRefineCampaignCopy, StructuredCriticEvaluation } from '@/lib/ai/critic';
 import { GeneratedAssetPayload } from '@/types';
+import { db, campaignRevisions } from '@/db';
 
 export interface PostToRevise {
   id?: string;
@@ -20,6 +21,13 @@ export interface SurgicalRevisionParams {
   tones?: string[];
   pillars?: string[];
   negativeConstraints?: string[];
+  campaignId?: string;
+  revisionNumber?: number;
+  requestedBy?: string;
+  requesterName?: string;
+  transcript?: string;
+  languageDetected?: string;
+  audioMediaId?: string;
 }
 
 export interface RevisedPostOutput {
@@ -36,6 +44,55 @@ export interface SurgicalRevisionResult {
   revisionSummary: string;
   compositeCriticScore: number;
   structuredEvaluation?: StructuredCriticEvaluation;
+  revisionId?: string;
+}
+
+/**
+ * Persists a formal audit log of a campaign revision into the campaign_revisions Neon PostgreSQL table.
+ */
+export async function recordCampaignRevisionLog(params: {
+  campaignId: string;
+  revisionNumber: number;
+  instruction: string;
+  transcript?: string;
+  languageDetected?: string;
+  audioMediaId?: string;
+  requestedBy?: string;
+  requesterName?: string;
+  snapshotPosts: Array<{
+    platform: string;
+    caption: string;
+    firstComment?: string;
+    subject?: string;
+    mediaUrls?: string[];
+    aiCriticScore?: number;
+  }>;
+  revisionSummary: string;
+}): Promise<string | undefined> {
+  if (!db || !params.campaignId) return undefined;
+
+  try {
+    const [inserted] = await db
+      .insert(campaignRevisions)
+      .values({
+        campaignId: params.campaignId,
+        revisionNumber: params.revisionNumber || 1,
+        instruction: params.instruction,
+        transcript: params.transcript || params.instruction,
+        languageDetected: params.languageDetected || 'auto',
+        audioMediaId: params.audioMediaId || null,
+        requestedBy: params.requestedBy || 'dashboard_operator',
+        requesterName: params.requesterName || 'Workspace Operator',
+        snapshotPosts: params.snapshotPosts,
+        revisionSummary: params.revisionSummary,
+      })
+      .returning({ id: campaignRevisions.id });
+
+    return inserted?.id;
+  } catch (err) {
+    console.error('[CampaignRevisions Audit Log Error]', err);
+    return undefined;
+  }
 }
 
 /**
@@ -310,11 +367,37 @@ Return a raw JSON object only (no markdown, no backticks):
     };
   });
 
+  // Audit logging: Persist revision snapshot into campaign_revisions
+  let revisionId: string | undefined;
+  if (params.campaignId && db) {
+    const snapshotPosts = posts.map((p) => ({
+      platform: p.platform,
+      caption: p.caption,
+      firstComment: p.firstComment,
+      subject: p.subject,
+      mediaUrls: p.mediaUrls,
+    }));
+
+    revisionId = await recordCampaignRevisionLog({
+      campaignId: params.campaignId,
+      revisionNumber: params.revisionNumber || 1,
+      instruction: revisionPrompt,
+      transcript: params.transcript || revisionPrompt,
+      languageDetected: params.languageDetected || 'auto',
+      audioMediaId: params.audioMediaId,
+      requestedBy: params.requestedBy || 'dashboard_operator',
+      requesterName: params.requesterName || 'Workspace Operator',
+      snapshotPosts,
+      revisionSummary: summary,
+    });
+  }
+
   return {
     success: true,
     revisedPosts: revisedOutputs,
     revisionSummary: summary,
     compositeCriticScore: evaluation.overallScore100,
     structuredEvaluation: evaluation.structuredEvaluation,
+    revisionId,
   };
 }
