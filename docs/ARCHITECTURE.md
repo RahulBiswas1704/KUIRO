@@ -86,6 +86,7 @@ src/
 │       ├── settings/           # Workspace profile, WhatsApp admin phone, team RBAC
 │       └── simulator/          # Interactive 48-hour state machine simulator
 ├── components/                 # Domain-partitioned UI components
+│   ├── admin/                  # Level 5 Operator Console panels, tabs, modals & types
 │   ├── auth/                   # AuthModal, AuthPageShell, GetStartedButton
 │   ├── billing/                # SubscriptionCheckoutModal
 │   ├── brand/                  # KuiroLogo SVG, KuiroLoader & RouteLoaderProvider

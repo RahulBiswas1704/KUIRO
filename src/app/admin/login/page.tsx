@@ -1,22 +1,24 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import KuiroLogo from '@/components/brand/KuiroLogo';
 import {
-  ShieldAlert,
-  Lock,
-  Mail,
-  Key,
-  Eye,
-  EyeOff,
+  AlertCircle,
   ArrowRight,
   CheckCircle2,
-  AlertCircle,
+  Eye,
+  EyeOff,
+  Key,
+  Lock,
+  Mail,
   RefreshCw,
+  ShieldAlert,
   ShieldCheck,
 } from 'lucide-react';
+import KuiroLogo from '@/components/brand/KuiroLogo';
+import KuiroLoader from '@/components/brand/KuiroLoader';
+import { Footer, Navbar } from '@/components/layout';
 
 function AdminLoginForm() {
   const router = useRouter();
@@ -27,12 +29,13 @@ function AdminLoginForm() {
   const [passkey, setPasskey] = useState('');
   const [showPasskey, setShowPasskey] = useState(false);
   const [mfaCode, setMfaCode] = useState('');
+  const [recoveryCode, setRecoveryCode] = useState('');
+  const [useRecoveryMode, setUseRecoveryMode] = useState(false);
   const [showMfa, setShowMfa] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Check if already authenticated
   useEffect(() => {
     async function checkAuth() {
       try {
@@ -44,7 +47,7 @@ function AdminLoginForm() {
           }
         }
       } catch {
-        // ignore
+        // Ignore silent probe error
       }
     }
     checkAuth();
@@ -69,7 +72,8 @@ function AdminLoginForm() {
         body: JSON.stringify({
           email: email.trim(),
           passkey: passkey.trim(),
-          mfaCode: mfaCode.trim() || undefined,
+          mfaCode: !useRecoveryMode && mfaCode.trim() ? mfaCode.trim() : undefined,
+          recoveryCode: useRecoveryMode && recoveryCode.trim() ? recoveryCode.trim() : undefined,
         }),
       });
 
@@ -78,7 +82,7 @@ function AdminLoginForm() {
       if (!res.ok || !data.success) {
         if (data.mfaRequired) {
           setShowMfa(true);
-          setErrorMessage('MFA required. Enter your 6-digit TOTP code.');
+          setErrorMessage('MFA verification required. Enter your 6-digit TOTP or recovery code.');
         } else {
           setErrorMessage(data.error || 'Access Denied: Invalid operator clearance.');
         }
@@ -87,186 +91,240 @@ function AdminLoginForm() {
       }
 
       setSuccessMessage('Clearance Level 5 Granted. Initializing Operator Terminal...');
-
       setTimeout(() => {
         window.location.href = redirectPath;
-      }, 600);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Network error reaching operator authentication service.');
+      }, 500);
+    } catch (err: unknown) {
+      setErrorMessage(
+        err instanceof Error ? err.message : 'Network error reaching operator authentication service.'
+      );
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#070A11] text-white flex flex-col items-center justify-center p-4 sm:p-6 font-sans selection:bg-[#FF7A00] selection:text-white relative overflow-hidden">
-      {/* Ambient Lighting Orbs */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-full max-w-2xl h-[400px] bg-gradient-to-b from-[#FF7A00]/[0.08] via-transparent to-transparent pointer-events-none -z-10 blur-3xl" />
-      <div className="absolute -bottom-10 right-1/4 w-80 h-80 bg-blue-600/[0.05] rounded-full blur-[100px] pointer-events-none -z-10" />
-
-      {/* Main Terminal Gate Card */}
-      <div className="w-full max-w-md rounded-[32px] bg-[#0A0E18] border border-white/[0.09] shadow-[0_20px_60px_rgba(0,0,0,0.85)] p-7 sm:p-10 space-y-6 relative overflow-hidden">
-        {/* Top Decorative Gradient Accent */}
-        <div className="absolute top-0 left-12 right-12 h-[2px] bg-gradient-to-r from-transparent via-[#FF7A00] to-transparent" />
-
-        {/* Brand Lockup & Clearance Badge */}
-        <div className="text-center space-y-2">
-          <Link href="/" className="inline-block hover:opacity-90 transition mx-auto mb-1">
-            <KuiroLogo variant="primary" theme="dark" symbolSize={38} showTagline={false} />
-          </Link>
-
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/25 text-red-400 text-[10px] font-mono font-bold tracking-wider uppercase">
-            <ShieldAlert size={13} className="animate-pulse" />
-            <span>Level 5 Restricted • Operator Gate</span>
-          </div>
-
-          <h1 className="text-xl sm:text-2xl font-sora font-extrabold text-white tracking-tight pt-1">
-            Operator Terminal Locked
-          </h1>
-          <p className="text-xs text-slate-400 font-inter">
-            Internal Platform Management & Global Systems Control.
-          </p>
-        </div>
-
-        {/* Login Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 font-inter text-xs">
-          {/* Error Banner */}
-          {errorMessage && (
-            <div className="p-3.5 rounded-xl bg-red-950/40 border border-red-500/40 text-red-300 text-xs flex items-center gap-2.5 animate-fade-in">
-              <AlertCircle size={15} className="shrink-0 text-red-400" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
-
-          {/* Success Banner */}
-          {successMessage && (
-            <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2.5 animate-fade-in">
-              <CheckCircle2 size={15} className="shrink-0 text-emerald-400" />
-              <span>{successMessage}</span>
-            </div>
-          )}
-
-          {/* Operator Email Input */}
-          <div>
-            <label className="block text-slate-300 font-medium mb-1.5 font-inter">
-              Authorized Operator Email
-            </label>
-            <div className="flex items-center px-3.5 py-3 rounded-xl bg-white/[0.03] border border-white/[0.1] focus-within:border-[#FF7A00] transition">
-              <Mail size={16} className="text-slate-400 shrink-0 mr-2.5" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="operator@kuiro.in"
-                className="w-full bg-transparent text-white font-mono text-xs sm:text-sm focus:outline-none"
-                autoComplete="username"
-              />
-            </div>
-          </div>
-
-          {/* Master Passkey Input */}
-          <div>
-            <label className="block text-slate-300 font-medium mb-1.5 font-inter">
-              Master Operator Passkey
-            </label>
-            <div className="flex items-center px-3.5 py-3 rounded-xl bg-white/[0.03] border border-white/[0.1] focus-within:border-[#FF7A00] transition">
-              <Key size={16} className="text-slate-400 shrink-0 mr-2.5" />
-              <input
-                type={showPasskey ? 'text' : 'password'}
-                required
-                value={passkey}
-                onChange={(e) => setPasskey(e.target.value)}
-                placeholder="••••••••••••"
-                className="w-full bg-transparent text-white font-mono text-xs sm:text-sm focus:outline-none"
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPasskey(!showPasskey)}
-                className="text-slate-400 hover:text-white transition p-1 cursor-pointer"
-                title={showPasskey ? 'Hide passkey' : 'Show passkey'}
-              >
-                {showPasskey ? <EyeOff size={15} /> : <Eye size={15} />}
-              </button>
-            </div>
-          </div>
-
-          {/* Optional MFA Code */}
-          {showMfa && (
-            <div className="p-3.5 rounded-xl bg-[#FF7A00]/10 border border-[#FF7A00]/30 space-y-2 animate-fade-in">
-              <label className="block text-xs font-semibold text-[#FF7A00] font-inter flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <ShieldCheck size={14} />
-                  <span>Operator 2FA / TOTP Code</span>
-                </span>
-                <span className="text-[10px] font-mono text-slate-400">RFC 6238</span>
-              </label>
-              <input
-                type="text"
-                maxLength={6}
-                value={mfaCode}
-                onChange={(e) => setMfaCode(e.target.value.replace(/[^0-9]/g, ''))}
-                placeholder="• • • • • •"
-                className="w-full text-center tracking-[0.5em] text-lg font-mono py-2.5 rounded-lg bg-black/40 border border-white/15 text-white focus:outline-none"
-                autoFocus
-              />
-            </div>
-          )}
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-3.5 rounded-2xl bg-[#FF7A00] hover:bg-[#FF881A] text-white text-xs font-sora font-semibold transition shadow-lg shadow-[#FF7A00]/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-2 active:scale-95"
-          >
-            {isLoading ? (
-              <>
-                <RefreshCw size={14} className="animate-spin" />
-                <span>Verifying Operator Clearance...</span>
-              </>
-            ) : (
-              <>
-                <span>Authorize Operator Terminal</span>
-                <ArrowRight size={14} />
-              </>
-            )}
-          </button>
-        </form>
-
-        {/* Card Footer Guarantees */}
-        <div className="pt-4 border-t border-white/[0.06] text-center space-y-2 text-[11px] font-mono text-slate-400">
-          <div className="flex items-center justify-center gap-3">
-            <span className="flex items-center gap-1">
-              <Lock size={12} className="text-emerald-400" />
-              <span>HMAC-SHA256 Token</span>
+    <div className="min-h-screen bg-[#F9FAFD] text-[#0B0F14] flex flex-col font-sans selection:bg-[#FF7A00] selection:text-white relative overflow-x-clip">
+      <Navbar
+        activeRoute="none"
+        theme="light"
+        floating
+        badgeText="Operator Gate"
+        rightContent={
+          <div className="flex items-center gap-2">
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-700 text-[11px] font-mono font-semibold">
+              <ShieldAlert size={12} />
+              <span>Level 5 Clearance</span>
             </span>
-            <span>•</span>
-            <span>8-Hour Session</span>
-          </div>
-
-          <div className="pt-1">
-            <Link href="/" className="text-slate-400 hover:text-white transition underline cursor-pointer">
-              ← Return to Public Website
+            <Link
+              href="/login"
+              className="px-3.5 py-1.5 rounded-full bg-[#0B0F14]/90 hover:bg-[#0B0F14] text-white text-xs font-sora font-semibold transition border border-white/15"
+            >
+              Client Sign In
             </Link>
           </div>
-        </div>
-      </div>
+        }
+      />
+
+      <main className="flex-1 flex flex-col">
+        {/* Framed Dusk Horizon Stage */}
+        <section className="relative bg-gradient-to-b from-[#667387] via-[#465163] to-[#232A38] rounded-b-[28px] sm:rounded-b-[44px] pt-28 sm:pt-32 pb-32 sm:pb-36 px-4 text-center overflow-hidden">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -bottom-24 left-1/2 -translate-x-1/2 w-[700px] h-[300px] rounded-full bg-[#FF7A00]/25 blur-[110px]"
+          />
+
+          <div className="relative z-10 max-w-2xl mx-auto space-y-3">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/10 border border-white/20 backdrop-blur-md text-xs text-white/95 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#FF7A00] animate-pulse" />
+              <span>Level 5 Restricted • Operator Gate</span>
+            </div>
+
+            <h1 className="font-sora text-3xl sm:text-5xl font-extrabold tracking-[-0.03em] text-white leading-[1.08]">
+              Operator Terminal
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#FF9D42] via-[#FF7A00] to-[#FFB36B]">
+                Control Gate.
+              </span>
+            </h1>
+
+            <p className="text-xs sm:text-base text-white/80 font-inter max-w-lg mx-auto leading-relaxed">
+              Internal platform operations, multi-tenant health telemetry, and global autonomous safeguards.
+            </p>
+          </div>
+        </section>
+
+        {/* Overlapping Warm-Bordered Light Operator Card */}
+        <section className="relative z-20 -mt-20 sm:-mt-24 px-4 sm:px-6 pb-16 sm:pb-20 w-full flex flex-col items-center">
+          <div className="w-full max-w-[450px] p-px rounded-[28px] bg-gradient-to-b from-[#FF8E3C]/65 via-[#FF8E3C]/20 to-gray-200/80 shadow-[0_24px_60px_-24px_rgba(11,15,20,0.22)]">
+            <div className="bg-white rounded-[27px] p-6 sm:p-8 space-y-5 text-left">
+              <div className="text-center space-y-2">
+                <div className="inline-flex justify-center">
+                  <KuiroLogo variant="primary" theme="light" symbolSize={30} showTagline={false} />
+                </div>
+                <h2 className="font-sora text-xl font-extrabold text-[#0B0F14] pt-1">
+                  Authorize Operator Session
+                </h2>
+                <p className="text-xs text-gray-500 font-inter">
+                  Signed 8-hour HMAC session with constant-time verification.
+                </p>
+              </div>
+
+              {errorMessage && (
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2.5">
+                  <AlertCircle size={15} className="shrink-0 mt-0.5 text-rose-600" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
+              {successMessage && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2.5">
+                  <CheckCircle2 size={15} className="shrink-0 mt-0.5 text-emerald-600" />
+                  <span>{successMessage}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-4 font-inter text-xs">
+                <div>
+                  <label
+                    htmlFor="operator-email"
+                    className="block text-xs font-semibold text-[#374151] mb-1.5"
+                  >
+                    Authorized Operator Email
+                  </label>
+                  <div className="relative">
+                    <Mail size={15} className="absolute left-3.5 top-3.5 text-gray-400" />
+                    <input
+                      id="operator-email"
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="operator@kuiro.in"
+                      autoComplete="username"
+                      className="w-full bg-[#FAF8F5] border border-[#E7DED3] rounded-xl pl-10 pr-3.5 py-3 text-sm font-mono text-[#0B0F14] placeholder:text-gray-400 focus:outline-none focus:bg-white focus:border-[#FF7A00] transition"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="operator-passkey"
+                    className="block text-xs font-semibold text-[#374151] mb-1.5"
+                  >
+                    Master Operator Passkey
+                  </label>
+                  <div className="relative">
+                    <Key size={15} className="absolute left-3.5 top-3.5 text-gray-400" />
+                    <input
+                      id="operator-passkey"
+                      type={showPasskey ? 'text' : 'password'}
+                      required
+                      value={passkey}
+                      onChange={(e) => setPasskey(e.target.value)}
+                      placeholder="••••••••••••"
+                      autoComplete="current-password"
+                      className="w-full bg-[#FAF8F5] border border-[#E7DED3] rounded-xl pl-10 pr-10 py-3 text-sm font-mono text-[#0B0F14] placeholder:text-gray-400 focus:outline-none focus:bg-white focus:border-[#FF7A00] transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasskey(!showPasskey)}
+                      className="cursor-pointer absolute right-3 top-3 text-gray-400 hover:text-[#0B0F14] transition p-0.5"
+                      title={showPasskey ? 'Hide passkey' : 'Show passkey'}
+                      aria-label={showPasskey ? 'Hide passkey' : 'Show passkey'}
+                    >
+                      {showPasskey ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                {showMfa && (
+                  <div className="p-4 rounded-2xl bg-[#FFF7EE] border border-[#FFD3AC] space-y-2.5 animate-fade-in">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-sora font-bold text-[#C85600] flex items-center gap-1.5">
+                        <ShieldCheck size={14} />
+                        <span>{useRecoveryMode ? 'Operator Recovery Code' : 'Operator 2FA / TOTP'}</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setUseRecoveryMode(!useRecoveryMode)}
+                        className="cursor-pointer text-[11px] font-mono text-[#374151] hover:text-[#FF7A00] underline"
+                      >
+                        {useRecoveryMode ? 'Use TOTP code' : 'Use recovery token'}
+                      </button>
+                    </div>
+
+                    {useRecoveryMode ? (
+                      <input
+                        type="text"
+                        value={recoveryCode}
+                        onChange={(e) => setRecoveryCode(e.target.value)}
+                        placeholder="Emergency recovery token"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#E7DED3] font-mono text-xs text-[#0B0F14] focus:outline-none focus:border-[#FF7A00]"
+                        autoFocus
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        maxLength={6}
+                        value={mfaCode}
+                        onChange={(e) => setMfaCode(e.target.value.replace(/[^0-9]/g, ''))}
+                        placeholder="• • • • • •"
+                        className="w-full text-center tracking-[0.5em] text-lg font-mono py-2.5 rounded-xl bg-white border border-[#E7DED3] text-[#0B0F14] focus:outline-none focus:border-[#FF7A00]"
+                        autoFocus
+                      />
+                    )}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="cursor-pointer w-full py-3.5 rounded-2xl bg-[#FF7A00] hover:bg-[#E06C00] text-white text-xs sm:text-sm font-sora font-bold transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isLoading ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" />
+                      <span>Verifying Operator Clearance...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Authorize Operator Terminal</span>
+                      <ArrowRight size={15} />
+                    </>
+                  )}
+                </button>
+              </form>
+
+              <div className="pt-4 border-t border-gray-100 text-center space-y-2 text-[11px] font-mono text-gray-500">
+                <div className="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1">
+                  <span className="inline-flex items-center gap-1 text-[#374151] font-medium">
+                    <Lock size={12} className="text-emerald-600" />
+                    <span>HMAC-SHA256 Token</span>
+                  </span>
+                  <span className="text-gray-300">•</span>
+                  <span>8-Hour Session</span>
+                  <span className="text-gray-300">•</span>
+                  <span>Rate-Limited</span>
+                </div>
+
+                <div>
+                  <Link href="/" className="text-[#374151] hover:text-[#FF7A00] transition font-inter font-medium">
+                    ← Return to Public Website
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <Footer theme="light" />
     </div>
   );
 }
 
 export default function AdminLoginPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-[#070A11] text-white flex items-center justify-center font-mono text-xs">
-          <div className="flex items-center gap-2 text-slate-400">
-            <RefreshCw size={14} className="animate-spin text-[#FF7A00]" />
-            <span>Loading Operator Terminal...</span>
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<KuiroLoader variant="fullscreen" theme="light" />}>
       <AdminLoginForm />
     </Suspense>
   );

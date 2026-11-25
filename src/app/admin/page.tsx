@@ -1,143 +1,155 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import KuiroLogo from '@/components/brand/KuiroLogo';
 import {
-  ShieldCheck,
-  LayoutDashboard,
-  Building2,
-  Users,
-  Sparkles,
-  CalendarDays,
-  Sliders,
   AlertTriangle,
+  Building2,
+  CalendarDays,
   Clock,
-  RefreshCw,
-  Search,
-  Plus,
   ExternalLink,
-  Smartphone,
-  Activity,
-  Check,
-  X,
-  Mail,
-  Cpu,
-  Layers,
+  LayoutDashboard,
   LogOut,
-  Database,
-  Server,
+  RefreshCw,
+  ShieldCheck,
+  Sliders,
+  Users,
+  X,
 } from 'lucide-react';
+import KuiroLogo from '@/components/brand/KuiroLogo';
+import KuiroLoader from '@/components/brand/KuiroLoader';
+import {
+  AdminAuditTab,
+  AdminCalendarTab,
+  AdminCampaignsTab,
+  AdminOptimizerTab,
+  AdminOverviewPanel,
+  AdminUsersTab,
+  AdminWorkspacesTab,
+  InspectCampaignModal,
+  InspectWorkspaceModal,
+  NewCalendarEventModal,
+  NewWorkspaceModal,
+  type ActivityItem,
+  type AdminAlert,
+  type AdminAuditLog,
+  type AdminCalendarEvent,
+  type AdminCampaign,
+  type AdminOptimizerConfig,
+  type AdminTabId,
+  type AdminUser,
+  type AdminWorkspace,
+  type MetricOverview,
+  type OptimizerEnvironmentKeys,
+  type SystemHealth,
+} from '@/components/admin';
 
-interface MetricOverview {
-  users: number;
-  workspaces: number;
-  brandProfiles: number;
-  campaigns: number;
-  platformPosts: number;
-  conversations: number;
-  messages: number;
-  calendarEvents: number;
-  activeSessions: number;
-}
+const DEFAULT_OPTIMIZER_CONFIG: AdminOptimizerConfig = {
+  aiCritic: {
+    minimumPassScore: 85,
+    hookWeight: 25,
+    brandAlignmentWeight: 35,
+    ctaWeight: 20,
+    complianceWeight: 20,
+    strictNegativeConstraints: true,
+  },
+  modelRouting: {
+    primaryModel: 'gemini-2.5-flash-lite',
+    fallbackModel: 'gemini-2.5-pro',
+    temperature: 0.7,
+    maxOutputTokens: 2048,
+    frequencyPenalty: 0.2,
+  },
+  unitEconomics: {
+    enforceXLinkInReply: true,
+    estimatedMonthlySavingsUsd: 1420,
+    aspectRatioRule: '4:5 on mobile feeds, 1:1 on messaging cards',
+  },
+  autonomousEngine: {
+    autoCommitWindowHours: 48,
+    maxFreeRevisions: 2,
+    radarSweepFrequencyCron: '0 0 * * *',
+    voiceTranscriptionEngine: 'Gemini Whisper Multi-Lingual',
+  },
+};
 
-interface SystemHealth {
-  database: { status: string; branch?: string; engine?: string; latencyMs: number };
-  geminiAi: { status: string; model?: string };
-  whatsappCloud: { status: string; graphApiVersion?: string; phoneId?: string };
-  inngestEngine: { status: string; scheduler?: string };
-  storage?: { name: string; status: string; bucket: string; provider: string; latencyMs?: number };
-  cloudflareR2?: { status: string; bucket: string };
-  resendEmail?: { status: string; from: string };
-}
+const EMPTY_WS_FORM = {
+  name: '',
+  ownerName: '',
+  ownerEmail: '',
+  subscriptionTier: 'GROWTH',
+  whatsappAdminPhone: '+919876543210',
+  industry: 'Retail, Commerce & Professional Services',
+};
 
-interface ActivityItem {
-  id: string;
-  type: string;
-  title: string;
-  subtitle: string;
-  timestamp: string;
-  badgeColor?: string;
+function createEmptyEventForm() {
+  return {
+    eventName: '',
+    eventDate: new Date().toISOString().slice(0, 10),
+    regions: 'Pan-India',
+    targetIndustries: 'All',
+    promptContext: '',
+  };
 }
 
 export default function AdminPage() {
-  const router = useRouter();
-
-  // Active Navigation Tab
-  const [activeTab, setActiveTab] = useState<
-    'overview' | 'workspaces' | 'users' | 'campaigns' | 'calendar' | 'optimizer' | 'audit'
-  >('overview');
+  const [activeTab, setActiveTab] = useState<AdminTabId>('overview');
 
   // Authentication State
   const [operatorEmail, setOperatorEmail] = useState<string>('');
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [usingDefaultCredentials, setUsingDefaultCredentials] = useState(false);
 
-  // System Data
+  // Overview Telemetry & Alerts
   const [metrics, setMetrics] = useState<MetricOverview | null>(null);
   const [health, setHealth] = useState<SystemHealth | null>(null);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [alerts, setAlerts] = useState<AdminAlert[]>([]);
+  const [updatingAlertId, setUpdatingAlertId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Workspaces Tab State
-  const [workspacesList, setWorkspacesList] = useState<any[]>([]);
+  // Workspaces Tab
+  const [workspacesList, setWorkspacesList] = useState<AdminWorkspace[]>([]);
   const [workspaceTierFilter, setWorkspaceTierFilter] = useState('ALL');
   const [workspaceSearch, setWorkspaceSearch] = useState('');
   const [isNewWsModalOpen, setIsNewWsModalOpen] = useState(false);
-  const [selectedWsForInspection, setSelectedWsForInspection] = useState<any | null>(null);
-  const [newWsForm, setNewWsForm] = useState({
-    name: '',
-    ownerName: '',
-    ownerEmail: '',
-    subscriptionTier: 'GROWTH',
-    whatsappAdminPhone: '+919876543210',
-    industry: 'Retail, Commerce & Professional Services',
-  });
+  const [selectedWsForInspection, setSelectedWsForInspection] = useState<AdminWorkspace | null>(null);
+  const [newWsForm, setNewWsForm] = useState(EMPTY_WS_FORM);
 
-  // Users Tab State
-  const [usersList, setUsersList] = useState<any[]>([]);
+  // Users Tab
+  const [usersList, setUsersList] = useState<AdminUser[]>([]);
   const [userSearch, setUserSearch] = useState('');
 
-  // Campaigns Tab State
-  const [campaignsList, setCampaignsList] = useState<any[]>([]);
+  // Campaigns Tab
+  const [campaignsList, setCampaignsList] = useState<AdminCampaign[]>([]);
   const [campaignStatusFilter, setCampaignStatusFilter] = useState('ALL');
-  const [selectedCampaignPosts, setSelectedCampaignPosts] = useState<any | null>(null);
+  const [selectedCampaignPosts, setSelectedCampaignPosts] = useState<AdminCampaign | null>(null);
 
-  // Calendar Tab State
-  const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+  // Cultural Calendar Tab
+  const [calendarEvents, setCalendarEvents] = useState<AdminCalendarEvent[]>([]);
   const [isNewEventModalOpen, setIsNewEventModalOpen] = useState(false);
-  const [newEventForm, setNewEventForm] = useState({
-    eventName: '',
-    eventDate: new Date().toISOString().slice(0, 10),
-    regions: 'Pan-India',
-    targetIndustries: 'All',
-    promptContext: '',
-  });
+  const [isRunningSweep, setIsRunningSweep] = useState(false);
+  const [newEventForm, setNewEventForm] = useState(createEmptyEventForm);
 
-  // Optimizer Tab State
-  const [optimizerConfig, setOptimizerConfig] = useState<any | null>({
-    autoCommitHours: 48,
-    criticQualityThreshold: 95,
-    maxRevisions: 2,
-    geminiTemperature: 0.7,
-    enforceWhatsAppCompliance: true,
-  });
+  // Optimizer Tab
+  const [optimizerConfig, setOptimizerConfig] = useState<AdminOptimizerConfig>(
+    DEFAULT_OPTIMIZER_CONFIG
+  );
+  const [optimizerEnvKeys, setOptimizerEnvKeys] = useState<OptimizerEnvironmentKeys | null>(null);
   const [isSavingOptimizer, setIsSavingOptimizer] = useState(false);
 
-  // Audit Logs State
-  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  // Security Audit Ledger Tab
+  const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>([]);
   const [auditStatusFilter, setAuditStatusFilter] = useState('ALL');
   const [auditSearch, setAuditSearch] = useState('');
 
-  const showToast = (msg: string) => {
+  const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
-  };
+  }, []);
 
-  // 1. Verify Operator Clearance on Mount
   const verifyAuth = useCallback(async () => {
     try {
       setIsAuthChecking(true);
@@ -151,9 +163,7 @@ export default function AdminPage() {
         window.location.href = '/admin/login';
         return;
       }
-      if (data.email) {
-        setOperatorEmail(data.email);
-      }
+      if (data.email) setOperatorEmail(data.email);
       setUsingDefaultCredentials(Boolean(data.usingDefaultCredentials));
     } catch {
       window.location.href = '/admin/login';
@@ -162,16 +172,22 @@ export default function AdminPage() {
     }
   }, []);
 
-  // 2. Load Overview Metrics
-  const loadOverview = useCallback(async (silent = false) => {
+  const loadOverviewAndAlerts = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
     try {
-      const res = await fetch('/api/admin/overview');
-      if (res.ok) {
-        const data = await res.json();
+      const [overviewRes, alertsRes] = await Promise.all([
+        fetch('/api/admin/overview'),
+        fetch('/api/admin/alerts?limit=25'),
+      ]);
+      if (overviewRes.ok) {
+        const data = await overviewRes.json();
         setMetrics(data.metrics || null);
         setHealth(data.health || null);
         setActivities(data.recentActivities || []);
+      }
+      if (alertsRes.ok) {
+        const alertData = await alertsRes.json();
+        setAlerts(alertData.alerts || []);
       }
     } catch (err) {
       console.warn('Failed to load admin overview:', err);
@@ -180,7 +196,6 @@ export default function AdminPage() {
     }
   }, []);
 
-  // 3. Load Workspaces
   const loadWorkspaces = useCallback(async () => {
     try {
       const url = new URL('/api/admin/workspaces', window.location.origin);
@@ -196,7 +211,6 @@ export default function AdminPage() {
     }
   }, [workspaceTierFilter, workspaceSearch]);
 
-  // 4. Load Users
   const loadUsers = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/users');
@@ -209,7 +223,6 @@ export default function AdminPage() {
     }
   }, []);
 
-  // 5. Load Campaigns
   const loadCampaigns = useCallback(async () => {
     try {
       const url = new URL('/api/admin/campaigns', window.location.origin);
@@ -224,7 +237,6 @@ export default function AdminPage() {
     }
   }, [campaignStatusFilter]);
 
-  // 6. Load Cultural Calendar
   const loadCalendar = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/calendar');
@@ -237,28 +249,25 @@ export default function AdminPage() {
     }
   }, []);
 
-  // 7. Load Optimizer Config
   const loadOptimizer = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/optimizer');
       if (res.ok) {
         const data = await res.json();
         if (data.config) setOptimizerConfig(data.config);
+        if (data.environmentKeys) setOptimizerEnvKeys(data.environmentKeys);
       }
     } catch (err) {
       console.warn('Failed to load optimizer:', err);
     }
   }, []);
 
-  // 8. Load Audit Logs
   const loadAuditLogs = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/overview');
+      const res = await fetch('/api/admin/audit-logs?limit=100');
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data.auditLogs)) {
-          setAuditLogs(data.auditLogs);
-        }
+        setAuditLogs(Array.isArray(data.logs) ? data.logs : []);
       }
     } catch (err) {
       console.warn('Failed to load audit logs:', err);
@@ -267,8 +276,8 @@ export default function AdminPage() {
 
   useEffect(() => {
     verifyAuth();
-    loadOverview();
-  }, [verifyAuth, loadOverview]);
+    loadOverviewAndAlerts();
+  }, [verifyAuth, loadOverviewAndAlerts]);
 
   useEffect(() => {
     if (activeTab === 'workspaces') loadWorkspaces();
@@ -277,22 +286,28 @@ export default function AdminPage() {
     if (activeTab === 'calendar') loadCalendar();
     if (activeTab === 'optimizer') loadOptimizer();
     if (activeTab === 'audit') loadAuditLogs();
-  }, [activeTab, loadWorkspaces, loadUsers, loadCampaigns, loadCalendar, loadOptimizer, loadAuditLogs]);
+  }, [
+    activeTab,
+    loadWorkspaces,
+    loadUsers,
+    loadCampaigns,
+    loadCalendar,
+    loadOptimizer,
+    loadAuditLogs,
+  ]);
 
-  // Handle Logout
   const handleSignOut = async () => {
     try {
       await fetch('/api/admin/auth', { method: 'DELETE' });
     } catch {
-      // ignore
+      // Ignore error and redirect to operator gate
     }
     window.location.href = '/admin/login';
   };
 
-  // Handle Refresh All
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await loadOverview(true);
+    await loadOverviewAndAlerts(true);
     if (activeTab === 'workspaces') await loadWorkspaces();
     if (activeTab === 'users') await loadUsers();
     if (activeTab === 'campaigns') await loadCampaigns();
@@ -300,10 +315,36 @@ export default function AdminPage() {
     if (activeTab === 'optimizer') await loadOptimizer();
     if (activeTab === 'audit') await loadAuditLogs();
     setIsRefreshing(false);
-    showToast('Platform metrics and health refreshed.');
+    showToast('Platform telemetry and active view refreshed.');
   };
 
-  // Handle Create Workspace
+  const handleUpdateAlertStatus = async (
+    alertId: string,
+    status: 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED'
+  ) => {
+    try {
+      setUpdatingAlertId(alertId);
+      const res = await fetch('/api/admin/alerts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: alertId, status }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setAlerts((prev) =>
+          prev.map((a) => (a.id === alertId ? { ...a, status: data.alert?.status || status } : a))
+        );
+        showToast(`Alert marked ${status.toLowerCase()}.`);
+      } else {
+        showToast(data.error || 'Failed to update alert status.');
+      }
+    } catch {
+      showToast('Network error updating alert.');
+    } finally {
+      setUpdatingAlertId(null);
+    }
+  };
+
   const handleCreateWorkspace = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -316,53 +357,209 @@ export default function AdminPage() {
       if (res.ok && data.success) {
         showToast(`Workspace "${newWsForm.name}" created successfully.`);
         setIsNewWsModalOpen(false);
-        setNewWsForm({
-          name: '',
-          ownerName: '',
-          ownerEmail: '',
-          subscriptionTier: 'GROWTH',
-          whatsappAdminPhone: '+919876543210',
-          industry: 'Retail, Commerce & Professional Services',
-        });
-        loadWorkspaces();
+        setNewWsForm(EMPTY_WS_FORM);
+        await Promise.all([loadWorkspaces(), loadOverviewAndAlerts(true)]);
       } else {
         showToast(data.error || 'Failed to create workspace.');
       }
-    } catch (err: any) {
-      showToast(err.message || 'Error creating workspace.');
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Error creating workspace.');
     }
   };
 
-  // Handle Create Calendar Event
-  const handleCreateEvent = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleUpdateWorkspace = async (payload: {
+    id: string;
+    name: string;
+    subscriptionTier: string;
+    whatsappAdminPhone: string;
+  }) => {
     try {
-      const res = await fetch('/api/admin/calendar', {
-        method: 'POST',
+      const res = await fetch('/api/admin/workspaces', {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newEventForm),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        showToast(`Cultural event "${newEventForm.eventName}" added to 365 calendar.`);
-        setIsNewEventModalOpen(false);
-        setNewEventForm({
-          eventName: '',
-          eventDate: new Date().toISOString().slice(0, 10),
-          regions: 'Pan-India',
-          targetIndustries: 'All',
-          promptContext: '',
-        });
-        loadCalendar();
+        showToast('Workspace updated successfully.');
+        setSelectedWsForInspection(null);
+        await loadWorkspaces();
       } else {
-        showToast(data.error || 'Failed to add event.');
+        showToast(data.error || 'Failed to update workspace.');
       }
-    } catch (err: any) {
-      showToast(err.message || 'Error adding event.');
+    } catch {
+      showToast('Error updating workspace.');
     }
   };
 
-  // Handle Save Optimizer Config
+  const handleDeleteWorkspace = async (id: string) => {
+    try {
+      const res = await fetch(`/api/admin/workspaces?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast('Workspace deleted.');
+        setSelectedWsForInspection(null);
+        await Promise.all([loadWorkspaces(), loadOverviewAndAlerts(true)]);
+      } else {
+        showToast(data.error || 'Failed to delete workspace.');
+      }
+    } catch {
+      showToast('Error deleting workspace.');
+    }
+  };
+
+  const handleToggleUserVerified = async (user: AdminUser) => {
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: user.id, emailVerified: !user.emailVerified }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(`Updated verification for ${user.email}.`);
+        await loadUsers();
+      } else {
+        showToast(data.error || 'Failed to update user.');
+      }
+    } catch {
+      showToast('Error updating user verification.');
+    }
+  };
+
+  const handleDeleteUser = async (user: AdminUser) => {
+    try {
+      const res = await fetch(`/api/admin/users?id=${encodeURIComponent(user.id)}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(`User ${user.email} removed.`);
+        await Promise.all([loadUsers(), loadOverviewAndAlerts(true)]);
+      } else {
+        showToast(data.error || 'Failed to delete user.');
+      }
+    } catch {
+      showToast('Error deleting user.');
+    }
+  };
+
+  const handleUpdateCampaignStatus = async (id: string, status: 'APPROVED' | 'PAUSED') => {
+    try {
+      const res = await fetch('/api/admin/campaigns', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(`Campaign updated to ${status}.`);
+        setSelectedCampaignPosts(null);
+        await loadCampaigns();
+      } else {
+        showToast(data.error || 'Failed to update campaign.');
+      }
+    } catch {
+      showToast('Error updating campaign status.');
+    }
+  };
+
+  const handleDeleteCampaign = async (id: string) => {
+    try {
+      const res = await fetch(`/api/admin/campaigns?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast('Campaign removed.');
+        setSelectedCampaignPosts(null);
+        await Promise.all([loadCampaigns(), loadOverviewAndAlerts(true)]);
+      } else {
+        showToast(data.error || 'Failed to remove campaign.');
+      }
+    } catch {
+      showToast('Error removing campaign.');
+    }
+  };
+
+  const handleCreateEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const regionsArray = newEventForm.regions
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const industriesArray = newEventForm.targetIndustries
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      const res = await fetch('/api/admin/calendar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventName: newEventForm.eventName,
+          eventDate: newEventForm.eventDate,
+          regions: regionsArray.length > 0 ? regionsArray : ['Pan-India'],
+          targetIndustries: industriesArray.length > 0 ? industriesArray : ['All'],
+          promptContext: newEventForm.promptContext,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(`Cultural event "${newEventForm.eventName}" added.`);
+        setIsNewEventModalOpen(false);
+        setNewEventForm(createEmptyEventForm());
+        await Promise.all([loadCalendar(), loadOverviewAndAlerts(true)]);
+      } else {
+        showToast(data.error || 'Failed to add event.');
+      }
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Error adding event.');
+    }
+  };
+
+  const handleDeleteEvent = async (id: string) => {
+    try {
+      const res = await fetch(`/api/admin/calendar?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast('Calendar event removed.');
+        await loadCalendar();
+      } else {
+        showToast(data.error || 'Failed to remove event.');
+      }
+    } catch {
+      showToast('Error deleting event.');
+    }
+  };
+
+  const handleTriggerSweep = async () => {
+    try {
+      setIsRunningSweep(true);
+      const res = await fetch('/api/admin/calendar/sweep', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'all' }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success !== false) {
+        showToast('Autonomous cultural & campaign sweep executed.');
+        await Promise.all([loadCalendar(), loadOverviewAndAlerts(true)]);
+      } else {
+        showToast(data.error || 'Radar sweep returned a warning.');
+      }
+    } catch {
+      showToast('Network error executing sweep.');
+    } finally {
+      setIsRunningSweep(false);
+    }
+  };
+
   const handleSaveOptimizer = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -374,1041 +571,394 @@ export default function AdminPage() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        showToast('Autonomous optimizer weights updated in Neon PG.');
+        if (data.config) setOptimizerConfig(data.config);
+        showToast('System optimizer weights updated for active runtime.');
       } else {
         showToast(data.error || 'Failed to save configuration.');
       }
-    } catch (err: any) {
-      showToast(err.message || 'Error updating config.');
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Error updating config.');
     } finally {
       setIsSavingOptimizer(false);
     }
   };
 
   if (isAuthChecking) {
-    return (
-      <div className="min-h-screen bg-[#070A11] flex items-center justify-center text-white font-mono text-xs">
-        <div className="flex items-center gap-2">
-          <RefreshCw size={16} className="animate-spin text-[#FF7A00]" />
-          <span>Verifying Operator Terminal Clearance...</span>
-        </div>
-      </div>
-    );
+    return <KuiroLoader variant="fullscreen" mode="loop" theme="light" />;
   }
 
-  return (
-    <div className="min-h-screen bg-[#070A11] text-white flex flex-col font-sans selection:bg-[#FF7A00] selection:text-white relative overflow-x-clip">
-      {/* Ambient Lighting Orbs */}
-      <div className="fixed top-0 left-1/4 w-[600px] h-[500px] bg-gradient-to-b from-[#FF7A00]/[0.05] via-transparent to-transparent pointer-events-none -z-10 blur-3xl" />
-      <div className="fixed bottom-0 right-10 w-[500px] h-[400px] bg-gradient-to-t from-blue-600/[0.04] via-transparent to-transparent pointer-events-none -z-10 blur-3xl" />
+  const openAlertsCount = alerts.filter((a) => a.status === 'OPEN').length;
 
-      {/* Security Toast */}
+  const navTabs: Array<{ id: AdminTabId; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = [
+    { id: 'overview', label: 'Overview & Telemetry', icon: LayoutDashboard },
+    { id: 'workspaces', label: `Workspaces (${metrics?.workspaces ?? '—'})`, icon: Building2 },
+    { id: 'users', label: `Users (${metrics?.users ?? '—'})`, icon: Users },
+    { id: 'campaigns', label: `48h Queue (${metrics?.campaigns ?? '—'})`, icon: Clock },
+    { id: 'calendar', label: '365 Calendar', icon: CalendarDays },
+    { id: 'optimizer', label: 'Optimizer & Weights', icon: Sliders },
+    { id: 'audit', label: 'Security Audit', icon: ShieldCheck },
+  ];
+
+  const kpiCards = [
+    {
+      label: 'Workspaces',
+      value: metrics ? String(metrics.workspaces) : '—',
+      meta: 'Multi-tenant orgs',
+      accent: 'text-[#0B0F14]',
+    },
+    {
+      label: 'Registered Users',
+      value: metrics ? String(metrics.users) : '—',
+      meta: 'Founders & seats',
+      accent: 'text-[#0B0F14]',
+    },
+    {
+      label: '48h Queue',
+      value: metrics ? String(metrics.campaigns) : '—',
+      meta: 'Auto-commit loop',
+      accent: 'text-[#FF7A00]',
+    },
+    {
+      label: 'Platform Posts',
+      value: metrics ? String(metrics.platformPosts) : '—',
+      meta: `${metrics?.brandProfiles ?? '—'} Brand Brains`,
+      accent: 'text-[#0B0F14]',
+    },
+    {
+      label: 'DB Latency',
+      value: health?.database?.latencyMs !== undefined ? `${health.database.latencyMs} ms` : '—',
+      meta: 'Pooled Neon PG',
+      accent: 'text-emerald-700',
+    },
+    {
+      label: 'Open Alerts',
+      value: String(openAlertsCount),
+      meta: `${metrics?.activeSessions ?? '—'} active sessions`,
+      accent: openAlertsCount > 0 ? 'text-rose-600' : 'text-emerald-700',
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#F9FAFD] text-[#0B0F14] flex flex-col font-sans selection:bg-[#FF7A00] selection:text-white relative overflow-x-clip">
+      {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl bg-[#0D121F] border border-[#FF7A00] text-white shadow-2xl flex items-center gap-3 animate-fade-in font-mono text-xs">
-          <div className="w-2 h-2 rounded-full bg-[#FF7A00] animate-pulse" />
+        <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl bg-[#0B0F14] border border-[#FF8E3C]/60 text-white shadow-2xl flex items-center gap-3 animate-fade-in font-mono text-xs">
+          <span className="w-2 h-2 rounded-full bg-[#FF7A00] animate-pulse" />
           <span>{toastMessage}</span>
-          <button onClick={() => setToastMessage(null)} className="text-slate-400 hover:text-white ml-2">
+          <button
+            type="button"
+            onClick={() => setToastMessage(null)}
+            className="cursor-pointer text-slate-400 hover:text-white ml-2"
+            aria-label="Dismiss notification"
+          >
             <X size={14} />
           </button>
         </div>
       )}
 
       {/* =========================================================================
-          OPERATOR TOPBAR (Zorcha Glassmorphic Header)
+          FROSTED GLASSMORPHIC OPERATOR TOPBAR
       ========================================================================= */}
-      <header className="sticky top-0 z-40 bg-[#080B12]/85 backdrop-blur-2xl border-b border-white/[0.08] px-4 sm:px-8 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/admin" className="focus:outline-none flex-shrink-0 group flex items-center gap-2.5">
-            <KuiroLogo variant="primary" theme="dark" symbolSize={32} showTagline={false} />
-          </Link>
+      <header className="fixed left-0 right-0 top-3.5 z-40 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <div className="relative overflow-hidden rounded-2xl sm:rounded-full px-4 sm:px-6 py-2.5 sm:py-3 border border-white/80 bg-white/70 backdrop-blur-2xl backdrop-saturate-[1.8] ring-1 ring-black/[0.05] shadow-[0_18px_42px_-14px_rgba(11,15,20,0.18),inset_0_1px_1.5px_rgba(255,255,255,0.95)] flex items-center justify-between gap-3">
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent"
+          />
 
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] font-mono font-bold uppercase tracking-wider">
-            <ShieldCheck size={13} className="text-red-400" />
-            <span>Level 5 Operator Terminal</span>
+          <div className="relative z-10 flex items-center gap-3 flex-wrap">
+            <Link href="/admin" className="focus:outline-none flex items-center flex-shrink-0">
+              <KuiroLogo variant="primary" theme="light" symbolSize={30} showTagline={false} />
+            </Link>
+
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-700 text-[10px] font-mono font-bold uppercase tracking-wider">
+              <ShieldCheck size={12} />
+              <span>Level 5 Operator</span>
+            </span>
+
+            {health?.database?.latencyMs !== undefined && (
+              <span className="hidden xl:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 text-[10px] font-mono font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Neon PG {health.database.latencyMs}ms</span>
+              </span>
+            )}
           </div>
 
-          <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-[10px] font-mono">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Neon PG Latency: {health?.database?.latencyMs || 14}ms</span>
+          <div className="relative z-10 flex items-center gap-2">
+            {operatorEmail && (
+              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/70 border border-white/80 text-[11px] font-mono text-[#374151]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#FF7A00]" />
+                <span className="font-semibold">{operatorEmail}</span>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleRefresh}
+              className="cursor-pointer p-2 rounded-full bg-white/75 hover:bg-white border border-white/85 text-[#374151] hover:text-[#0B0F14] transition shadow-sm"
+              title="Refresh All Telemetry"
+              aria-label="Refresh All Telemetry"
+            >
+              <RefreshCw size={14} className={isRefreshing ? 'animate-spin text-[#FF7A00]' : ''} />
+            </button>
+
+            <Link
+              href="/"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/75 hover:bg-white border border-white/85 text-xs font-sora font-semibold text-[#0B0F14] transition shadow-sm"
+            >
+              <span>Public Site</span>
+              <ExternalLink size={12} />
+            </Link>
+
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#0B0F14] hover:bg-[#1E2532] text-white text-xs font-sora font-semibold transition shadow-sm"
+            >
+              <LogOut size={13} className="text-[#FF7A00]" />
+              <span className="hidden xs:inline">Lock Terminal</span>
+            </button>
           </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* Operator Identity Badge */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-xs font-mono">
-            <span className="w-2 h-2 rounded-full bg-[#FF7A00]" />
-            <span className="text-slate-300 font-semibold">{operatorEmail}</span>
-          </div>
-
-          {/* Refresh Action */}
-          <button
-            type="button"
-            onClick={handleRefresh}
-            className="p-2 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-slate-300 hover:text-white transition cursor-pointer"
-            title="Refresh All Metrics"
-          >
-            <RefreshCw size={14} className={isRefreshing ? 'animate-spin text-[#FF7A00]' : ''} />
-          </button>
-
-          {/* Public Website */}
-          <Link
-            href="/"
-            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs font-sora font-semibold text-slate-300 hover:text-white transition"
-          >
-            <span>Public Site</span>
-            <ExternalLink size={12} />
-          </Link>
-
-          {/* Sign Out Button */}
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-300 text-xs font-sora font-semibold transition cursor-pointer"
-          >
-            <LogOut size={13} />
-            <span>Lock Terminal</span>
-          </button>
         </div>
       </header>
 
-      {/* =========================================================================
-          MAIN OPERATOR VIEWPORT
-      ========================================================================= */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-        {usingDefaultCredentials && (
-          <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/35 text-amber-200 flex items-start sm:items-center justify-between gap-3 text-xs font-inter">
-            <div className="flex items-start sm:items-center gap-2.5">
-              <AlertTriangle size={17} className="text-amber-400 shrink-0 mt-0.5 sm:mt-0" />
-              <div>
-                <span className="font-semibold text-amber-100">Fallback Operator Credentials Active: </span>
-                <span className="text-amber-200/90">
-                  Set dedicated <code className="font-mono bg-black/40 px-1.5 py-0.5 rounded text-amber-300">KUIRO_MANAGEMENT_PASSKEY</code> and{' '}
-                  <code className="font-mono bg-black/40 px-1.5 py-0.5 rounded text-amber-300">KUIRO_MANAGEMENT_JWT_SECRET</code> in Vercel environment variables before public rollout.
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
+      <main className="flex-1 flex flex-col">
+        {/* =========================================================================
+            FRAMED DUSK HORIZON COMMAND HEADER + PILL TAB DOCK
+        ========================================================================= */}
+        <section className="relative bg-gradient-to-b from-[#667387] via-[#465163] to-[#232A38] rounded-b-[28px] sm:rounded-b-[44px] pt-24 sm:pt-28 pb-16 sm:pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -bottom-24 left-1/2 -translate-x-1/2 w-[780px] h-[300px] rounded-full bg-[#FF7A00]/22 blur-[115px]"
+          />
 
-        {/* Navigation Tabs Pill Bar */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none border-b border-white/[0.06] pt-1">
-          {[
-            { id: 'overview', label: 'Overview & Infrastructure', icon: LayoutDashboard },
-            { id: 'workspaces', label: `Workspaces (${metrics?.workspaces || 0})`, icon: Building2 },
-            { id: 'users', label: `Users (${metrics?.users || 0})`, icon: Users },
-            { id: 'campaigns', label: `48h Queue (${metrics?.campaigns || 0})`, icon: Clock },
-            { id: 'calendar', label: '365 Indian Calendar', icon: CalendarDays },
-            { id: 'optimizer', label: 'System Optimizer & Weights', icon: Sliders },
-            { id: 'audit', label: 'Security Audit Ledger', icon: ShieldCheck },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`py-2 px-3.5 rounded-full text-xs font-sora font-semibold transition-all duration-150 flex items-center gap-2 whitespace-nowrap cursor-pointer ${
-                  isActive
-                    ? 'bg-white text-black shadow-lg shadow-white/10'
-                    : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
-                }`}
-              >
-                <Icon size={14} className={isActive ? 'text-black' : 'text-slate-400'} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
+          <div className="relative z-10 max-w-7xl mx-auto space-y-5 text-left">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/10 border border-white/20 backdrop-blur-md text-[11px] text-white/95 font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#FF7A00]" />
+                  <span>Level 5 Restricted • Platform Operations Console</span>
+                </div>
 
-        {/* =======================================================================
-            TAB 1: OVERVIEW & INFRASTRUCTURE RADAR
-        ======================================================================= */}
-        {activeTab === 'overview' && (
-          <div className="space-y-6 animate-fade-in">
-            {/* Top 6 KPI Ribbon */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-              <div className="p-4 rounded-2xl bg-[#0A0E18] border border-white/[0.08] space-y-1">
-                <span className="text-[10px] font-mono uppercase text-slate-400">Total Workspaces</span>
-                <div className="text-xl sm:text-2xl font-bold font-sora text-white">{metrics?.workspaces ?? 11}</div>
-                <span className="text-[10px] text-emerald-400 font-mono">● Neon Multi-Tenant</span>
+                <h1 className="font-sora text-2xl sm:text-4xl font-extrabold tracking-[-0.03em] text-white leading-tight">
+                  KUIRO Control Plane
+                </h1>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#0A0E18] border border-white/[0.08] space-y-1">
-                <span className="text-[10px] font-mono uppercase text-slate-400">Registered Users</span>
-                <div className="text-xl sm:text-2xl font-bold font-sora text-white">{metrics?.users ?? 37}</div>
-                <span className="text-[10px] text-slate-400 font-mono">Founders & Admins</span>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-[#0A0E18] border border-white/[0.08] space-y-1">
-                <span className="text-[10px] font-mono uppercase text-slate-400">48h Campaign Queue</span>
-                <div className="text-xl sm:text-2xl font-bold font-sora text-[#FF7A00]">{metrics?.campaigns ?? 14}</div>
-                <span className="text-[10px] text-emerald-400 font-mono">Auto-Commit Live</span>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-[#0A0E18] border border-white/[0.08] space-y-1">
-                <span className="text-[10px] font-mono uppercase text-slate-400">Multi-Channel Posts</span>
-                <div className="text-xl sm:text-2xl font-bold font-sora text-white">{metrics?.platformPosts ?? 68}</div>
-                <span className="text-[10px] text-slate-400 font-mono">Insta, WA, LI, X</span>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-[#0A0E18] border border-white/[0.08] space-y-1">
-                <span className="text-[10px] font-mono uppercase text-slate-400">Neon DB Latency</span>
-                <div className="text-xl sm:text-2xl font-bold font-inter text-emerald-400">{health?.database?.latencyMs ?? 14} ms</div>
-                <span className="text-[10px] text-slate-400 font-mono">Pooled Serverless</span>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-[#0A0E18] border border-white/[0.08] space-y-1">
-                <span className="text-[10px] font-mono uppercase text-slate-400">AI Critic Pass Rate</span>
-                <div className="text-xl sm:text-2xl font-bold font-inter text-white">98.2%</div>
-                <span className="text-[10px] text-emerald-400 font-mono">Tone Calibrated</span>
-              </div>
+              <p className="text-xs sm:text-sm text-white/80 font-inter max-w-md">
+                Inspect multi-tenant workspaces, override 48-hour campaign queues, manage the 365 cultural radar, and audit operator security.
+              </p>
             </div>
 
-            {/* Cloud Services Status Matrix */}
-            <div className="rounded-[28px] bg-[#0A0E18] border border-white/[0.08] p-6 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
-                <div>
-                  <h3 className="font-sora text-base font-bold text-white flex items-center gap-2">
-                    <Server size={16} className="text-[#FF7A00]" />
-                    <span>Cloud Services & Micro-Infrastructure Health</span>
-                  </h3>
-                  <p className="text-xs text-slate-400 font-inter mt-0.5">
-                    Live telemetry for database connections, AI models, WhatsApp Cloud API, and storage.
-                  </p>
-                </div>
-                <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold">
-                  ● Systems Operational
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs font-mono">
-                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-white flex items-center gap-1.5">
-                      <Database size={13} className="text-emerald-400" />
-                      <span>Neon PostgreSQL</span>
-                    </span>
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  </div>
-                  <p className="text-slate-400 text-[11px]">Branch: main • Serverless Postgres 16</p>
-                  <p className="text-emerald-400 text-[11px] font-bold">Latency: {health?.database?.latencyMs || 14}ms (Pooled)</p>
-                </div>
-
-                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-white flex items-center gap-1.5">
-                      <Sparkles size={13} className="text-[#FF7A00]" />
-                      <span>Google Gemini AI</span>
-                    </span>
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                  </div>
-                  <p className="text-slate-400 text-[11px]">Model: gemini-2.5-flash / pro</p>
-                  <p className="text-emerald-400 text-[11px] font-bold">Status: Online • Quota Normal</p>
-                </div>
-
-                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-white flex items-center gap-1.5">
-                      <Smartphone size={13} className="text-emerald-400" />
-                      <span>WhatsApp Cloud API</span>
-                    </span>
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                  </div>
-                  <p className="text-slate-400 text-[11px]">Meta Graph API: v21.0 Verified</p>
-                  <p className="text-emerald-400 text-[11px] font-bold">48h Auto-Commit Bridge: Active</p>
-                </div>
-
-                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-white flex items-center gap-1.5">
-                      <Layers size={13} className="text-blue-400" />
-                      <span>Object Storage CDN</span>
-                    </span>
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                  </div>
-                  <p className="text-slate-400 text-[11px]">Neon Storage / Cloudflare R2 S3</p>
-                  <p className="text-emerald-400 text-[11px] font-bold">High-Res Visual Assets: Ready</p>
-                </div>
-
-                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-white flex items-center gap-1.5">
-                      <Cpu size={13} className="text-purple-400" />
-                      <span>Inngest State Machine</span>
-                    </span>
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                  </div>
-                  <p className="text-slate-400 text-[11px]">Durable Execution & Cron Radar</p>
-                  <p className="text-emerald-400 text-[11px] font-bold">Status: Synchronized</p>
-                </div>
-
-                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-white flex items-center gap-1.5">
-                      <Mail size={13} className="text-pink-400" />
-                      <span>Transactional Email</span>
-                    </span>
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                  </div>
-                  <p className="text-slate-400 text-[11px]">Provider: Resend / SMTP Verified</p>
-                  <p className="text-emerald-400 text-[11px] font-bold">From: updates@kuiro.in</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Recent Operator Activity Feed */}
-            <div className="rounded-[28px] bg-[#0A0E18] border border-white/[0.08] p-6 shadow-sm space-y-4">
-              <h3 className="font-sora text-base font-bold text-white flex items-center gap-2">
-                <Activity size={16} className="text-[#FF7A00]" />
-                <span>Live Platform Activity Stream</span>
-              </h3>
-
-              {activities.length === 0 ? (
-                <div className="p-8 text-center text-xs text-slate-400 font-mono bg-white/[0.02] rounded-2xl border border-dashed border-white/[0.06]">
-                  No recent activities recorded in this session.
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {activities.slice(0, 8).map((act) => (
-                    <div
-                      key={act.id}
-                      className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between text-xs"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="w-2 h-2 rounded-full bg-[#FF7A00]" />
-                        <div>
-                          <p className="font-sora font-semibold text-white">{act.title}</p>
-                          <p className="text-[11px] text-slate-400 font-mono">{act.subtitle}</p>
-                        </div>
-                      </div>
-                      <span className="text-[10px] text-slate-500 font-mono">{act.timestamp}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* =======================================================================
-            TAB 2: CLIENT WORKSPACES MANAGEMENT
-        ======================================================================= */}
-        {activeTab === 'workspaces' && (
-          <div className="space-y-4 animate-fade-in">
-            <div className="rounded-[28px] bg-[#0A0E18] border border-white/[0.08] p-6 shadow-sm space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.06] pb-4">
-                <div>
-                  <h3 className="font-sora text-base font-bold text-white">Client Workspaces Directory</h3>
-                  <p className="text-xs text-slate-400 font-inter mt-0.5">
-                    Multi-tenant workspace isolation, subscription tiers, and WhatsApp admin routing.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
+            {/* Glassmorphic Navigation Tab Dock */}
+            <nav
+              aria-label="Operator sections"
+              className="flex items-center gap-1.5 overflow-x-auto scrollbar-none p-1.5 rounded-2xl sm:rounded-full bg-white/10 border border-white/20 backdrop-blur-xl w-full lg:w-fit"
+            >
+              {navTabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
                   <button
+                    key={tab.id}
                     type="button"
-                    onClick={() => setIsNewWsModalOpen(true)}
-                    className="py-2.5 px-4 rounded-full bg-[#FF7A00] hover:bg-[#FF881A] text-white text-xs font-sora font-semibold transition flex items-center gap-1.5 cursor-pointer shadow-md shadow-[#FF7A00]/25"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`cursor-pointer py-2 px-3.5 rounded-full text-xs font-sora font-semibold transition-all flex items-center gap-2 whitespace-nowrap ${
+                      isActive
+                        ? 'bg-white text-[#0B0F14] shadow-sm font-bold'
+                        : 'text-white/85 hover:text-white hover:bg-white/10'
+                    }`}
                   >
-                    <Plus size={14} />
-                    <span>+ Provision Workspace</span>
+                    <Icon size={14} className={isActive ? 'text-[#FF7A00]' : 'text-white/75'} />
+                    <span>{tab.label}</span>
                   </button>
+                );
+              })}
+            </nav>
+          </div>
+        </section>
+
+        {/* =========================================================================
+            OVERLAPPING 6-CARD KPI RIBBON
+        ========================================================================= */}
+        <section className="relative z-20 -mt-10 sm:-mt-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 text-left">
+            {kpiCards.map((kpi) => (
+              <div
+                key={kpi.label}
+                className="p-4 rounded-2xl bg-white border border-gray-200/90 shadow-[0_14px_34px_-18px_rgba(11,15,20,0.16)] space-y-1"
+              >
+                <span className="text-[10px] font-mono uppercase tracking-wider text-gray-500 block">
+                  {kpi.label}
+                </span>
+                <div className={`text-xl sm:text-2xl font-extrabold font-sora ${kpi.accent}`}>
+                  {kpi.value}
                 </div>
+                <span className="text-[11px] text-[#4B5563] font-mono block truncate">
+                  {kpi.meta}
+                </span>
               </div>
+            ))}
+          </div>
+        </section>
 
-              {/* Filters & Search */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
-                <div className="flex items-center gap-1.5">
-                  {['ALL', 'STARTER', 'GROWTH', 'AGENCY'].map((tier) => (
-                    <button
-                      key={tier}
-                      type="button"
-                      onClick={() => setWorkspaceTierFilter(tier)}
-                      className={`px-3 py-1.5 rounded-full border transition cursor-pointer ${
-                        workspaceTierFilter === tier
-                          ? 'bg-white text-black font-bold'
-                          : 'bg-white/[0.03] border-white/[0.08] text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      {tier}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="relative w-full sm:w-64">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <input
-                    type="text"
-                    value={workspaceSearch}
-                    onChange={(e) => setWorkspaceSearch(e.target.value)}
-                    placeholder="Search workspace..."
-                    className="w-full pl-8 pr-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs text-white focus:outline-none focus:border-[#FF7A00]"
-                  />
-                </div>
-              </div>
-
-              {/* Workspaces Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-white/[0.08] text-slate-400 text-[10px] font-mono uppercase tracking-wider">
-                      <th className="py-2.5 font-medium">Workspace Name</th>
-                      <th className="py-2.5 font-medium">Owner</th>
-                      <th className="py-2.5 font-medium">Subscription Tier</th>
-                      <th className="py-2.5 font-medium">WhatsApp Admin</th>
-                      <th className="py-2.5 font-medium">Created At</th>
-                      <th className="py-2.5 font-medium text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/[0.04]">
-                    {workspacesList.map((ws) => (
-                      <tr key={ws.id} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="py-3 font-sora font-semibold text-white">{ws.name}</td>
-                        <td className="py-3 text-slate-300 font-mono text-[11px]">{ws.ownerName || ws.ownerEmail || '—'}</td>
-                        <td className="py-3">
-                          <span
-                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase ${
-                              ws.subscriptionTier === 'AGENCY'
-                                ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
-                                : ws.subscriptionTier === 'GROWTH'
-                                ? 'bg-orange-500/15 text-orange-300 border border-orange-500/30'
-                                : 'bg-blue-500/15 text-blue-300 border border-blue-500/30'
-                            }`}
-                          >
-                            {ws.subscriptionTier}
-                          </span>
-                        </td>
-                        <td className="py-3 font-mono text-emerald-400 text-[11px]">
-                          {ws.whatsappAdminPhone || '+91 98765 43210'}
-                        </td>
-                        <td className="py-3 font-mono text-slate-500 text-[11px]">
-                          {new Date(ws.createdAt).toLocaleDateString('en-IN', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })}
-                        </td>
-                        <td className="py-3 text-right">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedWsForInspection(ws)}
-                            className="px-2.5 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white border border-white/[0.08] text-[11px] font-mono transition cursor-pointer"
-                          >
-                            Inspect
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+        {/* =========================================================================
+            MAIN OPERATOR VIEWPORT
+        ========================================================================= */}
+        <section className="py-6 sm:py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full flex-1 space-y-6">
+          {usingDefaultCredentials && (
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start sm:items-center gap-3 text-xs font-inter text-left">
+              <AlertTriangle size={17} className="text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
+              <div>
+                <span className="font-sora font-bold">Fallback Operator Credentials Active: </span>
+                <span>
+                  Configure dedicated{' '}
+                  <code className="font-mono bg-amber-100 px-1.5 py-0.5 rounded text-amber-950">
+                    KUIRO_MANAGEMENT_PASSKEY
+                  </code>{' '}
+                  and{' '}
+                  <code className="font-mono bg-amber-100 px-1.5 py-0.5 rounded text-amber-950">
+                    KUIRO_MANAGEMENT_JWT_SECRET
+                  </code>{' '}
+                  in environment variables before production rollout.
+                </span>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* =======================================================================
-            TAB 3: USER DIRECTORY
-        ======================================================================= */}
-        {activeTab === 'users' && (
-          <div className="space-y-4 animate-fade-in">
-            <div className="rounded-[28px] bg-[#0A0E18] border border-white/[0.08] p-6 shadow-sm space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.06] pb-4">
-                <div>
-                  <h3 className="font-sora text-base font-bold text-white">Registered User Directory</h3>
-                  <p className="text-xs text-slate-400 font-inter mt-0.5">
-                    Founders, team members, and authenticated operator sessions.
-                  </p>
-                </div>
+          {activeTab === 'overview' && (
+            <AdminOverviewPanel
+              metrics={metrics}
+              health={health}
+              activities={activities}
+              alerts={alerts}
+              isLoading={isLoading}
+              updatingAlertId={updatingAlertId}
+              onUpdateAlertStatus={handleUpdateAlertStatus}
+            />
+          )}
 
-                <div className="relative w-full sm:w-64">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <input
-                    type="text"
-                    value={userSearch}
-                    onChange={(e) => setUserSearch(e.target.value)}
-                    placeholder="Search by email or name..."
-                    className="w-full pl-8 pr-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs text-white focus:outline-none focus:border-[#FF7A00]"
-                  />
-                </div>
-              </div>
+          {activeTab === 'workspaces' && (
+            <AdminWorkspacesTab
+              workspaces={workspacesList}
+              tierFilter={workspaceTierFilter}
+              searchQuery={workspaceSearch}
+              onTierFilterChange={setWorkspaceTierFilter}
+              onSearchChange={setWorkspaceSearch}
+              onOpenNewModal={() => setIsNewWsModalOpen(true)}
+              onInspectWorkspace={(ws) => setSelectedWsForInspection(ws)}
+            />
+          )}
 
-              {/* Users Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-white/[0.08] text-slate-400 text-[10px] font-mono uppercase tracking-wider">
-                      <th className="py-2.5 font-medium">User / Name</th>
-                      <th className="py-2.5 font-medium">Email Address</th>
-                      <th className="py-2.5 font-medium">Role</th>
-                      <th className="py-2.5 font-medium">Email Verified</th>
-                      <th className="py-2.5 font-medium">Registered At</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/[0.04]">
-                    {usersList
-                      .filter((u) => {
-                        if (!userSearch) return true;
-                        const q = userSearch.toLowerCase();
-                        return u.email?.toLowerCase().includes(q) || u.name?.toLowerCase().includes(q);
-                      })
-                      .map((u) => (
-                        <tr key={u.id} className="hover:bg-white/[0.02] transition-colors">
-                          <td className="py-3 flex items-center gap-2.5 font-sora font-semibold text-white">
-                            <div className="w-7 h-7 rounded-full bg-white/[0.08] flex items-center justify-center text-[10px] font-bold text-white shrink-0">
-                              {u.name?.slice(0, 2).toUpperCase() || 'U'}
-                            </div>
-                            <span>{u.name || 'Anonymous Founder'}</span>
-                          </td>
-                          <td className="py-3 font-mono text-slate-300 text-[11px]">{u.email}</td>
-                          <td className="py-3">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/[0.04] border border-white/[0.08] text-slate-300">
-                              {u.role || 'Founder'}
-                            </span>
-                          </td>
-                          <td className="py-3">
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-mono ${
-                                u.emailVerified
-                                  ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
-                                  : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
-                              }`}
-                            >
-                              {u.emailVerified ? 'Verified' : 'Pending OTP'}
-                            </span>
-                          </td>
-                          <td className="py-3 font-mono text-slate-500 text-[11px]">
-                            {new Date(u.createdAt).toLocaleDateString('en-IN', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })}
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
+          {activeTab === 'users' && (
+            <AdminUsersTab
+              users={usersList}
+              searchQuery={userSearch}
+              onSearchChange={setUserSearch}
+              onToggleEmailVerified={handleToggleUserVerified}
+              onDeleteUser={handleDeleteUser}
+            />
+          )}
 
-        {/* =======================================================================
-            TAB 4: GLOBAL 48H CAMPAIGN RADAR
-        ======================================================================= */}
-        {activeTab === 'campaigns' && (
-          <div className="space-y-4 animate-fade-in">
-            <div className="rounded-[28px] bg-[#0A0E18] border border-white/[0.08] p-6 shadow-sm space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.06] pb-4">
-                <div>
-                  <h3 className="font-sora text-base font-bold text-white">Global 48-Hour Campaign Radar</h3>
-                  <p className="text-xs text-slate-400 font-inter mt-0.5">
-                    Monitor autonomous queues, approve priority campaigns, or suspend passive publishing.
-                  </p>
-                </div>
+          {activeTab === 'campaigns' && (
+            <AdminCampaignsTab
+              campaigns={campaignsList}
+              statusFilter={campaignStatusFilter}
+              onStatusFilterChange={setCampaignStatusFilter}
+              onInspectCampaign={(camp) => setSelectedCampaignPosts(camp)}
+            />
+          )}
 
-                <div className="flex items-center gap-1.5 text-xs font-mono">
-                  {['ALL', 'AUTO_QUEUED', 'APPROVED', 'PUBLISHED', 'PAUSED'].map((status) => (
-                    <button
-                      key={status}
-                      type="button"
-                      onClick={() => setCampaignStatusFilter(status)}
-                      className={`px-3 py-1.5 rounded-full border transition cursor-pointer ${
-                        campaignStatusFilter === status
-                          ? 'bg-white text-black font-bold'
-                          : 'bg-white/[0.03] border-white/[0.08] text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      {status}
-                    </button>
-                  ))}
-                </div>
-              </div>
+          {activeTab === 'calendar' && (
+            <AdminCalendarTab
+              events={calendarEvents}
+              isRunningSweep={isRunningSweep}
+              onOpenNewModal={() => setIsNewEventModalOpen(true)}
+              onTriggerSweep={handleTriggerSweep}
+              onDeleteEvent={handleDeleteEvent}
+            />
+          )}
 
-              {/* Campaigns Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-white/[0.08] text-slate-400 text-[10px] font-mono uppercase tracking-wider">
-                      <th className="py-2.5 font-medium">Topic Summary</th>
-                      <th className="py-2.5 font-medium">Workspace ID</th>
-                      <th className="py-2.5 font-medium">Status</th>
-                      <th className="py-2.5 font-medium">Scheduled Publish</th>
-                      <th className="py-2.5 font-medium text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/[0.04]">
-                    {campaignsList.map((c) => (
-                      <tr key={c.id} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="py-3 font-sora font-semibold text-white max-w-sm truncate">{c.topicSummary}</td>
-                        <td className="py-3 font-mono text-slate-400 text-[11px]">{c.workspaceId?.slice(0, 8)}...</td>
-                        <td className="py-3">
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase ${
-                              c.status === 'AUTO_QUEUED'
-                                ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
-                                : c.status === 'APPROVED'
-                                ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
-                                : 'bg-blue-500/15 text-blue-300 border border-blue-500/30'
-                            }`}
-                          >
-                            {c.status}
-                          </span>
-                        </td>
-                        <td className="py-3 font-mono text-slate-300 text-[11px]">
-                          {new Date(c.publishAt).toLocaleDateString('en-IN', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </td>
-                        <td className="py-3 text-right">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedCampaignPosts(c)}
-                            className="px-2.5 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white border border-white/[0.08] text-[11px] font-mono transition cursor-pointer"
-                          >
-                            Inspect Posts
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
+          {activeTab === 'optimizer' && (
+            <AdminOptimizerTab
+              config={optimizerConfig}
+              envKeys={optimizerEnvKeys}
+              isSaving={isSavingOptimizer}
+              onChange={setOptimizerConfig}
+              onSave={handleSaveOptimizer}
+            />
+          )}
 
-        {/* =======================================================================
-            TAB 5: INDIAN CULTURAL 365 CALENDAR
-        ======================================================================= */}
-        {activeTab === 'calendar' && (
-          <div className="space-y-4 animate-fade-in">
-            <div className="rounded-[28px] bg-[#0A0E18] border border-white/[0.08] p-6 shadow-sm space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.06] pb-4">
-                <div>
-                  <h3 className="font-sora text-base font-bold text-white">Indian Cultural 365 Calendar Engine</h3>
-                  <p className="text-xs text-slate-400 font-inter mt-0.5">
-                    National, regional, and festive moments that trigger localized autonomous campaigns across India.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setIsNewEventModalOpen(true)}
-                  className="py-2.5 px-4 rounded-full bg-[#FF7A00] hover:bg-[#FF881A] text-white text-xs font-sora font-semibold transition flex items-center gap-1.5 cursor-pointer shadow-md shadow-[#FF7A00]/25"
-                >
-                  <Plus size={14} />
-                  <span>+ Add Cultural Holiday</span>
-                </button>
-              </div>
-
-              {/* Events Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-white/[0.08] text-slate-400 text-[10px] font-mono uppercase tracking-wider">
-                      <th className="py-2.5 font-medium">Festival / Event Name</th>
-                      <th className="py-2.5 font-medium">Event Date</th>
-                      <th className="py-2.5 font-medium">Target Regions</th>
-                      <th className="py-2.5 font-medium">Target Industries</th>
-                      <th className="py-2.5 font-medium">Prompt Context</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/[0.04]">
-                    {calendarEvents.map((evt) => (
-                      <tr key={evt.id} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="py-3 font-sora font-semibold text-white">{evt.eventName}</td>
-                        <td className="py-3 font-mono text-emerald-400 text-[11px]">{evt.eventDate}</td>
-                        <td className="py-3">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/[0.04] border border-white/[0.08] text-slate-300">
-                            {evt.regions || 'Pan-India'}
-                          </span>
-                        </td>
-                        <td className="py-3 text-slate-400 font-mono text-[11px]">{evt.targetIndustries || 'All'}</td>
-                        <td className="py-3 text-slate-300 text-[11px] max-w-xs truncate">{evt.promptContext || '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* =======================================================================
-            TAB 6: SYSTEM OPTIMIZER & AI WEIGHTS
-        ======================================================================= */}
-        {activeTab === 'optimizer' && (
-          <div className="space-y-4 animate-fade-in max-w-3xl">
-            <div className="rounded-[28px] bg-[#0A0E18] border border-white/[0.08] p-6 sm:p-8 shadow-sm space-y-6">
-              <div className="border-b border-white/[0.06] pb-4">
-                <h3 className="font-sora text-base font-bold text-white flex items-center gap-2">
-                  <Sliders size={16} className="text-[#FF7A00]" />
-                  <span>Autonomous Marketing Engine Weights & Defaults</span>
-                </h3>
-                <p className="text-xs text-slate-400 font-inter mt-0.5">
-                  Configure global Gemini temperature, AI critic quality thresholds, and WhatsApp 48-hour loop countdown rules.
-                </p>
-              </div>
-
-              <form onSubmit={handleSaveOptimizer} className="space-y-5 font-inter text-xs">
-                {/* 1. 48h Countdown Duration */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-200">
-                      Passive Auto-Commit Window (Hours)
-                    </label>
-                    <span className="font-mono text-[#FF7A00] font-bold">
-                      {optimizerConfig?.autoCommitHours || 48} Hours
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="12"
-                    max="72"
-                    step="6"
-                    value={optimizerConfig?.autoCommitHours || 48}
-                    onChange={(e) =>
-                      setOptimizerConfig({
-                        ...optimizerConfig,
-                        autoCommitHours: parseInt(e.target.value, 10),
-                      })
-                    }
-                    className="w-full accent-[#FF7A00]"
-                  />
-                  <p className="text-[11px] text-slate-400 font-mono">
-                    Time between campaign generation and automatic publishing without manual approval.
-                  </p>
-                </div>
-
-                {/* 2. AI Critic Threshold */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-200">
-                      AI Critic Quality Pass Threshold (%)
-                    </label>
-                    <span className="font-mono text-emerald-400 font-bold">
-                      {optimizerConfig?.criticQualityThreshold || 95}%
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="80"
-                    max="99"
-                    step="1"
-                    value={optimizerConfig?.criticQualityThreshold || 95}
-                    onChange={(e) =>
-                      setOptimizerConfig({
-                        ...optimizerConfig,
-                        criticQualityThreshold: parseInt(e.target.value, 10),
-                      })
-                    }
-                    className="w-full accent-emerald-500"
-                  />
-                  <p className="text-[11px] text-slate-400 font-mono">
-                    Posts scoring below this threshold are held in revision for automatic self-correction.
-                  </p>
-                </div>
-
-                {/* 3. Max Revisions */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-200">
-                      Maximum Allowed Revisions per Campaign
-                    </label>
-                    <span className="font-mono text-white font-bold">
-                      {optimizerConfig?.maxRevisions || 2} Revisions
-                    </span>
-                  </div>
-                  <input
-                    type="number"
-                    min="1"
-                    max="5"
-                    value={optimizerConfig?.maxRevisions || 2}
-                    onChange={(e) =>
-                      setOptimizerConfig({
-                        ...optimizerConfig,
-                        maxRevisions: parseInt(e.target.value, 10),
-                      })
-                    }
-                    className="w-32 py-2 px-3 rounded-xl bg-white/[0.03] border border-white/[0.1] text-white font-mono"
-                  />
-                </div>
-
-                {/* Submit Button */}
-                <div className="pt-3 border-t border-white/[0.06]">
-                  <button
-                    type="submit"
-                    disabled={isSavingOptimizer}
-                    className="py-3 px-5 rounded-full bg-[#FF7A00] hover:bg-[#FF881A] text-white text-xs font-sora font-semibold transition shadow-lg shadow-[#FF7A00]/25 flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                  >
-                    {isSavingOptimizer ? <RefreshCw size={14} className="animate-spin" /> : <Check size={14} />}
-                    <span>Save Engine Configuration</span>
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* =======================================================================
-            TAB 7: SECURITY AUDIT LEDGER
-        ======================================================================= */}
-        {activeTab === 'audit' && (
-          <div className="space-y-4 animate-fade-in">
-            <div className="rounded-[28px] bg-[#0A0E18] border border-white/[0.08] p-6 shadow-sm space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.06] pb-4">
-                <div>
-                  <h3 className="font-sora text-base font-bold text-white flex items-center gap-2">
-                    <ShieldCheck size={16} className="text-red-400" />
-                    <span>Operator Security Audit Ledger</span>
-                  </h3>
-                  <p className="text-xs text-slate-400 font-inter mt-0.5">
-                    Immutable security log of all Level 5 operator authorizations, logins, and API actions.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-1.5 text-xs font-mono">
-                  {['ALL', 'SUCCESS', 'FAILURE', 'BLOCKED', 'RATE_LIMITED'].map((st) => (
-                    <button
-                      key={st}
-                      type="button"
-                      onClick={() => setAuditStatusFilter(st)}
-                      className={`px-3 py-1.5 rounded-full border transition cursor-pointer ${
-                        auditStatusFilter === st
-                          ? 'bg-white text-black font-bold'
-                          : 'bg-white/[0.03] border-white/[0.08] text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      {st}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Audit Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs font-mono">
-                  <thead>
-                    <tr className="border-b border-white/[0.08] text-slate-400 text-[10px] uppercase tracking-wider">
-                      <th className="py-2.5 font-medium">Operator Email</th>
-                      <th className="py-2.5 font-medium">Action</th>
-                      <th className="py-2.5 font-medium">Status</th>
-                      <th className="py-2.5 font-medium">IP Address</th>
-                      <th className="py-2.5 font-medium">Timestamp</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/[0.04]">
-                    {auditLogs
-                      .filter((l) => auditStatusFilter === 'ALL' || l.status === auditStatusFilter)
-                      .map((log) => (
-                        <tr key={log.id} className="hover:bg-white/[0.02] transition-colors">
-                          <td className="py-3 font-semibold text-white">{log.operatorEmail}</td>
-                          <td className="py-3 text-slate-300">{log.action}</td>
-                          <td className="py-3">
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                                log.status === 'SUCCESS'
-                                  ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
-                                  : log.status === 'FAILURE'
-                                  ? 'bg-red-500/15 text-red-300 border border-red-500/30'
-                                  : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
-                              }`}
-                            >
-                              {log.status}
-                            </span>
-                          </td>
-                          <td className="py-3 text-slate-400 text-[11px]">{log.ipAddress || '127.0.0.1'}</td>
-                          <td className="py-3 text-slate-500 text-[11px]">
-                            {new Date(log.createdAt).toLocaleString('en-IN', {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              second: '2-digit',
-                            })}
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
+          {activeTab === 'audit' && (
+            <AdminAuditTab
+              logs={auditLogs}
+              statusFilter={auditStatusFilter}
+              searchQuery={auditSearch}
+              onStatusFilterChange={setAuditStatusFilter}
+              onSearchChange={setAuditSearch}
+            />
+          )}
+        </section>
       </main>
 
-      {/* =========================================================================
-          MODAL: PROVISION NEW WORKSPACE
-      ========================================================================= */}
-      {isNewWsModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="bg-[#0A0E18] rounded-[28px] max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-4 border border-white/[0.12] text-white">
-            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
-              <h3 className="font-sora text-base font-bold text-white">Provision New Client Workspace</h3>
-              <button
-                type="button"
-                onClick={() => setIsNewWsModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateWorkspace} className="space-y-3.5 font-inter text-xs">
-              <div>
-                <label className="block text-slate-300 font-medium mb-1">Business / Brand Name</label>
-                <input
-                  type="text"
-                  required
-                  value={newWsForm.name}
-                  onChange={(e) => setNewWsForm({ ...newWsForm, name: e.target.value })}
-                  placeholder="e.g. Royal Silk Boutique"
-                  className="w-full py-2.5 px-3 rounded-xl bg-white/[0.03] border border-white/10 text-white focus:outline-none focus:border-[#FF7A00]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-300 font-medium mb-1">Owner Full Name</label>
-                <input
-                  type="text"
-                  required
-                  value={newWsForm.ownerName}
-                  onChange={(e) => setNewWsForm({ ...newWsForm, ownerName: e.target.value })}
-                  placeholder="e.g. Vikram Mehra"
-                  className="w-full py-2.5 px-3 rounded-xl bg-white/[0.03] border border-white/10 text-white focus:outline-none focus:border-[#FF7A00]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-300 font-medium mb-1">Owner Email</label>
-                <input
-                  type="email"
-                  required
-                  value={newWsForm.ownerEmail}
-                  onChange={(e) => setNewWsForm({ ...newWsForm, ownerEmail: e.target.value })}
-                  placeholder="vikram@royalsilk.in"
-                  className="w-full py-2.5 px-3 rounded-xl bg-white/[0.03] border border-white/10 text-white focus:outline-none focus:border-[#FF7A00]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-300 font-medium mb-1">Subscription Tier</label>
-                <select
-                  value={newWsForm.subscriptionTier}
-                  onChange={(e) => setNewWsForm({ ...newWsForm, subscriptionTier: e.target.value })}
-                  className="w-full py-2.5 px-3 rounded-xl bg-[#070A11] border border-white/10 text-white focus:outline-none focus:border-[#FF7A00]"
-                >
-                  <option value="STARTER">STARTER (1 Brand)</option>
-                  <option value="GROWTH">GROWTH (Full 48h Loop)</option>
-                  <option value="AGENCY">AGENCY (Multi-Brand Hub)</option>
-                </select>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/[0.06]">
-                <button
-                  type="button"
-                  onClick={() => setIsNewWsModalOpen(false)}
-                  className="px-4 py-2 rounded-full border border-white/10 text-xs font-sora font-semibold text-slate-300 hover:text-white"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-full bg-[#FF7A00] hover:bg-[#FF881A] text-white text-xs font-sora font-bold shadow-md shadow-[#FF7A00]/25 transition cursor-pointer"
-                >
-                  Provision Workspace
-                </button>
-              </div>
-            </form>
+      {/* Light Editorial Operator Footer Strip */}
+      <footer className="mt-auto border-t border-[#E6E0D6] bg-[#F5F2EB] py-5 px-4 sm:px-6 lg:px-8 text-xs text-slate-600">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <KuiroLogo variant="primary" theme="light" symbolSize={22} showTagline={false} />
+            <span className="text-[11px] font-mono text-gray-500">
+              Level 5 Operator Console
+            </span>
+          </div>
+          <div className="flex items-center gap-5 text-[11px] font-sora font-semibold">
+            <Link href="/" className="hover:text-[#0B0F14] transition">
+              Public Site
+            </Link>
+            <Link href="/dashboard" className="hover:text-[#0B0F14] transition">
+              Client Dashboard
+            </Link>
+            <Link href="/privacy" className="hover:text-[#0B0F14] transition">
+              Privacy Policy
+            </Link>
           </div>
         </div>
+      </footer>
+
+      {/* Interactive Modals */}
+      {isNewWsModalOpen && (
+        <NewWorkspaceModal
+          form={newWsForm}
+          onChange={setNewWsForm}
+          onSubmit={handleCreateWorkspace}
+          onClose={() => setIsNewWsModalOpen(false)}
+        />
       )}
 
-      {/* =========================================================================
-          MODAL: ADD 365 CULTURAL EVENT
-      ========================================================================= */}
+      {selectedWsForInspection && (
+        <InspectWorkspaceModal
+          workspace={selectedWsForInspection}
+          onUpdateWorkspace={handleUpdateWorkspace}
+          onDeleteWorkspace={handleDeleteWorkspace}
+          onClose={() => setSelectedWsForInspection(null)}
+        />
+      )}
+
+      {selectedCampaignPosts && (
+        <InspectCampaignModal
+          campaign={selectedCampaignPosts}
+          onUpdateStatus={handleUpdateCampaignStatus}
+          onDeleteCampaign={handleDeleteCampaign}
+          onClose={() => setSelectedCampaignPosts(null)}
+        />
+      )}
+
       {isNewEventModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="bg-[#0A0E18] rounded-[28px] max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-4 border border-white/[0.12] text-white">
-            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
-              <h3 className="font-sora text-base font-bold text-white">Add Indian Cultural Holiday</h3>
-              <button
-                type="button"
-                onClick={() => setIsNewEventModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateEvent} className="space-y-3.5 font-inter text-xs">
-              <div>
-                <label className="block text-slate-300 font-medium mb-1">Festival / Event Name</label>
-                <input
-                  type="text"
-                  required
-                  value={newEventForm.eventName}
-                  onChange={(e) => setNewEventForm({ ...newEventForm, eventName: e.target.value })}
-                  placeholder="e.g. Navratri Dandiya Festive Kickoff"
-                  className="w-full py-2.5 px-3 rounded-xl bg-white/[0.03] border border-white/10 text-white focus:outline-none focus:border-[#FF7A00]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-300 font-medium mb-1">Date</label>
-                <input
-                  type="date"
-                  required
-                  value={newEventForm.eventDate}
-                  onChange={(e) => setNewEventForm({ ...newEventForm, eventDate: e.target.value })}
-                  className="w-full py-2.5 px-3 rounded-xl bg-[#070A11] border border-white/10 text-white focus:outline-none focus:border-[#FF7A00]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-300 font-medium mb-1">Target Regions</label>
-                <input
-                  type="text"
-                  value={newEventForm.regions}
-                  onChange={(e) => setNewEventForm({ ...newEventForm, regions: e.target.value })}
-                  placeholder="e.g. Pan-India or West Bengal, Gujarat"
-                  className="w-full py-2.5 px-3 rounded-xl bg-white/[0.03] border border-white/10 text-white focus:outline-none focus:border-[#FF7A00]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-300 font-medium mb-1">AI Prompt Context & Cultural Hooks</label>
-                <textarea
-                  rows={3}
-                  value={newEventForm.promptContext}
-                  onChange={(e) => setNewEventForm({ ...newEventForm, promptContext: e.target.value })}
-                  placeholder="e.g. Highlight traditional silk apparel, celebrate 9 nights of dance and joy..."
-                  className="w-full py-2 px-3 rounded-xl bg-white/[0.03] border border-white/10 text-white focus:outline-none focus:border-[#FF7A00]"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/[0.06]">
-                <button
-                  type="button"
-                  onClick={() => setIsNewEventModalOpen(false)}
-                  className="px-4 py-2 rounded-full border border-white/10 text-xs font-sora font-semibold text-slate-300 hover:text-white"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-full bg-[#FF7A00] hover:bg-[#FF881A] text-white text-xs font-sora font-bold shadow-md shadow-[#FF7A00]/25 transition cursor-pointer"
-                >
-                  Save Event
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <NewCalendarEventModal
+          form={newEventForm}
+          onChange={setNewEventForm}
+          onSubmit={handleCreateEvent}
+          onClose={() => setIsNewEventModalOpen(false)}
+        />
       )}
     </div>
   );
