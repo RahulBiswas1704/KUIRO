@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { db, workspaces, subscriptions, payments } from '@/db';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { authorizeWorkspace } from '@/lib/auth';
 import { getPendingOrder, markOrderPaid, PlanTier, BillingCycle } from '@/lib/billing';
 import { logger, getCorrelationId } from '@/lib/observability/logger';

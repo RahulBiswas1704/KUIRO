@@ -6,13 +6,12 @@ import {
   Plus,
   Trash2,
   Edit2,
-  Sparkles,
   Command,
   Check,
   RotateCcw,
   Tag,
   Search,
-  MessageSquare
+  MessageSquare,
 } from 'lucide-react';
 
 export interface QuickSnippetItem {

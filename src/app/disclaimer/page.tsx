@@ -6,15 +6,10 @@ import { AnnouncementBar, Navbar, Footer } from '@/components/layout';
 import {
   AlertTriangle,
   Scale,
-  ShieldAlert,
-  CheckCircle2,
   Stethoscope,
   TrendingUp,
-  Share2,
-  FileText,
   ArrowRight,
   Info,
-  HelpCircle
 } from 'lucide-react';
 
 export default function DisclaimerPage() {

@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Brain,
   Sparkles,
   Globe,
   Upload,
@@ -10,13 +9,11 @@ import {
   X,
   CheckCircle2,
   Save,
-  AlertTriangle,
   FileText,
   Sliders,
   Palette,
   ShieldCheck,
-  Check,
-  Loader2
+  Loader2,
 } from 'lucide-react';
 import BrandStudioCanvas from '@/components/dashboard/BrandStudioCanvas';
 

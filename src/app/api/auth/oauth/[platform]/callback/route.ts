@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db, socialConnections } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { verifyOAuthState, exchangeOAuthCode, validateRedirectUri } from '@/lib/social/oauth';
-import { encryptToken, maskToken, ACTIVE_KEY_VERSION } from '@/lib/crypto/vault';
+import { encryptToken, ACTIVE_KEY_VERSION } from '@/lib/crypto/vault';
 import { PlatformKey } from '@/constants/channels';
 
 export const dynamic = 'force-dynamic';

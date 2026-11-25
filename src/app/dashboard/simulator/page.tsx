@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  Smartphone,
   Play,
   Pause,
   RotateCcw,
@@ -11,16 +10,9 @@ import {
   Mic,
   CheckCircle2,
   Clock,
-  AlertTriangle,
-  ArrowRight,
   ShieldCheck,
-  Check,
-  Sparkles,
-  RefreshCw,
-  Info,
-  Layers,
   ArrowLeft,
-  Loader2
+  Loader2,
 } from 'lucide-react';
 
 interface PlatformPost {

@@ -1,6 +1,6 @@
 import { db, socialConnections } from '@/db';
 import { eq, and, or, isNull, lt, lte, sql } from 'drizzle-orm';
-import { decryptToken, encryptToken, isEncrypted, maskToken } from '@/lib/crypto/vault';
+import { decryptToken, encryptToken } from '@/lib/crypto/vault';
 import { getPlatformClientId, getPlatformClientSecret, OAUTH_PLATFORMS, testPlatformConnection } from '@/lib/social/oauth';
 import { PlatformKey } from '@/constants/channels';
 

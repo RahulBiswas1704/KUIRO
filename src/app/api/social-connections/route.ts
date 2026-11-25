@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, workspaces, socialConnections } from '@/db';
+import { db, socialConnections } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { authorizeWorkspace } from '@/lib/auth';
 import { DEFAULT_CHANNELS, PlatformKey } from '@/constants/channels';

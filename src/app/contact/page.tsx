@@ -8,27 +8,16 @@ import {
   CheckCircle2,
   Sparkles,
   ShieldCheck,
-  ArrowRight,
   Check,
   Smartphone,
   Mail,
   Phone,
   MapPin,
-  Clock,
   SendHorizontal,
-  Building2,
   Briefcase,
   ChevronDown,
-  ChevronRight,
-  Headphones,
   ExternalLink,
   RefreshCw,
-  Store,
-  UserCheck,
-  Stethoscope,
-  Globe2,
-  Lock,
-  MessageCircle
 } from 'lucide-react';
 
 export default function ContactPage() {

@@ -11,9 +11,7 @@ import {
   Share2,
   Check,
   Loader2,
-  Clock,
   Percent,
-  Megaphone
 } from 'lucide-react';
 
 interface CustomMilestoneModalProps {

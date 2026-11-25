@@ -1,5 +1,5 @@
 import { db, durableEvents } from '@/db';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import crypto from 'crypto';
 
 export type EventStatus = 

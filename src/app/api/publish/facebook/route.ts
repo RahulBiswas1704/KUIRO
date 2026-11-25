@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, socialConnections, platformPosts } from '@/db';
+import { db, socialConnections } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { authorizeWorkspace } from '@/lib/auth';
 import { decryptToken } from '@/lib/crypto/vault';
 import {
   publishToFacebook,
   getFacebookManagedPages,
-  validateFacebookPagePermissions,
   FacebookPublishPayload,
 } from '@/lib/social/facebookPublisher';
 

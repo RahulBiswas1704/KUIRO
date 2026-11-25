@@ -8,17 +8,9 @@ import {
   Sparkles,
   ShieldCheck,
   CheckCircle2,
-  Share2,
-  Copy,
-  Layers,
-  Eye,
-  Type,
   Palette,
   Edit3,
   RotateCcw,
-  Check,
-  ChevronDown,
-  ChevronUp
 } from 'lucide-react';
 
 export interface CuratedPalette {

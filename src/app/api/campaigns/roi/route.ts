@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, workspaces, scheduledCampaigns, conversations, users } from '@/db';
-import { eq, desc, and } from 'drizzle-orm';
-import { getSessionFromRequest, authorizeWorkspace } from '@/lib/auth';
+import { db, workspaces, scheduledCampaigns, conversations } from '@/db';
+import { eq, desc } from 'drizzle-orm';
+import { authorizeWorkspace } from '@/lib/auth';
 import { WorkspaceRoiSummary, CampaignRoiMetric, AttributedLeadItem } from '@/types';
 
 export const dynamic = 'force-dynamic';

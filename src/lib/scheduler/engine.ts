@@ -1,4 +1,4 @@
-import { db, culturalEventsCalendar, workspaces, scheduledCampaigns, platformPosts, socialConnections } from '@/db';
+import { db, culturalEventsCalendar, workspaces, scheduledCampaigns, platformPosts } from '@/db';
 import { eq, and, lte, inArray } from 'drizzle-orm';
 import { createAutonomousCampaign } from '@/lib/campaigns/generator';
 import { publishToAllChannels } from '@/lib/social/publisher';

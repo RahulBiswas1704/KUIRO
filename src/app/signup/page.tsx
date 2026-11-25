@@ -12,9 +12,7 @@ import {
   User as UserIcon,
   Building2,
   ArrowRight,
-  ShieldCheck,
   CheckCircle2,
-  Sparkles
 } from 'lucide-react';
 
 export default function SignUpPage() {

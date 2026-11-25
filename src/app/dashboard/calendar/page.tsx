@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   CalendarDays,
-  Filter,
   Sparkles,
   MapPin,
   Tag,
@@ -15,7 +14,7 @@ import {
   Loader2,
   Database,
   RefreshCw,
-  Plus
+  Plus,
 } from 'lucide-react';
 import CustomMilestoneModal from '@/components/calendar/CustomMilestoneModal';
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, scheduledCampaigns, platformPosts, workspaces, brandProfiles } from '@/db';
+import { db, scheduledCampaigns, platformPosts, workspaces } from '@/db';
 import { desc, eq } from 'drizzle-orm';
 import { inngest } from '@/lib/inngest/client';
 import { safeDispatchInngest } from '@/lib/inngest/dispatcher';

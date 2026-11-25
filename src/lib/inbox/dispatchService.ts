@@ -1,5 +1,5 @@
-import { db, conversations, inboxMessages, workspaces, socialConnections } from '@/db';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { db, conversations, inboxMessages } from '@/db';
+import { eq, and } from 'drizzle-orm';
 import { publishInboxEvent } from '@/lib/inbox/eventHub';
 import { decryptToken } from '@/lib/crypto/vault';
 import { sendAutonomousEmailNewsletter } from '@/lib/email/publisher';

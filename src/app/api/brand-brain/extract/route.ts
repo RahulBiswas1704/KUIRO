@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { extractBrandBrainFromUrl } from '@/lib/brand-brain/extractor';
-import { db, workspaces, brandProfiles, users } from '@/db';
+import { db, workspaces, brandProfiles } from '@/db';
 import { eq, and } from 'drizzle-orm';
 import { authorizeWorkspace } from '@/lib/auth';
 import { validateUrlForSSRF } from '@/lib/security/safeFetch';

@@ -8,16 +8,8 @@ import {
   Lock,
   Eye,
   Database,
-  Server,
-  Share2,
-  FileText,
   CheckCircle2,
   ArrowRight,
-  HelpCircle,
-  Mail,
-  Scale,
-  RefreshCw,
-  Globe2
 } from 'lucide-react';
 
 export default function PrivacyPolicyPage() {

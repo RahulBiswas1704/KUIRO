@@ -1,4 +1,4 @@
-import { db, workspaces, brandProfiles, scheduledCampaigns, platformPosts, users } from '@/db';
+import { db, workspaces, brandProfiles, scheduledCampaigns, platformPosts } from '@/db';
 import { eq } from 'drizzle-orm';
 import { inngest } from '@/lib/inngest/client';
 import { safeDispatchInngest } from '@/lib/inngest/dispatcher';

@@ -22,6 +22,8 @@ import {
 
 export interface NavbarProps {
   activeRoute?: 'home' | 'services' | 'pricing' | 'contact' | 'get-started' | 'login' | 'signup' | 'none';
+  theme?: 'dark' | 'light';
+  floating?: boolean;
   badgeText?: string;
   statusText?: string;
   rightContent?: React.ReactNode;
@@ -30,6 +32,8 @@ export interface NavbarProps {
 
 export default function Navbar({
   activeRoute = 'home',
+  theme = 'dark',
+  floating = false,
   badgeText = '',
   statusText = '',
   rightContent,
@@ -39,6 +43,7 @@ export default function Navbar({
   const { isLoggedIn, user, openAuthModal } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isLight = theme === 'light';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -49,23 +54,33 @@ export default function Navbar({
   }, []);
 
   return (
-    <header 
-      className={`sticky top-0 sm:top-3.5 z-50 transition-all duration-300 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full ${className}`}
+    <header
+      className={`${floating ? 'fixed left-0 right-0 top-3.5' : 'sticky top-0 sm:top-3.5'} z-50 transition-all duration-300 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full ${className}`}
     >
-      <div 
+      <div
         className={`transition-all duration-300 rounded-2xl sm:rounded-full px-4 sm:px-6 py-2.5 sm:py-3 border backdrop-blur-2xl flex items-center justify-between ${
-          scrolled 
-            ? 'bg-[#080B11]/88 border-white/[0.14] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.85),0_0_24px_rgba(255,122,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.16)]' 
+          isLight
+            ? scrolled
+              ? 'bg-white/90 border-black/[0.08] shadow-[0_14px_36px_-10px_rgba(15,23,42,0.12)]'
+              : 'bg-white/80 border-black/[0.08] shadow-[0_8px_24px_-8px_rgba(15,23,42,0.08)]'
+            : scrolled
+            ? 'bg-[#080B11]/88 border-white/[0.14] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.85),0_0_24px_rgba(255,122,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.16)]'
             : 'bg-[#0A0E17]/70 border-white/[0.09] shadow-[0_12px_32px_-10px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.08)]'
         }`}
       >
         {/* Left: Brand Identity Lockup */}
         <div className="flex items-center gap-3.5 flex-shrink-0">
           <Link href="/" className="focus:outline-none flex items-center flex-shrink-0 group">
-            <KuiroLogo variant="primary" theme="dark" symbolSize={34} showTagline={false} />
+            <KuiroLogo variant="primary" theme={isLight ? 'light' : 'dark'} symbolSize={32} showTagline={false} />
           </Link>
           {badgeText && (
-            <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.03] border border-white/[0.08] text-[11px] font-mono text-slate-400">
+            <div
+              className={`hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono border ${
+                isLight
+                  ? 'bg-black/[0.03] border-black/[0.08] text-slate-600'
+                  : 'bg-white/[0.03] border-white/[0.08] text-slate-400'
+              }`}
+            >
               <span className="w-1.5 h-1.5 rounded-full bg-[#FF7A00]" />
               <span>{badgeText}</span>
             </div>
@@ -73,45 +88,67 @@ export default function Navbar({
         </div>
 
         {/* Center: Floating Pill Navigation Menu */}
-        <nav className="hidden md:flex items-center p-1 rounded-full bg-white/[0.03] border border-white/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)]">
-          <Link 
-            href="/" 
+        <nav
+          className={`hidden md:flex items-center p-1 rounded-full border ${
+            isLight
+              ? 'bg-black/[0.04] border-black/[0.06]'
+              : 'bg-white/[0.03] border-white/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)]'
+          }`}
+        >
+          <Link
+            href="/"
             className={`px-4 py-1.5 rounded-full text-xs transition-all duration-200 flex items-center gap-1.5 ${
               activeRoute === 'home'
-                ? 'bg-white/10 text-white font-semibold shadow-sm'
+                ? isLight
+                  ? 'bg-white text-[#0B0F14] font-semibold shadow-xs'
+                  : 'bg-white/10 text-white font-semibold shadow-sm'
+                : isLight
+                ? 'text-slate-600 hover:text-[#0B0F14] hover:bg-white/70'
                 : 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
             }`}
           >
             {activeRoute === 'home' && <span className="w-1.5 h-1.5 rounded-full bg-[#FF7A00]" />}
             <span>Home</span>
           </Link>
-          <Link 
-            href="/services" 
+          <Link
+            href="/services"
             className={`px-4 py-1.5 rounded-full text-xs transition-all duration-200 flex items-center gap-1.5 ${
               activeRoute === 'services'
-                ? 'bg-white/10 text-white font-semibold shadow-sm'
+                ? isLight
+                  ? 'bg-white text-[#0B0F14] font-semibold shadow-xs'
+                  : 'bg-white/10 text-white font-semibold shadow-sm'
+                : isLight
+                ? 'text-slate-600 hover:text-[#0B0F14] hover:bg-white/70'
                 : 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
             }`}
           >
             {activeRoute === 'services' && <span className="w-1.5 h-1.5 rounded-full bg-[#FF7A00]" />}
             <span>Services</span>
           </Link>
-          <Link 
-            href="/pricing" 
+          <Link
+            href="/pricing"
             className={`px-4 py-1.5 rounded-full text-xs transition-all duration-200 flex items-center gap-1.5 ${
               activeRoute === 'pricing'
-                ? 'bg-white/10 text-white font-semibold shadow-sm'
+                ? isLight
+                  ? 'bg-white text-[#0B0F14] font-semibold shadow-xs'
+                  : 'bg-white/10 text-white font-semibold shadow-sm'
+                : isLight
+                ? 'text-slate-600 hover:text-[#0B0F14] hover:bg-white/70'
                 : 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
             }`}
           >
             {activeRoute === 'pricing' && <span className="w-1.5 h-1.5 rounded-full bg-[#FF7A00]" />}
             <span>Pricing</span>
           </Link>
-          <Link 
-            href="/contact" 
+          <Link
+            href="/contact"
             className={`px-4 py-1.5 rounded-full text-xs transition-all duration-200 flex items-center gap-1.5 ${
               activeRoute === 'contact'
-                ? 'bg-white/10 text-white font-semibold shadow-sm'
+                ? isLight
+                  ? 'bg-white text-[#0B0F14] font-semibold shadow-xs'
+                  : 'bg-white/10 text-white font-semibold shadow-sm'
+                : isLight
+                ? 'text-slate-600 hover:text-[#0B0F14] hover:bg-white/70'
                 : 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
             }`}
           >
@@ -136,22 +173,34 @@ export default function Navbar({
               {!isLoggedIn && (
                 <Link
                   href="/get-started?mode=signin"
-                  className={`hidden sm:inline-block text-xs font-medium text-slate-300 hover:text-white px-3.5 py-1.5 rounded-full hover:bg-white/[0.06] transition cursor-pointer ${
-                    activeRoute === 'get-started' ? 'text-white font-semibold' : ''
-                  }`}
+                  className={`hidden sm:inline-block text-xs font-medium px-3.5 py-1.5 rounded-full transition cursor-pointer ${
+                    isLight
+                      ? 'text-slate-700 hover:text-[#0B0F14] hover:bg-black/[0.05]'
+                      : 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
+                  } ${activeRoute === 'get-started' ? 'font-semibold' : ''}`}
                 >
                   Sign In
                 </Link>
               )}
 
-              <GetStartedButton />
+              <GetStartedButton
+                className={
+                  isLight && !isLoggedIn
+                    ? '!bg-[#0B0F14] !text-white hover:!bg-[#1F2937] !shadow-md'
+                    : ''
+                }
+              />
             </>
           )}
 
           {/* Mobile Menu Toggle Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-[10px] bg-white/[0.05] border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+            className={`md:hidden p-2 rounded-[10px] border transition-colors ${
+              isLight
+                ? 'bg-black/[0.04] border-black/10 text-slate-700 hover:text-[#0B0F14]'
+                : 'bg-white/[0.05] border-white/10 text-slate-300 hover:text-white hover:bg-white/10'
+            }`}
             aria-label="Toggle Navigation Menu"
           >
             {mobileMenuOpen ? <CloseIcon size={18} /> : <Menu size={18} />}
@@ -161,7 +210,13 @@ export default function Navbar({
 
       {/* Mobile Navigation Dropdown Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden mt-2 rounded-2xl border border-white/10 bg-[#080B11]/95 backdrop-blur-2xl px-4 py-5 space-y-3 animate-fade-in shadow-[0_20px_40px_rgba(0,0,0,0.85)]">
+        <div
+          className={`md:hidden mt-2 rounded-2xl border backdrop-blur-2xl px-4 py-5 space-y-3 animate-fade-in ${
+            isLight
+              ? 'border-black/10 bg-white/95 text-[#0B0F14] shadow-xl'
+              : 'border-white/10 bg-[#080B11]/95 shadow-[0_20px_40px_rgba(0,0,0,0.85)]'
+          }`}
+        >
           <div className="grid grid-cols-2 gap-2 pb-2">
             <Link
               href="/"
@@ -169,6 +224,8 @@ export default function Navbar({
               className={`p-3 rounded-[10px] text-xs font-medium flex items-center gap-2.5 transition ${
                 activeRoute === 'home'
                   ? 'bg-[#FF7A00]/15 text-[#FF7A00] border border-[#FF7A00]/30 font-semibold'
+                  : isLight
+                  ? 'bg-gray-50 text-slate-700 hover:bg-gray-100 border border-gray-200'
                   : 'bg-white/[0.03] text-slate-300 hover:text-white hover:bg-white/[0.08] border border-white/5'
               }`}
             >
@@ -181,6 +238,8 @@ export default function Navbar({
               className={`p-3 rounded-[10px] text-xs font-medium flex items-center gap-2.5 transition ${
                 activeRoute === 'services'
                   ? 'bg-[#FF7A00]/15 text-[#FF7A00] border border-[#FF7A00]/30 font-semibold'
+                  : isLight
+                  ? 'bg-gray-50 text-slate-700 hover:bg-gray-100 border border-gray-200'
                   : 'bg-white/[0.03] text-slate-300 hover:text-white hover:bg-white/[0.08] border border-white/5'
               }`}
             >
@@ -193,6 +252,8 @@ export default function Navbar({
               className={`p-3 rounded-[10px] text-xs font-medium flex items-center gap-2.5 transition ${
                 activeRoute === 'pricing'
                   ? 'bg-[#FF7A00]/15 text-[#FF7A00] border border-[#FF7A00]/30 font-semibold'
+                  : isLight
+                  ? 'bg-gray-50 text-slate-700 hover:bg-gray-100 border border-gray-200'
                   : 'bg-white/[0.03] text-slate-300 hover:text-white hover:bg-white/[0.08] border border-white/5'
               }`}
             >
@@ -205,6 +266,8 @@ export default function Navbar({
               className={`p-3 rounded-[10px] text-xs font-medium flex items-center gap-2.5 transition ${
                 activeRoute === 'contact'
                   ? 'bg-[#FF7A00]/15 text-[#FF7A00] border border-[#FF7A00]/30 font-semibold'
+                  : isLight
+                  ? 'bg-gray-50 text-slate-700 hover:bg-gray-100 border border-gray-200'
                   : 'bg-white/[0.03] text-slate-300 hover:text-white hover:bg-white/[0.08] border border-white/5'
               }`}
             >
@@ -213,13 +276,17 @@ export default function Navbar({
             </Link>
           </div>
 
-          <div className="pt-2 border-t border-white/10 space-y-2">
+          <div className={`pt-2 border-t space-y-2 ${isLight ? 'border-gray-200' : 'border-white/10'}`}>
             <a
               href="https://wa.me/919876543210?text=Hi%20KUIRO%20Team%2C%20I%20would%20like%20to%20learn%20more"
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setMobileMenuOpen(false)}
-              className="w-full py-2.5 px-3 rounded-[10px] bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center justify-between"
+              className={`w-full py-2.5 px-3 rounded-[10px] border text-xs font-medium flex items-center justify-between ${
+                isLight
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                  : 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300'
+              }`}
             >
               <span className="flex items-center gap-2">
                 <Smartphone size={14} />
@@ -251,7 +318,11 @@ export default function Navbar({
                 <Link
                   href="/get-started?mode=signin"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="py-2.5 px-3 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] text-white text-xs font-sora font-semibold transition text-center border border-white/10 flex items-center justify-center gap-1.5 cursor-pointer"
+                  className={`py-2.5 px-3 rounded-xl text-xs font-sora font-semibold transition text-center border flex items-center justify-center gap-1.5 cursor-pointer ${
+                    isLight
+                      ? 'bg-gray-100 hover:bg-gray-200 text-[#0B0F14] border-gray-200'
+                      : 'bg-white/[0.08] hover:bg-white/[0.12] text-white border-white/10'
+                  }`}
                 >
                   <LogIn size={13} />
                   <span>Sign In</span>

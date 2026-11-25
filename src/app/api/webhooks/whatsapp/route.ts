@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { inngest } from '@/lib/inngest/client';
 import { safeDispatchInngest } from '@/lib/inngest/dispatcher';
-import { db, scheduledCampaigns, platformPosts, brandProfiles, conversations, inboxMessages, workspaces, socialConnections } from '@/db';
+import { db, scheduledCampaigns, conversations, workspaces, socialConnections } from '@/db';
 import { eq, and, desc, inArray } from 'drizzle-orm';
-import { generateWithGemini, transcribeAudioWithGemini } from '@/lib/ai/gemini';
 import { reviseCampaignSurgically } from '@/lib/campaigns/reviser';
 import { whatsappClient } from '@/lib/whatsapp/client';
 import { publishInboxEvent } from '@/lib/inbox/eventHub';
@@ -24,7 +23,6 @@ import {
 import {
   transitionCampaignState,
   handleUnpauseAndApproval,
-  handleLateRevision,
 } from '@/lib/campaigns/stateMachine';
 import { logger, getCorrelationId } from '@/lib/observability/logger';
 import { metrics } from '@/lib/observability/metrics';

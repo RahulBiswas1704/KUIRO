@@ -9,29 +9,9 @@ import CampaignRoiCalculator from '@/components/marketing/CampaignRoiCalculator'
 import {
   CheckCircle2,
   Sparkles,
-  ShieldCheck,
-  ArrowRight,
   Check,
   ChevronDown,
   ChevronRight,
-  Smartphone,
-  TrendingUp,
-  Layers,
-  Calendar,
-  Share2,
-  Palette,
-  Briefcase,
-  Zap,
-  Download,
-  BarChart3,
-  MessagesSquare,
-  Users,
-  Store,
-  UserCheck,
-  Stethoscope,
-  Globe2,
-  Lock,
-  FileText
 } from 'lucide-react';
 
 export default function PricingPage() {

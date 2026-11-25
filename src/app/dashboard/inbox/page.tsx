@@ -14,50 +14,29 @@ import {
   Send,
   Sparkles,
   Bot,
-  User,
   Users,
   ShieldCheck,
-  Tag,
-  AlertCircle,
-  Play,
-  Pause,
-  CornerDownRight,
   Plus,
-  Sliders,
   BarChart3,
-  PhoneCall,
-  Calendar,
-  DollarSign,
   TrendingUp,
   Zap,
-  ArrowRight,
   Lock,
-  Eye,
-  Check,
-  Building2,
-  FileText,
   Paperclip,
   Smile,
-  ChevronDown,
   X,
-  Radio,
-  Volume2,
-  RefreshCw,
   CreditCard,
   Trash2,
-  Loader2
+  Loader2,
 } from 'lucide-react';
 import InChatPaymentModal, { GeneratedPaymentData } from '@/components/inbox/InChatPaymentModal';
 import DynamicSnippetManagerModal, { QuickSnippetItem, DEFAULT_SNIPPETS } from '@/components/inbox/DynamicSnippetManagerModal';
 import {
   ConversationChannel,
   ConversationStatus,
-  ConversationPriority,
   Conversation,
   InboxMessage,
   TeamMember,
   AutomationFlowRule,
-  InboxAnalyticsSummary
 } from '@/types';
 
 // Mock Team Members

@@ -5,15 +5,12 @@ import { useAuth } from '@/context/AuthContext';
 import KuiroLogo from '@/components/brand/KuiroLogo';
 import {
   X,
-  Sparkles,
   ArrowRight,
   ShieldCheck,
   Lock,
   Mail,
   User as UserIcon,
   Building2,
-  CheckCircle2,
-  Zap
 } from 'lucide-react';
 
 export default function AuthModal() {

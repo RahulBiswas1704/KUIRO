@@ -4,28 +4,17 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   TrendingUp,
-  DollarSign,
-  Users,
   Calendar,
   CheckCircle2,
-  Sparkles,
   ArrowRight,
   ExternalLink,
   Smartphone,
   Instagram,
   Mail,
-  ShieldCheck,
   RefreshCw,
-  Plus,
-  ChevronDown,
-  ChevronUp,
   Check,
-  Tag,
-  Clock,
-  Layers,
-  Award,
   Download,
-  X as CloseIcon
+  X as CloseIcon,
 } from 'lucide-react';
 import ExecutiveRoiExporterModal from '@/components/dashboard/ExecutiveRoiExporterModal';
 import { WorkspaceRoiSummary, CampaignRoiMetric, AttributedLeadItem } from '@/types';

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, workspaces, brandProfiles, users } from '@/db';
+import { db, workspaces, brandProfiles } from '@/db';
 import { eq, and } from 'drizzle-orm';
-import { getSessionFromRequest, authorizeWorkspace } from '@/lib/auth';
+import { authorizeWorkspace } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 

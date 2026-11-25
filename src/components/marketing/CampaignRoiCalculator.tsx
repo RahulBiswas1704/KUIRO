@@ -7,18 +7,12 @@ import {
   TrendingUp,
   DollarSign,
   CheckCircle2,
-  Sparkles,
-  ArrowRight,
-  ShieldCheck,
   Copy,
   Check,
   Building2,
   Users,
-  Smartphone,
-  Share2,
   Zap,
-  BarChart3,
-  Download
+  Download,
 } from 'lucide-react';
 import ExecutiveRoiExporterModal from '@/components/dashboard/ExecutiveRoiExporterModal';
 import { useAuth } from '@/context/AuthContext';

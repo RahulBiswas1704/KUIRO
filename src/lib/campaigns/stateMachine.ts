@@ -1,6 +1,6 @@
-import { db, scheduledCampaigns, platformPosts, workspaces, socialConnections } from '@/db';
-import { eq, and, sql as drizzleSql, inArray } from 'drizzle-orm';
-import { CampaignStatus, AutopilotPolicyConfig } from '@/types/campaign';
+import { db, scheduledCampaigns, workspaces, socialConnections } from '@/db';
+import { eq, and, sql as drizzleSql } from 'drizzle-orm';
+import { CampaignStatus } from '@/types/campaign';
 
 export type FormalCampaignState = 
   | 'GENERATING'

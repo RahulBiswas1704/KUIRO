@@ -4,17 +4,11 @@ import React from 'react';
 import Link from 'next/link';
 import { AnnouncementBar, Navbar, Footer } from '@/components/layout';
 import {
-  FileText,
   Scale,
-  ShieldCheck,
-  CheckCircle2,
   Clock,
-  Smartphone,
   ArrowRight,
-  AlertCircle,
   CreditCard,
   Building2,
-  Zap
 } from 'lucide-react';
 
 export default function TermsAndConditionsPage() {

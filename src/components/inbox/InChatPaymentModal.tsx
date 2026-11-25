@@ -3,15 +3,11 @@
 import React, { useState } from 'react';
 import {
   CreditCard,
-  QrCode,
-  Smartphone,
   CheckCircle2,
   X,
-  Zap,
-  DollarSign,
   ShieldCheck,
   Send,
-  Copy
+  Copy,
 } from 'lucide-react';
 
 export interface GeneratedPaymentData {

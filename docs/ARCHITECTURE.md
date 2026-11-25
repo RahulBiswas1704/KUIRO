@@ -65,7 +65,8 @@
 ```
 src/
 ├── app/                        # Next.js 15 App Router pages & serverless API endpoints
-│   ├── (public)/               # Landing page, pricing, services, terms, privacy
+│   ├── (public)/               # Landing page (/), pricing, services, contact, legal, auth
+│   ├── invite/accept/          # Signed workspace team invitation onboarding
 │   ├── admin/                  # Level 5 Operator Admin Command Center (HMAC locked)
 │   ├── api/                    # 40+ REST & webhook endpoints
 │   │   ├── admin/              # Operator metrics, audits, alerts, and calendar sweeps
@@ -74,7 +75,7 @@ src/
 │   │   ├── brand-brain/        # URL extraction, profile persistence, logo upload
 │   │   ├── calendar/           # 365 Indian Cultural Radar, milestone triggers
 │   │   ├── campaigns/          # 48h campaign generation, approval, revisions, export
-│   │   ├── inbox/              # Multi-channel messaging, reply dispatch, SSE stream
+│   │   ├── inbox/              # Multi-channel messaging, automations, reply dispatch, SSE stream
 │   │   ├── inngest/            # Inngest webhook runtime
 │   │   ├── realtime/           # Shared pub/sub subscription authorization
 │   │   └── webhooks/           # Meta WhatsApp, Instagram, Messenger, Razorpay
@@ -90,36 +91,36 @@ src/
 │   ├── brand/                  # KuiroLogo SVG component
 │   ├── calendar/               # CustomMilestoneModal
 │   ├── dashboard/              # BrandStudioCanvas, CampaignRoiDashboard, Exporter
+│   ├── home/                   # HeroSection, GainsBentoSection, ProcessSteps, SocialProof, Faq
 │   ├── inbox/                  # DynamicSnippetManagerModal, InChatPaymentModal
 │   ├── layout/                 # Navbar, Footer, AnnouncementBar
-│   └── marketing/              # HeroMockups, CampaignRoiCalculator, SmbVerticalUseCases
+│   └── marketing/              # CampaignRoiCalculator
 ├── constants/                  # Persona definitions, channel configurations
 ├── context/                    # AuthContext (session state & active persona)
-├── data/                       # Static site navigation & footer metadata
 ├── db/                         # Drizzle ORM database access layer
 │   ├── migrations/             # Authoritative SQL migration files
+│   ├── index.ts                # Drizzle connection & instance
 │   ├── migrate.ts              # Programmatic migration executor
-│   ├── schema.ts               # Schema definitions (22 tables, 64 indexes)
-│   └── seed.ts                 # Seeding scripts for demo accounts & calendar
-├── lib/                        # 19 Mission-Critical Domain Subsystems
+│   ├── schema.ts               # Schema definitions (Auth, Brand Brain, Campaigns, Inbox, Billing, Alerts)
+│   └── seed.ts                 # Seeding scripts for workspaces & calendar
+├── lib/                        # Core Domain Subsystems
 │   ├── ai/                     # Gemini Flash Lite, 6D AI Critic, Voice Processing
 │   ├── brand-brain/            # URL Scraper, Knowledge Schemas, Logo Analysis
 │   ├── campaigns/              # 48-Hour FSM, Multi-Channel Generator, Surgical Reviser
 │   ├── cron/                   # Vercel Cron Authentication & Schedule Gate
 │   ├── crypto/                 # AES-256-GCM Authenticated Token Vault
-│   ├── email/                  # Transactional Email & Autonomous Newsletter Publisher
+│   ├── email/                  # Transactional Email, Invitations & Autonomous Newsletter Publisher
 │   ├── events/                 # Durable Events, Idempotency Key Builder, Classifier
-│   ├── inbox/                  # Omni-Channel Dispatcher, 24h Messaging Window
+│   ├── inbox/                  # Omni-Channel Dispatcher, Auto-Responder, 24h Messaging Window
 │   ├── inngest/                # Durable Workflow Client & Resilient Outbox Dispatcher
-│   ├── media/                  # Sharp Compositor & Bundled Indic Typography
+│   ├── media/                  # High-DPI Sharp Compositor & Bundled Indic Typography
 │   ├── observability/          # Structured JSON Logger, Telemetry Metrics, Alert Engine
 │   ├── publishers/             # Social Publishing Dispatchers
 │   ├── realtime/               # Distributed Shared Pub/Sub Engine
 │   ├── scheduler/              # Scheduler Inventory, Execution Engine & Telemetry
 │   ├── security/               # SSRF Protection & safeFetch IP Filter
-│   ├── social/                 # Meta OAuth, Token Auto-Refresh, Social Publishers
+│   ├── social/                 # Meta OAuth, Token Auto-Refresh, Social Publishers (incl. YouTube)
 │   ├── storage/                # Cloudflare R2 / Neon Object Storage Client
-│   ├── supabase/               # Read-only Supabase Compatibility Client
 │   ├── whatsapp/               # WhatsApp Cloud API, Webhook Security, Voice Transcriber
 │   ├── adminAuth.ts            # Level 5 Operator Authentication
 │   ├── auth.ts                 # User Session Management & Multi-Tenant Authorization

@@ -1,9 +1,9 @@
 # KUIRO — Brand Identity & Design System Specification
 
 <div align="center">
-  <img src="./public/brand/kuiro-symbol.png" width="120" alt="KUIRO Geometric Symbol" />
+  <img src="../public/brand/kuiro-symbol.png" width="120" alt="KUIRO Geometric Symbol" />
   <br />
-  <img src="./public/brand/kuiro-wordmark.png" width="220" alt="KUIRO Wordmark" />
+  <img src="../public/brand/kuiro-wordmark.png" width="220" alt="KUIRO Wordmark" />
 </div>
 
 > **"Your Always-On AI Marketing Employee."**  

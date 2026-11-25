@@ -9,16 +9,10 @@ import KuiroLogo from '@/components/brand/KuiroLogo';
 import {
   Smartphone,
   Mail,
-  ArrowRight,
   ShieldCheck,
-  Sparkles,
   RefreshCw,
-  CheckCircle2,
-  Lock,
-  Zap,
   Check,
-  ChevronRight,
-  AlertCircle
+  AlertCircle,
 } from 'lucide-react';
 
 export default function GetStartedAuthPage() {

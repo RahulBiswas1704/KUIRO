@@ -10,10 +10,7 @@ import {
   Mail,
   Lock,
   ArrowRight,
-  ShieldCheck,
-  Zap,
   CheckCircle2,
-  Sparkles
 } from 'lucide-react';
 
 function LoginFormContent() {

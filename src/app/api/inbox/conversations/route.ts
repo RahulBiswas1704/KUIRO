@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, conversations, inboxMessages, workspaces, users } from '@/db';
+import { db, conversations, inboxMessages, workspaces } from '@/db';
 import { desc, asc, eq, and } from 'drizzle-orm';
 import { ConversationChannel, ConversationStatus, ConversationPriority } from '@/types';
-import { getSessionFromRequest, authorizeWorkspace } from '@/lib/auth';
+import { authorizeWorkspace } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 

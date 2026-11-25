@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import SubscriptionCheckoutModal, { PlanTier } from '@/components/billing/SubscriptionCheckoutModal';
+import SubscriptionCheckoutModal from '@/components/billing/SubscriptionCheckoutModal';
 import {
   Settings,
   Building2,
@@ -13,19 +13,13 @@ import {
   AlertCircle,
   Copy,
   Check,
-  Clock,
-  Sparkles,
   ShieldCheck,
   Send,
   Loader2,
-  RefreshCw,
   Plus,
   Trash2,
-  FileText,
-  Languages,
   ToggleLeft,
   ToggleRight,
-  ExternalLink
 } from 'lucide-react';
 
 interface TeamMember {

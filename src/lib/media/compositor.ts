@@ -1,6 +1,6 @@
 import sharp from 'sharp';
 import { uploadToR2 } from '../storage/r2';
-import { detectIndicScript, getIndicFontFaceSvgStyle, IndicScript } from './indic-fonts';
+import { detectIndicScript, getIndicFontFaceSvgStyle } from './indic-fonts';
 
 export interface OverlayOptions {
   backgroundBuffer?: Buffer;

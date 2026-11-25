@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db, culturalEventsCalendar } from '@/db';
-import { sql as drizzleSql, asc } from 'drizzle-orm';
+import { asc } from 'drizzle-orm';
 import { getSessionFromRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';

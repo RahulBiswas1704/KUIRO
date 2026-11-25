@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { neon } from '@neondatabase/serverless';
-import { db, workspaces, users } from '@/db';
+import { db } from '@/db';
 import { sql as drizzleSql } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';

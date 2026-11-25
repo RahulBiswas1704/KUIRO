@@ -39,46 +39,51 @@ Your biggest competitive advantage will not be the raw AI model you use. It will
 KUIRO/
 ├── .github/
 │   └── workflows/              # GitHub Actions CI quality gates (.github/workflows/ci.yml)
+├── docs/                       # Architecture specification, brand foundation & manifesto
+│   ├── ARCHITECTURE.md         # System topology, directory map & state machines
+│   ├── BRAND_FOUNDATION.md     # Visual identity, logo system & typography rules
+│   └── PROJECT_MANIFESTO.md    # Product philosophy & core autonomy pillars
 ├── public/                     # Static assets, logos, brand vectors & Indic TTF fonts
 │   ├── brand/                  # Official KUIRO logos (SVG, PNG) & dark/light variants
 │   └── fonts/                  # Bundled Indic fonts (Bengali, Devanagari, Tamil)
 ├── src/
 │   ├── app/                    # Next.js 15 App Router pages & API routes
-│   │   ├── (public)/           # Public landing, pricing, services, legal pages
 │   │   ├── admin/              # Level 5 Operator Admin Command Center
 │   │   ├── api/                # 40+ Serverless API routes (admin, auth, campaigns, inbox, webhooks, etc.)
-│   │   └── dashboard/          # Client dashboard suite
-│   │       ├── brand-brain/    # Visual brand identity & Brand Brain studio
-│   │       ├── calendar/       # 365 Indian Cultural Radar & custom milestone builder
-│   │       ├── inbox/          # Unified Omni Inbox, quick snippets & UPI link generator
-│   │       ├── settings/       # Workspace profile, WhatsApp loop, billing & RBAC team seats
-│   │       └── simulator/      # Interactive WhatsApp 48h loop state machine simulator
+│   │   ├── dashboard/          # Client dashboard suite
+│   │   │   ├── brand-brain/    # Visual brand identity & Brand Brain studio
+│   │   │   ├── calendar/       # 365 Indian Cultural Radar & custom milestone builder
+│   │   │   ├── inbox/          # Unified Omni Inbox, quick snippets & UPI link generator
+│   │   │   ├── settings/       # Workspace profile, WhatsApp loop, billing & RBAC team seats
+│   │   │   └── simulator/      # Interactive WhatsApp 48h loop state machine simulator
+│   │   ├── invite/accept/      # Signed workspace team invitation onboarding
+│   │   └── (public pages)      # Landing page (/), pricing, services, contact, auth, legal
 │   ├── components/             # Reusable UI component modules (with barrel index exports)
-│   │   ├── auth/               # Authentication modals & Get Started triggers
+│   │   ├── auth/               # AuthModal & GetStartedButton triggers
 │   │   ├── billing/            # SubscriptionCheckoutModal (Razorpay / Cashfree / UPI)
 │   │   ├── brand/              # Dynamic SVG KuiroLogo component
 │   │   ├── calendar/           # CustomMilestoneModal (flash sales & anniversaries)
 │   │   ├── dashboard/          # BrandStudioCanvas, ROI Dashboard, Channels Modal, Exporter
+│   │   ├── home/               # Redesigned editorial landing page sections
 │   │   ├── inbox/              # DynamicSnippetManagerModal & InChatPaymentModal
 │   │   ├── layout/             # AnnouncementBar, Navbar, Footer
-│   │   └── marketing/          # HeroMockups, CampaignRoiCalculator, SmbVerticalUseCases
+│   │   └── marketing/          # CampaignRoiCalculator
 │   ├── constants/              # Multi-tenant personas, social channels configuration
 │   ├── context/                # Client-side AuthContext & persona simulation provider
-│   ├── data/                   # Navigation items and site metadata
 │   ├── db/                     # Neon PostgreSQL Drizzle connection, schema & migrations
 │   │   ├── migrations/         # Authoritative Drizzle SQL migration ledger
 │   │   ├── migrate.ts          # Migration executor (tsx src/db/migrate.ts)
-│   │   ├── schema.ts           # 22 tables, 64 indexes (Auth, Brand Brain, Campaigns, Inbox, Billing, Alerts, PubSub)
-│   │   └── seed.ts             # Initial demo workspace & cultural calendar seeds
-│   ├── lib/                    # 19 Mission-Critical Domain Subsystems (with index.ts barrel hub)
+│   │   ├── schema.ts           # Core relational schema (Auth, Brand Brain, Campaigns, Inbox, Billing, Alerts)
+│   │   └── seed.ts             # Initial workspace & cultural calendar seeds
+│   ├── lib/                    # Domain Subsystems (with index.ts barrel hub)
 │   │   ├── ai/                 # Gemini Flash Lite, 6D AI Critic, image analysis & voice transcription
 │   │   ├── brand-brain/        # URL knowledge extraction, schema validation, logo analysis
 │   │   ├── campaigns/          # 48-hour state machine, multi-channel generator, surgical reviser
 │   │   ├── cron/               # Vercel Cron authentication & timing validation
 │   │   ├── crypto/             # AES-256-GCM token vault with multi-version key rotation
-│   │   ├── email/              # Transactional email & autonomous newsletter publisher
+│   │   ├── email/              # Transactional email, invitations & autonomous newsletter publisher
 │   │   ├── events/             # Durable event handling, idempotency key builder & failure classifier
-│   │   ├── inbox/              # Omni-channel dispatch service, 24h messaging window, event hub
+│   │   ├── inbox/              # Omni-channel dispatch service, auto-responder, 24h window & event hub
 │   │   ├── inngest/            # Resilient outbox dispatcher & background cron workflows
 │   │   ├── media/              # High-DPI compositor, SVG ligature builder, Indic typography
 │   │   ├── observability/      # Structured JSON logger, multi-area metrics & anomaly alerts
@@ -88,7 +93,6 @@ KUIRO/
 │   │   ├── security/           # SSRF protection, private IP filtering, safeFetch
 │   │   ├── social/             # Meta OAuth, token auto-refresh, multi-channel publishers
 │   │   ├── storage/            # Cloudflare R2 / Neon Object Storage S3 client
-│   │   ├── supabase/           # Read-only Supabase compatibility client
 │   │   └── whatsapp/           # Meta WhatsApp Cloud API client, webhook security & voice processor
 │   └── types/                  # Centralized TypeScript interfaces and domain data models
 ├── tests/                      # Three-Tier Automated Quality Architecture
@@ -155,3 +159,10 @@ Visit [http://localhost:3000](http://localhost:3000) to view the KUIRO Autopilot
 npx inngest-cli@latest dev
 ```
 Navigate to [http://localhost:8288](http://localhost:8288) to inspect the 48-hour sleep state machine, retry queues, and function runs.
+
+---
+
+## 📚 Documentation
+- [System Architecture & Subsystems](./docs/ARCHITECTURE.md)
+- [Brand Identity & Design System](./docs/BRAND_FOUNDATION.md)
+- [Project Manifesto & Core Pillars](./docs/PROJECT_MANIFESTO.md)

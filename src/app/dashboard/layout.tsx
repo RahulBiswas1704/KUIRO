@@ -11,18 +11,13 @@ import {
   Share2,
   Settings,
   ChevronDown,
-  Sparkles,
   ExternalLink,
   Menu,
   X,
   BellRing,
   LogOut,
   MessagesSquare,
-  Building2,
-  Check,
   Loader2,
-  ShieldCheck,
-  UserCheck
 } from 'lucide-react';
 import KuiroLogo from '@/components/brand/KuiroLogo';
 import { useAuth } from '@/context/AuthContext';

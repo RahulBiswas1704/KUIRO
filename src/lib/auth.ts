@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { NextRequest } from 'next/server';
-import { db, users, workspaces, workspaceMembers, sessions, accounts, brandProfiles, verificationTokens } from '@/db';
+import { db, users, workspaces, workspaceMembers, sessions, brandProfiles, verificationTokens } from '@/db';
 import { eq, and, gt, desc } from 'drizzle-orm';
 
 export const SESSION_COOKIE_NAME = 'kuiro_session';

@@ -6,15 +6,7 @@ import {
   Download,
   Printer,
   FileSpreadsheet,
-  FileText,
-  Sparkles,
-  TrendingUp,
   ShieldCheck,
-  Building2,
-  Calendar,
-  CheckCircle2,
-  Share2,
-  DollarSign
 } from 'lucide-react';
 import { WorkspaceRoiSummary } from '@/types';
 

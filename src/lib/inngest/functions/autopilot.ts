@@ -2,7 +2,7 @@ import { inngest } from '../client';
 import { db, scheduledCampaigns, platformPosts, workspaces, brandProfiles } from '@/db';
 import { eq } from 'drizzle-orm';
 import { GeneratedAssetPayload } from '@/types';
-import { evaluateCampaignWithCritic, evaluateAndRefineCampaignCopy } from '@/lib/ai/critic';
+import { evaluateAndRefineCampaignCopy } from '@/lib/ai/critic';
 import { reviseCampaignSurgically } from '@/lib/campaigns/reviser';
 import { generateContactSheetGrid } from '@/lib/media/compositor';
 import { whatsappClient } from '@/lib/whatsapp/client';
