@@ -63,11 +63,13 @@ KUIRO/
 │   │   ├── billing/            # SubscriptionCheckoutModal (Razorpay / Cashfree / UPI)
 │   │   ├── brand/              # Dynamic SVG KuiroLogo component
 │   │   ├── calendar/           # CustomMilestoneModal (flash sales & anniversaries)
+│   │   ├── contact/            # ContactHeroSection, ContactHubAndFormSection & ContactFaqAndCta
 │   │   ├── dashboard/          # BrandStudioCanvas, ROI Dashboard, Channels Modal, Exporter
 │   │   ├── home/               # Redesigned editorial landing page sections
 │   │   ├── inbox/              # DynamicSnippetManagerModal & InChatPaymentModal
 │   │   ├── layout/             # AnnouncementBar, Navbar, Footer
 │   │   ├── marketing/          # CampaignRoiCalculator
+│   │   ├── pricing/            # PricingHeroAndPlans & PricingComparisonAndFaq
 │   │   └── services/           # ServicesHero, CapabilitiesExplorer, IndustriesAndSavings, ServicesFaq
 │   ├── constants/              # Multi-tenant personas, social channels configuration
 │   ├── context/                # Client-side AuthContext & persona simulation provider

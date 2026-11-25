@@ -65,7 +65,12 @@ const PRESETS: Record<string, IndustryPreset> = {
   },
 };
 
-export default function CampaignRoiCalculator() {
+export default function CampaignRoiCalculator({
+  theme = 'dark',
+}: {
+  theme?: 'dark' | 'light';
+}) {
+  const isLight = theme === 'light';
   const { isLoggedIn, handleGetStarted } = useAuth();
   const [selectedIndustry, setSelectedIndustry] = useState<string>('artisan');
 
@@ -120,23 +125,52 @@ export default function CampaignRoiCalculator() {
   };
 
   return (
-    <div className="rounded-[24px] bg-gradient-to-br from-[#0B0F14] via-[#101722] to-[#070B10] border border-white/15 p-6 sm:p-10 shadow-2xl relative overflow-hidden text-left font-inter">
+    <div
+      className={`rounded-[26px] p-6 sm:p-10 relative overflow-hidden text-left font-inter ${
+        isLight
+          ? 'bg-white border border-gray-200 shadow-[0_14px_40px_-24px_rgba(15,23,42,0.12)]'
+          : 'bg-gradient-to-br from-[#0B0F14] via-[#101722] to-[#070B10] border border-white/15 shadow-2xl'
+      }`}
+    >
       {/* Background Ambient Glow */}
-      <div className="absolute -top-32 -left-32 w-80 h-80 bg-[#FF7A00]/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+      {!isLight && (
+        <>
+          <div className="absolute -top-32 -left-32 w-80 h-80 bg-[#FF7A00]/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        </>
+      )}
 
       {/* Header & Preset Switcher */}
-      <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-white/10 gap-4">
+      <div
+        className={`relative z-10 flex flex-col md:flex-row md:items-center justify-between pb-6 border-b gap-4 ${
+          isLight ? 'border-gray-100' : 'border-white/10'
+        }`}
+      >
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF7A00]/15 text-[#FF7A00] text-xs font-semibold">
-            <Calculator size={14} />
-            <span>Dual-Engine Value Engine</span>
+          <div
+            className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${
+              isLight
+                ? 'bg-[#FFF5EB] border border-[#F5DEC6] text-[#C25400]'
+                : 'bg-[#FF7A00]/15 text-[#FF7A00]'
+            }`}
+          >
+            <Calculator size={14} className="text-[#FF7A00]" />
+            <span>ROI &amp; Revenue Calculator</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-sora font-bold text-white tracking-tight mt-2">
+          <h2
+            className={`text-2xl sm:text-3xl font-sora font-extrabold tracking-tight mt-2.5 ${
+              isLight ? 'text-[#0B0F14]' : 'text-white'
+            }`}
+          >
             Campaign ROI &amp; Revenue Attribution Calculator
           </h2>
-          <p className="text-xs sm:text-sm text-slate-400 max-w-2xl mt-1">
-            Calculate your combined financial return: <strong>New Inbound Customer Revenue</strong> attributed from WhatsApp &amp; social campaigns plus <strong>Agency Retainer Savings</strong>.
+          <p
+            className={`text-xs sm:text-sm max-w-2xl mt-1 ${
+              isLight ? 'text-[#4B5563]' : 'text-slate-400'
+            }`}
+          >
+            Calculate your combined monthly value: <strong>New Inbound Customer Revenue</strong> from
+            WhatsApp &amp; social campaigns plus <strong>Direct Retainer Savings</strong>.
           </p>
         </div>
 
@@ -144,52 +178,93 @@ export default function CampaignRoiCalculator() {
         <button
           type="button"
           onClick={handleCopyReport}
-          className="px-3.5 py-2 rounded-[10px] bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-xs font-medium border border-white/10 transition flex items-center gap-1.5 shrink-0 self-start md:self-auto cursor-pointer"
+          className={`px-3.5 py-2 rounded-xl text-xs font-medium border transition flex items-center gap-1.5 shrink-0 self-start md:self-auto cursor-pointer ${
+            isLight
+              ? 'bg-[#FAF8F5] hover:bg-[#F3EDE5] text-[#0B0F14] border-[#E8DFD4]'
+              : 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border-white/10'
+          }`}
         >
-          {copiedReport ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+          {copiedReport ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
           <span>{copiedReport ? 'Copied ROI Forecast!' : 'Share ROI Forecast'}</span>
         </button>
       </div>
 
       {/* Industry Archetype Selector */}
       <div className="relative z-10 pt-6">
-        <span className="text-[11px] font-mono uppercase text-slate-400 font-bold block mb-2.5">
-          Select Your Industry Model:
+        <span
+          className={`text-[11px] font-semibold uppercase tracking-wider block mb-2.5 ${
+            isLight ? 'text-gray-500' : 'text-slate-400 font-mono'
+          }`}
+        >
+          Select Your Business Type
         </span>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-          {Object.entries(PRESETS).map(([key, p]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => handleSelectPreset(key)}
-              className={`p-3 rounded-[12px] border text-left transition flex items-center gap-2.5 cursor-pointer ${
-                selectedIndustry === key
-                  ? 'bg-gradient-to-r from-[#FF7A00]/20 to-orange-950/30 border-[#FF7A00] text-white shadow-md'
-                  : 'bg-white/[0.03] border-white/10 text-slate-400 hover:bg-white/[0.06] hover:text-slate-200'
-              }`}
-            >
-              <span className="text-xl shrink-0">{p.emoji}</span>
-              <div className="truncate">
-                <span className="text-xs font-bold font-sora block truncate text-white">{p.name}</span>
-                <span className="text-[10px] text-slate-400 font-mono block">AOV: ₹{p.aov.toLocaleString('en-IN')}</span>
-              </div>
-            </button>
-          ))}
+          {Object.entries(PRESETS).map(([key, p]) => {
+            const active = selectedIndustry === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => handleSelectPreset(key)}
+                className={`p-3 rounded-xl border text-left transition flex items-center gap-2.5 cursor-pointer ${
+                  isLight
+                    ? active
+                      ? 'bg-[#FFF8F1] border-[#FF7A00] text-[#0B0F14] shadow-xs'
+                      : 'bg-[#FAF9F6] border-gray-200 text-[#374151] hover:border-[#FF7A00]/50'
+                    : active
+                    ? 'bg-gradient-to-r from-[#FF7A00]/20 to-orange-950/30 border-[#FF7A00] text-white shadow-md'
+                    : 'bg-white/[0.03] border-white/10 text-slate-400 hover:bg-white/[0.06] hover:text-slate-200'
+                }`}
+              >
+                <span className="text-xl shrink-0">{p.emoji}</span>
+                <div className="truncate">
+                  <span
+                    className={`text-xs font-bold font-sora block truncate ${
+                      isLight ? 'text-[#0B0F14]' : 'text-white'
+                    }`}
+                  >
+                    {p.name}
+                  </span>
+                  <span
+                    className={`text-[10px] font-mono block tabular-nums ${
+                      isLight ? 'text-gray-500' : 'text-slate-400'
+                    }`}
+                  >
+                    AOV: ₹{p.aov.toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Interactive Controls & Live Output Grid */}
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-8">
         {/* Left Column (7 Cols): 4 Real-Time Sliders */}
-        <div className="lg:col-span-7 space-y-6">
+        <div className="lg:col-span-7 space-y-4">
           {/* Slider 1: Monthly Inbound Inquiries */}
-          <div className="p-4 rounded-[14px] bg-white/[0.02] border border-white/10 space-y-2.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-300 font-medium flex items-center gap-1.5">
+          <div
+            className={`p-4 rounded-2xl border space-y-2.5 ${
+              isLight ? 'bg-[#FAF8F5] border-[#EFE7DE]' : 'bg-white/[0.02] border-white/10'
+            }`}
+          >
+            <div className="flex items-center justify-between text-xs gap-2">
+              <span
+                className={`font-medium flex items-center gap-1.5 ${
+                  isLight ? 'text-[#374151]' : 'text-slate-300'
+                }`}
+              >
                 <Users size={14} className="text-[#FF7A00]" />
                 <span>Monthly Inbound Inquiries (WhatsApp, DMs, Email)</span>
               </span>
-              <span className="font-mono text-sm font-bold text-white">{inquiriesPerMonth} Leads / mo</span>
+              <span
+                className={`font-mono text-sm font-bold tabular-nums shrink-0 ${
+                  isLight ? 'text-[#0B0F14]' : 'text-white'
+                }`}
+              >
+                {inquiriesPerMonth} Leads / mo
+              </span>
             </div>
             <input
               type="range"
@@ -198,9 +273,11 @@ export default function CampaignRoiCalculator() {
               step="5"
               value={inquiriesPerMonth}
               onChange={(e) => setInquiriesPerMonth(Number(e.target.value))}
-              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#FF7A00]"
+              className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-[#FF7A00] ${
+                isLight ? 'bg-[#E8DFD4]' : 'bg-slate-800'
+              }`}
             />
-            <div className="flex justify-between text-[10px] font-mono text-slate-500">
+            <div className="flex justify-between text-[10px] font-mono text-gray-500">
               <span>10 solo leads</span>
               <span>120 scaling brand</span>
               <span>250+ high velocity</span>
@@ -208,13 +285,25 @@ export default function CampaignRoiCalculator() {
           </div>
 
           {/* Slider 2: Average Order / Transaction Value */}
-          <div className="p-4 rounded-[14px] bg-white/[0.02] border border-white/10 space-y-2.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-300 font-medium flex items-center gap-1.5">
-                <DollarSign size={14} className="text-emerald-400" />
-                <span>Average Transaction / Customer Value (AOV)</span>
+          <div
+            className={`p-4 rounded-2xl border space-y-2.5 ${
+              isLight ? 'bg-[#FAF8F5] border-[#EFE7DE]' : 'bg-white/[0.02] border-white/10'
+            }`}
+          >
+            <div className="flex items-center justify-between text-xs gap-2">
+              <span
+                className={`font-medium flex items-center gap-1.5 ${
+                  isLight ? 'text-[#374151]' : 'text-slate-300'
+                }`}
+              >
+                <DollarSign size={14} className="text-emerald-600" />
+                <span>Average Transaction Value (AOV)</span>
               </span>
-              <span className="font-mono text-sm font-bold text-emerald-400">
+              <span
+                className={`font-mono text-sm font-bold tabular-nums shrink-0 ${
+                  isLight ? 'text-emerald-700' : 'text-emerald-400'
+                }`}
+              >
                 ₹{averageOrderValue.toLocaleString('en-IN')}
               </span>
             </div>
@@ -225,23 +314,35 @@ export default function CampaignRoiCalculator() {
               step="1000"
               value={averageOrderValue}
               onChange={(e) => setAverageOrderValue(Number(e.target.value))}
-              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+              className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-emerald-600 ${
+                isLight ? 'bg-[#E8DFD4]' : 'bg-slate-800'
+              }`}
             />
-            <div className="flex justify-between text-[10px] font-mono text-slate-500">
+            <div className="flex justify-between text-[10px] font-mono text-gray-500">
               <span>₹1k Retail</span>
-              <span>₹25k Bespoke Silk / Luxury</span>
-              <span>₹1,00,000 High-Ticket / B2B</span>
+              <span>₹25k Bespoke / Wellness</span>
+              <span>₹1,00,000 High-Ticket</span>
             </div>
           </div>
 
           {/* Slider 3: Conversion Rate */}
-          <div className="p-4 rounded-[14px] bg-white/[0.02] border border-white/10 space-y-2.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-300 font-medium flex items-center gap-1.5">
+          <div
+            className={`p-4 rounded-2xl border space-y-2.5 ${
+              isLight ? 'bg-[#FAF8F5] border-[#EFE7DE]' : 'bg-white/[0.02] border-white/10'
+            }`}
+          >
+            <div className="flex items-center justify-between text-xs gap-2">
+              <span
+                className={`font-medium flex items-center gap-1.5 ${
+                  isLight ? 'text-[#374151]' : 'text-slate-300'
+                }`}
+              >
                 <TrendingUp size={14} className="text-[#FF7A00]" />
-                <span>Lead-to-Order Conversion Rate (WhatsApp Utility Closes)</span>
+                <span>Lead-to-Order Close Rate</span>
               </span>
-              <span className="font-mono text-sm font-bold text-[#FF7A00]">{conversionRate}% Close Rate</span>
+              <span className="font-mono text-sm font-bold text-[#FF7A00] tabular-nums shrink-0">
+                {conversionRate}% Close Rate
+              </span>
             </div>
             <input
               type="range"
@@ -250,23 +351,37 @@ export default function CampaignRoiCalculator() {
               step="1"
               value={conversionRate}
               onChange={(e) => setConversionRate(Number(e.target.value))}
-              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#FF7A00]"
+              className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-[#FF7A00] ${
+                isLight ? 'bg-[#E8DFD4]' : 'bg-slate-800'
+              }`}
             />
-            <div className="flex justify-between text-[10px] font-mono text-slate-500">
+            <div className="flex justify-between text-[10px] font-mono text-gray-500">
               <span>5% Cold web form</span>
               <span>18% Standard WhatsApp</span>
-              <span>40% Repeat / High intent</span>
+              <span>40% Repeat buyers</span>
             </div>
           </div>
 
           {/* Slider 4: Current Monthly Agency / Freelancer Spend */}
-          <div className="p-4 rounded-[14px] bg-white/[0.02] border border-white/10 space-y-2.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-300 font-medium flex items-center gap-1.5">
-                <Building2 size={14} className="text-sky-400" />
-                <span>Current Monthly Agency / Graphic Retainer Spend</span>
+          <div
+            className={`p-4 rounded-2xl border space-y-2.5 ${
+              isLight ? 'bg-[#FAF8F5] border-[#EFE7DE]' : 'bg-white/[0.02] border-white/10'
+            }`}
+          >
+            <div className="flex items-center justify-between text-xs gap-2">
+              <span
+                className={`font-medium flex items-center gap-1.5 ${
+                  isLight ? 'text-[#374151]' : 'text-slate-300'
+                }`}
+              >
+                <Building2 size={14} className="text-[#FF7A00]" />
+                <span>Current Monthly Agency / Freelancer Spend</span>
               </span>
-              <span className="font-mono text-sm font-bold text-sky-300">
+              <span
+                className={`font-mono text-sm font-bold tabular-nums shrink-0 ${
+                  isLight ? 'text-[#0B0F14]' : 'text-sky-300'
+                }`}
+              >
                 ₹{currentAgencySpend.toLocaleString('en-IN')} / mo
               </span>
             </div>
@@ -277,10 +392,12 @@ export default function CampaignRoiCalculator() {
               step="5000"
               value={currentAgencySpend}
               onChange={(e) => setCurrentAgencySpend(Number(e.target.value))}
-              className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-sky-500"
+              className={`w-full h-2 rounded-lg appearance-none cursor-pointer accent-[#FF7A00] ${
+                isLight ? 'bg-[#E8DFD4]' : 'bg-slate-800'
+              }`}
             />
-            <div className="flex justify-between text-[10px] font-mono text-slate-500">
-              <span>₹15k Part-time freelancer</span>
+            <div className="flex justify-between text-[10px] font-mono text-gray-500">
+              <span>₹15k Freelancer</span>
               <span>₹50k Boutique agency</span>
               <span>₹1.5L Full-service team</span>
             </div>
@@ -288,72 +405,143 @@ export default function CampaignRoiCalculator() {
         </div>
 
         {/* Right Column (5 Cols): Live Dynamic Output Matrix */}
-        <div className="lg:col-span-5 bg-gradient-to-b from-[#141A24] via-[#0E131B] to-[#0A0D12] p-6 rounded-[20px] border-2 border-[#FF7A00] shadow-2xl relative space-y-5 text-center">
-          <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold font-mono tracking-wider">
-            <Zap size={11} className="text-emerald-400 fill-emerald-400" />
+        <div
+          className={`lg:col-span-5 p-6 rounded-[22px] border-2 border-[#FF7A00] relative space-y-5 text-center ${
+            isLight
+              ? 'bg-[#FFFDF9] shadow-[0_18px_40px_-24px_rgba(255,122,0,0.3)]'
+              : 'bg-gradient-to-b from-[#141A24] via-[#0E131B] to-[#0A0D12] shadow-2xl'
+          }`}
+        >
+          <div
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider ${
+              isLight
+                ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                : 'bg-emerald-500/20 text-emerald-300 font-mono'
+            }`}
+          >
+            <Zap
+              size={11}
+              className={
+                isLight ? 'text-emerald-600 fill-emerald-600' : 'text-emerald-400 fill-emerald-400'
+              }
+            />
             <span>ESTIMATED FINANCIAL ADVANTAGE</span>
           </div>
 
           {/* Big Multiplier Badge */}
           <div className="space-y-1">
-            <span className="text-4xl sm:text-5xl font-extrabold font-sora text-transparent bg-clip-text bg-gradient-to-r from-[#FF7A00] via-amber-300 to-emerald-400 block tracking-tight">
+            <span className="text-4xl sm:text-5xl font-extrabold font-sora text-transparent bg-clip-text bg-gradient-to-r from-[#FF7A00] to-emerald-600 block tracking-tight tabular-nums">
               {roiMultiple}x ROI
             </span>
-            <span className="text-xs text-slate-300 font-medium">
-              Net Financial Multiple vs. KUIRO ₹{KUIRO_GROWTH_PRICE.toLocaleString('en-IN')}/mo
+            <span
+              className={`text-xs font-medium block ${
+                isLight ? 'text-gray-600' : 'text-slate-300'
+              }`}
+            >
+              Return vs. KUIRO ₹{KUIRO_GROWTH_PRICE.toLocaleString('en-IN')}/mo
             </span>
           </div>
 
           {/* Breakdown Metric Cards */}
-          <div className="grid grid-cols-2 gap-2.5 pt-2 text-left">
-            <div className="p-3 rounded-[12px] bg-white/[0.04] border border-white/10 space-y-1">
-              <span className="text-[10px] font-mono uppercase text-slate-400 block">Attributed Revenue:</span>
-              <span className="text-lg font-bold font-sora text-emerald-400 block">
+          <div className="grid grid-cols-2 gap-2.5 pt-1 text-left">
+            <div
+              className={`p-3 rounded-xl border space-y-1 ${
+                isLight ? 'bg-white border-gray-200' : 'bg-white/[0.04] border-white/10'
+              }`}
+            >
+              <span className="text-[10px] font-semibold uppercase text-gray-500 block">
+                Attributed Revenue
+              </span>
+              <span
+                className={`text-lg font-extrabold font-sora tabular-nums block ${
+                  isLight ? 'text-emerald-700' : 'text-emerald-400'
+                }`}
+              >
                 ₹{monthlyAttributedRevenue.toLocaleString('en-IN')}
               </span>
-              <span className="text-[10px] text-slate-400 font-mono block">
+              <span className="text-[10px] text-gray-500 font-mono block tabular-nums">
                 {payingCustomers} orders @ ₹{averageOrderValue.toLocaleString('en-IN')}
               </span>
             </div>
 
-            <div className="p-3 rounded-[12px] bg-white/[0.04] border border-white/10 space-y-1">
-              <span className="text-[10px] font-mono uppercase text-slate-400 block">Retainer Savings:</span>
-              <span className="text-lg font-bold font-sora text-amber-300 block">
+            <div
+              className={`p-3 rounded-xl border space-y-1 ${
+                isLight ? 'bg-white border-gray-200' : 'bg-white/[0.04] border-white/10'
+              }`}
+            >
+              <span className="text-[10px] font-semibold uppercase text-gray-500 block">
+                Retainer Savings
+              </span>
+              <span
+                className={`text-lg font-extrabold font-sora tabular-nums block ${
+                  isLight ? 'text-[#FF7A00]' : 'text-amber-300'
+                }`}
+              >
                 ₹{monthlyAgencySavings.toLocaleString('en-IN')}
               </span>
-              <span className="text-[10px] text-slate-400 font-mono block">
-                saved every month
-              </span>
+              <span className="text-[10px] text-gray-500 font-mono block">saved every month</span>
             </div>
           </div>
 
           {/* Annualized Economic Impact Banner */}
-          <div className="p-3.5 rounded-[14px] bg-gradient-to-r from-emerald-950/50 to-slate-900 border border-emerald-500/30 text-left space-y-1">
-            <div className="flex items-center justify-between text-xs font-mono font-bold text-emerald-300">
+          <div
+            className={`p-3.5 rounded-xl border text-left space-y-1 ${
+              isLight
+                ? 'bg-emerald-50/70 border-emerald-200'
+                : 'bg-gradient-to-r from-emerald-950/50 to-slate-900 border-emerald-500/30'
+            }`}
+          >
+            <div
+              className={`flex items-center justify-between text-xs font-bold ${
+                isLight ? 'text-emerald-800' : 'text-emerald-300 font-mono'
+              }`}
+            >
               <span className="flex items-center gap-1.5">
-                <CheckCircle2 size={14} className="text-emerald-400" />
-                <span>Annual Combined Advantage:</span>
+                <CheckCircle2
+                  size={14}
+                  className={isLight ? 'text-emerald-600' : 'text-emerald-400'}
+                />
+                <span>Annual Advantage</span>
               </span>
-              <span className="text-sm font-sora">₹{combinedAnnualValue.toLocaleString('en-IN')} / yr</span>
+              <span className="text-sm font-sora tabular-nums">
+                ₹{combinedAnnualValue.toLocaleString('en-IN')} / yr
+              </span>
             </div>
-            <p className="text-[10px] text-slate-300 font-inter leading-relaxed">
-              Includes ₹{annualAttributedRevenue.toLocaleString('en-IN')} projected top-line pipeline + ₹{annualAgencySavings.toLocaleString('en-IN')} direct cost reduction.
+            <p
+              className={`text-[10px] font-inter leading-relaxed ${
+                isLight ? 'text-emerald-900/80' : 'text-slate-300'
+              }`}
+            >
+              Includes ₹{annualAttributedRevenue.toLocaleString('en-IN')} projected customer revenue
+              + ₹{annualAgencySavings.toLocaleString('en-IN')} direct retainer savings.
             </p>
           </div>
 
           {/* Verified Features Strip */}
-          <div className="text-left text-xs font-mono text-slate-300 space-y-2 pt-2 border-t border-white/10">
+          <div
+            className={`text-left text-xs space-y-2 pt-2 border-t ${
+              isLight ? 'border-gray-200 text-gray-600' : 'border-white/10 font-mono text-slate-300'
+            }`}
+          >
             <div className="flex items-center justify-between">
-              <span className="text-slate-400">WhatsApp 48-Hour Review:</span>
-              <span className="text-white font-bold">&lt; 15s Revisions</span>
+              <span>WhatsApp 48-Hour Review:</span>
+              <span className={`font-bold ${isLight ? 'text-[#0B0F14]' : 'text-white'}`}>
+                &lt; 15s Revisions
+              </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-slate-400">Campaign Attribution:</span>
-              <span className="text-emerald-400 font-bold">100% UTM &amp; WA Tagged</span>
+              <span>Campaign Attribution:</span>
+              <span
+                className={`font-bold ${isLight ? 'text-emerald-700' : 'text-emerald-400'}`}
+              >
+                UTM &amp; WhatsApp Tagged
+              </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-slate-400">Time Saved Per Week:</span>
-              <span className="text-white font-bold">8+ Hours</span>
+              <span>Weekly Time Saved:</span>
+              <span className={`font-bold ${isLight ? 'text-[#0B0F14]' : 'text-white'}`}>
+                8+ Hours
+              </span>
             </div>
           </div>
 
@@ -362,19 +550,23 @@ export default function CampaignRoiCalculator() {
             <button
               type="button"
               onClick={handleGetStarted}
-              className="w-full py-3.5 rounded-[12px] bg-[#FF7A00] hover:bg-[#FF881A] text-white text-xs font-sora font-semibold transition block shadow-lg shadow-[#FF7A00]/25 active:scale-95 cursor-pointer"
+              className="w-full py-3.5 rounded-xl bg-[#FF7A00] hover:bg-[#E06C00] text-white text-xs sm:text-sm font-sora font-bold transition block shadow-sm cursor-pointer"
             >
               {isLoggedIn ? 'Go to Dashboard' : 'Claim 14-Day Free Autopilot Trial'}
             </button>
             <button
               type="button"
               onClick={() => setIsExporterOpen(true)}
-              className="w-full py-2.5 rounded-[12px] bg-white/5 hover:bg-white/10 text-slate-200 border border-white/15 text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer"
+              className={`w-full py-2.5 rounded-xl border text-xs font-semibold transition flex items-center justify-center gap-2 cursor-pointer ${
+                isLight
+                  ? 'bg-white hover:bg-gray-50 text-[#0B0F14] border-gray-200'
+                  : 'bg-white/5 hover:bg-white/10 text-slate-200 border-white/15'
+              }`}
             >
               <Download size={13} className="text-[#FF7A00]" />
               <span>Export Executive ROI (PDF/CSV)</span>
             </button>
-            <p className="text-[10px] text-slate-400 mt-2 font-mono text-center">
+            <p className="text-[10px] text-gray-500 mt-1 text-center">
               No credit card required • 14 days risk-free
             </p>
           </div>

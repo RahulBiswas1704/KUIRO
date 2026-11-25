@@ -90,11 +90,13 @@ src/
 │   ├── billing/                # SubscriptionCheckoutModal
 │   ├── brand/                  # KuiroLogo SVG component
 │   ├── calendar/               # CustomMilestoneModal
+│   ├── contact/                # ContactHeroSection, ContactHubAndFormSection, ContactFaqAndCta
 │   ├── dashboard/              # BrandStudioCanvas, CampaignRoiDashboard, Exporter
 │   ├── home/                   # HeroSection, GainsBentoSection, ProcessSteps, SocialProof, Faq
 │   ├── inbox/                  # DynamicSnippetManagerModal, InChatPaymentModal
 │   ├── layout/                 # Navbar, Footer, AnnouncementBar
 │   ├── marketing/              # CampaignRoiCalculator
+│   ├── pricing/                # PricingHeroAndPlans & PricingComparisonAndFaq
 │   └── services/               # ServicesHero, CapabilitiesExplorer, IndustriesAndSavings, ServicesFaq
 ├── constants/                  # Persona definitions, channel configurations
 ├── context/                    # AuthContext (session state & active persona)
