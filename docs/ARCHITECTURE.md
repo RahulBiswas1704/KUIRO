@@ -86,7 +86,7 @@ src/
 │       ├── settings/           # Workspace profile, WhatsApp admin phone, team RBAC
 │       └── simulator/          # Interactive 48-hour state machine simulator
 ├── components/                 # Domain-partitioned UI components
-│   ├── auth/                   # AuthModal, GetStartedButton
+│   ├── auth/                   # AuthModal, AuthPageShell, GetStartedButton
 │   ├── billing/                # SubscriptionCheckoutModal
 │   ├── brand/                  # KuiroLogo SVG, KuiroLoader & RouteLoaderProvider
 │   ├── calendar/               # CustomMilestoneModal

@@ -30,6 +30,17 @@ export interface NavbarProps {
   className?: string;
 }
 
+const NAV_LINKS: Array<{
+  route: 'home' | 'services' | 'pricing' | 'contact';
+  href: string;
+  label: string;
+}> = [
+  { route: 'home', href: '/', label: 'Home' },
+  { route: 'services', href: '/services', label: 'Services' },
+  { route: 'pricing', href: '/pricing', label: 'Pricing' },
+  { route: 'contact', href: '/contact', label: 'Contact Us' },
+];
+
 export default function Navbar({
   activeRoute = 'home',
   theme = 'dark',
@@ -58,27 +69,35 @@ export default function Navbar({
       className={`${floating ? 'fixed left-0 right-0 top-3.5' : 'sticky top-0 sm:top-3.5'} z-50 transition-all duration-300 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full ${className}`}
     >
       <div
-        className={`transition-all duration-300 rounded-2xl sm:rounded-full px-4 sm:px-6 py-2.5 sm:py-3 border backdrop-blur-2xl flex items-center justify-between ${
+        className={`relative overflow-hidden transition-all duration-300 rounded-2xl sm:rounded-full px-4 sm:px-6 py-2.5 sm:py-3 border backdrop-blur-2xl backdrop-saturate-[1.8] flex items-center justify-between ${
           isLight
             ? scrolled
-              ? 'bg-white/90 border-black/[0.08] shadow-[0_14px_36px_-10px_rgba(15,23,42,0.12)]'
-              : 'bg-white/80 border-black/[0.08] shadow-[0_8px_24px_-8px_rgba(15,23,42,0.08)]'
+              ? 'bg-white/70 border-white/80 ring-1 ring-black/[0.05] shadow-[0_18px_42px_-12px_rgba(11,15,20,0.16),inset_0_1px_1.5px_rgba(255,255,255,0.95)]'
+              : 'bg-white/55 hover:bg-white/62 border-white/70 ring-1 ring-black/[0.04] shadow-[0_12px_36px_-10px_rgba(11,15,20,0.18),inset_0_1px_1.5px_rgba(255,255,255,0.9)]'
             : scrolled
-            ? 'bg-[#080B11]/88 border-white/[0.14] shadow-[0_16px_40px_-12px_rgba(0,0,0,0.85),0_0_24px_rgba(255,122,0,0.06),inset_0_1px_1px_rgba(255,255,255,0.16)]'
-            : 'bg-[#0A0E17]/70 border-white/[0.09] shadow-[0_12px_32px_-10px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.08)]'
+            ? 'bg-[#0B0F14]/65 border-white/[0.18] shadow-[0_18px_42px_-12px_rgba(0,0,0,0.75),inset_0_1px_1px_rgba(255,255,255,0.22)]'
+            : 'bg-[#0B0F14]/45 border-white/[0.14] shadow-[0_12px_32px_-10px_rgba(0,0,0,0.55),inset_0_1px_1px_rgba(255,255,255,0.16)]'
         }`}
       >
+        {/* Top Specular Glass Rim Reflection */}
+        <span
+          aria-hidden="true"
+          className={`pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent ${
+            isLight ? 'via-white' : 'via-white/40'
+          } to-transparent`}
+        />
+
         {/* Left: Brand Identity Lockup */}
-        <div className="flex items-center gap-3.5 flex-shrink-0">
+        <div className="relative z-10 flex items-center gap-3.5 flex-shrink-0">
           <Link href="/" className="focus:outline-none flex items-center flex-shrink-0 group">
             <KuiroLogo variant="primary" theme={isLight ? 'light' : 'dark'} symbolSize={32} showTagline={false} />
           </Link>
           {badgeText && (
             <div
-              className={`hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono border ${
+              className={`hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono border backdrop-blur-md ${
                 isLight
-                  ? 'bg-black/[0.03] border-black/[0.08] text-slate-600'
-                  : 'bg-white/[0.03] border-white/[0.08] text-slate-400'
+                  ? 'bg-white/50 border-white/70 text-slate-700'
+                  : 'bg-white/[0.06] border-white/[0.12] text-slate-300'
               }`}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-[#FF7A00]" />
@@ -87,78 +106,40 @@ export default function Navbar({
           )}
         </div>
 
-        {/* Center: Floating Pill Navigation Menu */}
+        {/* Center: Frosted Glass Pill Navigation Menu */}
         <nav
-          className={`hidden md:flex items-center p-1 rounded-full border ${
+          aria-label="Primary navigation"
+          className={`relative z-10 hidden md:flex items-center p-1 rounded-full border backdrop-blur-xl ${
             isLight
-              ? 'bg-black/[0.04] border-black/[0.06]'
-              : 'bg-white/[0.03] border-white/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.06)]'
+              ? 'bg-white/35 border-white/60 shadow-[inset_0_1px_1px_rgba(255,255,255,0.7)]'
+              : 'bg-white/[0.06] border-white/[0.12] shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]'
           }`}
         >
-          <Link
-            href="/"
-            className={`px-4 py-1.5 rounded-full text-xs transition-all duration-200 flex items-center gap-1.5 ${
-              activeRoute === 'home'
-                ? isLight
-                  ? 'bg-white text-[#0B0F14] font-semibold shadow-xs'
-                  : 'bg-white/10 text-white font-semibold shadow-sm'
-                : isLight
-                ? 'text-slate-600 hover:text-[#0B0F14] hover:bg-white/70'
-                : 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
-            }`}
-          >
-            {activeRoute === 'home' && <span className="w-1.5 h-1.5 rounded-full bg-[#FF7A00]" />}
-            <span>Home</span>
-          </Link>
-          <Link
-            href="/services"
-            className={`px-4 py-1.5 rounded-full text-xs transition-all duration-200 flex items-center gap-1.5 ${
-              activeRoute === 'services'
-                ? isLight
-                  ? 'bg-white text-[#0B0F14] font-semibold shadow-xs'
-                  : 'bg-white/10 text-white font-semibold shadow-sm'
-                : isLight
-                ? 'text-slate-600 hover:text-[#0B0F14] hover:bg-white/70'
-                : 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
-            }`}
-          >
-            {activeRoute === 'services' && <span className="w-1.5 h-1.5 rounded-full bg-[#FF7A00]" />}
-            <span>Services</span>
-          </Link>
-          <Link
-            href="/pricing"
-            className={`px-4 py-1.5 rounded-full text-xs transition-all duration-200 flex items-center gap-1.5 ${
-              activeRoute === 'pricing'
-                ? isLight
-                  ? 'bg-white text-[#0B0F14] font-semibold shadow-xs'
-                  : 'bg-white/10 text-white font-semibold shadow-sm'
-                : isLight
-                ? 'text-slate-600 hover:text-[#0B0F14] hover:bg-white/70'
-                : 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
-            }`}
-          >
-            {activeRoute === 'pricing' && <span className="w-1.5 h-1.5 rounded-full bg-[#FF7A00]" />}
-            <span>Pricing</span>
-          </Link>
-          <Link
-            href="/contact"
-            className={`px-4 py-1.5 rounded-full text-xs transition-all duration-200 flex items-center gap-1.5 ${
-              activeRoute === 'contact'
-                ? isLight
-                  ? 'bg-white text-[#0B0F14] font-semibold shadow-xs'
-                  : 'bg-white/10 text-white font-semibold shadow-sm'
-                : isLight
-                ? 'text-slate-600 hover:text-[#0B0F14] hover:bg-white/70'
-                : 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
-            }`}
-          >
-            {activeRoute === 'contact' && <span className="w-1.5 h-1.5 rounded-full bg-[#FF7A00]" />}
-            <span>Contact Us</span>
-          </Link>
+          {NAV_LINKS.map((item) => {
+            const isActive = activeRoute === item.route;
+            return (
+              <Link
+                key={item.route}
+                href={item.href}
+                className={`px-4 py-1.5 rounded-full text-xs transition-all duration-200 flex items-center gap-1.5 ${
+                  isActive
+                    ? isLight
+                      ? 'bg-white/85 text-[#0B0F14] font-semibold border border-white/90 shadow-[0_2px_10px_rgba(15,23,42,0.08),inset_0_1px_0_rgba(255,255,255,1)]'
+                      : 'bg-white/15 text-white font-semibold border border-white/20 shadow-sm'
+                    : isLight
+                    ? 'text-[#0B0F14]/75 hover:text-[#0B0F14] hover:bg-white/50'
+                    : 'text-slate-200/85 hover:text-white hover:bg-white/[0.08]'
+                }`}
+              >
+                {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#FF7A00]" />}
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Right: Channels Online Status & Primary CTA */}
-        <div className="flex items-center gap-3">
+        <div className="relative z-10 flex items-center gap-3">
           {rightContent ? (
             rightContent
           ) : (
@@ -175,8 +156,8 @@ export default function Navbar({
                   href="/get-started?mode=signin"
                   className={`hidden sm:inline-block text-xs font-medium px-3.5 py-1.5 rounded-full transition cursor-pointer ${
                     isLight
-                      ? 'text-slate-700 hover:text-[#0B0F14] hover:bg-black/[0.05]'
-                      : 'text-slate-300 hover:text-white hover:bg-white/[0.06]'
+                      ? 'text-[#0B0F14]/80 hover:text-[#0B0F14] hover:bg-white/60'
+                      : 'text-slate-200 hover:text-white hover:bg-white/[0.08]'
                   } ${activeRoute === 'get-started' ? 'font-semibold' : ''}`}
                 >
                   Sign In
@@ -186,7 +167,7 @@ export default function Navbar({
               <GetStartedButton
                 className={
                   isLight && !isLoggedIn
-                    ? '!bg-[#0B0F14] !text-white hover:!bg-[#1F2937] !shadow-md'
+                    ? '!bg-[#0B0F14]/90 !text-white hover:!bg-[#0B0F14] !border !border-white/15 !shadow-[0_8px_20px_-6px_rgba(11,15,20,0.35)] backdrop-blur-md'
                     : ''
                 }
               />
@@ -196,10 +177,10 @@ export default function Navbar({
           {/* Mobile Menu Toggle Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className={`md:hidden p-2 rounded-[10px] border transition-colors ${
+            className={`md:hidden p-2 rounded-[10px] border transition-colors backdrop-blur-md ${
               isLight
-                ? 'bg-black/[0.04] border-black/10 text-slate-700 hover:text-[#0B0F14]'
-                : 'bg-white/[0.05] border-white/10 text-slate-300 hover:text-white hover:bg-white/10'
+                ? 'bg-white/50 border-white/70 text-[#0B0F14] hover:bg-white/75'
+                : 'bg-white/[0.08] border-white/15 text-slate-200 hover:text-white hover:bg-white/15'
             }`}
             aria-label="Toggle Navigation Menu"
           >
@@ -211,10 +192,10 @@ export default function Navbar({
       {/* Mobile Navigation Dropdown Drawer */}
       {mobileMenuOpen && (
         <div
-          className={`md:hidden mt-2 rounded-2xl border backdrop-blur-2xl px-4 py-5 space-y-3 animate-fade-in ${
+          className={`md:hidden mt-2 rounded-2xl border backdrop-blur-2xl backdrop-saturate-[1.8] px-4 py-5 space-y-3 animate-fade-in ${
             isLight
-              ? 'border-black/10 bg-white/95 text-[#0B0F14] shadow-xl'
-              : 'border-white/10 bg-[#080B11]/95 shadow-[0_20px_40px_rgba(0,0,0,0.85)]'
+              ? 'border-white/75 bg-white/75 text-[#0B0F14] shadow-[0_24px_48px_-14px_rgba(11,15,20,0.22),inset_0_1px_1px_rgba(255,255,255,0.9)]'
+              : 'border-white/15 bg-[#0B0F14]/75 shadow-[0_20px_40px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.12)]'
           }`}
         >
           <div className="grid grid-cols-2 gap-2 pb-2">

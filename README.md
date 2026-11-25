@@ -59,7 +59,7 @@ KUIRO/
 │   │   ├── invite/accept/      # Signed workspace team invitation onboarding
 │   │   └── (public pages)      # Landing page (/), pricing, services, contact, auth, legal
 │   ├── components/             # Reusable UI component modules (with barrel index exports)
-│   │   ├── auth/               # AuthModal & GetStartedButton triggers
+│   │   ├── auth/               # AuthModal, AuthPageShell & GetStartedButton triggers
 │   │   ├── billing/            # SubscriptionCheckoutModal (Razorpay / Cashfree / UPI)
 │   │   ├── brand/              # Dynamic SVG KuiroLogo, KuiroLoader & RouteLoaderProvider
 │   │   ├── calendar/           # CustomMilestoneModal (flash sales & anniversaries)
