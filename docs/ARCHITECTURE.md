@@ -95,6 +95,7 @@ src/
 │   ├── home/                   # HeroSection, GainsBentoSection, ProcessSteps, SocialProof, Faq
 │   ├── inbox/                  # DynamicSnippetManagerModal, InChatPaymentModal
 │   ├── layout/                 # Navbar, Footer, AnnouncementBar
+│   ├── legal/                  # Shared LegalPageShell for Privacy, Terms & Disclaimer
 │   ├── marketing/              # CampaignRoiCalculator
 │   ├── pricing/                # PricingHeroAndPlans & PricingComparisonAndFaq
 │   └── services/               # ServicesHero, CapabilitiesExplorer, IndustriesAndSavings, ServicesFaq

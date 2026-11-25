@@ -68,6 +68,7 @@ KUIRO/
 │   │   ├── home/               # Redesigned editorial landing page sections
 │   │   ├── inbox/              # DynamicSnippetManagerModal & InChatPaymentModal
 │   │   ├── layout/             # AnnouncementBar, Navbar, Footer
+│   │   ├── legal/              # Shared LegalPageShell for Privacy, Terms & Disclaimer
 │   │   ├── marketing/          # CampaignRoiCalculator
 │   │   ├── pricing/            # PricingHeroAndPlans & PricingComparisonAndFaq
 │   │   └── services/           # ServicesHero, CapabilitiesExplorer, IndustriesAndSavings, ServicesFaq

@@ -2,220 +2,205 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { AnnouncementBar, Navbar, Footer } from '@/components/layout';
-import {
-  AlertTriangle,
-  Scale,
-  Stethoscope,
-  TrendingUp,
-  ArrowRight,
-  Info,
-} from 'lucide-react';
+import { AlertTriangle, Info, Scale, Stethoscope, TrendingUp } from 'lucide-react';
+import { LegalPageShell, LegalSummaryItem, LegalTocItem } from '@/components/legal';
+
+const HIGHLIGHTS: LegalSummaryItem[] = [
+  {
+    icon: <Info size={16} className="text-[#FF7A00]" />,
+    title: 'AI Editorial Responsibility',
+    desc: 'Review generated claims and prices within the 48-hour WhatsApp review window.',
+  },
+  {
+    icon: <TrendingUp size={16} className="text-emerald-600" />,
+    title: 'ROI & Performance',
+    desc: 'Example metrics show benchmark cohorts; real results vary by execution.',
+  },
+  {
+    icon: <Scale size={16} className="text-blue-600" />,
+    title: 'Not Professional Advice',
+    desc: 'Software never replaces licensed medical, legal, or financial counsel.',
+  },
+];
+
+const TOC: LegalTocItem[] = [
+  { id: 'general', num: '01.', label: 'General Information' },
+  { id: 'ai-discretion', num: '02.', label: 'AI Content & Review Control' },
+  { id: 'regulated', num: '03.', label: 'Industry Regulatory Notices' },
+  { id: 'roi', num: '04.', label: 'Marketing Performance & ROI' },
+  { id: 'algorithms', num: '05.', label: 'Third-Party Algorithms' },
+  { id: 'legal-desk', num: '06.', label: 'Questions & Legal Inquiries' },
+];
 
 export default function DisclaimerPage() {
   const lastUpdated = 'November 14, 2026';
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col font-sans selection:bg-[#FF7A00] selection:text-white">
-      {/* Top Announcement Bar */}
-      <AnnouncementBar subtitle="— Important legal, AI content, and industry-specific regulatory disclosures." />
+    <LegalPageShell
+      activeDoc="disclaimer"
+      badgeIcon={<AlertTriangle size={14} className="text-amber-300" />}
+      badgeText="Product & Regulatory Disclosures"
+      title="Legal Disclaimer"
+      subtitle="Important disclosures regarding AI-generated content review, industry compliance boundaries, and performance estimates."
+      effectiveDate="November 14, 2026"
+      lastUpdated={lastUpdated}
+      highlights={HIGHLIGHTS}
+      toc={TOC}
+    >
+      {/* 01 */}
+      <section id="general" className="space-y-3 scroll-mt-28">
+        <h2 className="text-xl font-sora font-bold text-[#0B0F14] flex items-center gap-2.5">
+          <span className="text-[#FF7A00] font-mono text-base">01.</span>
+          <span>General Information Disclaimer</span>
+        </h2>
+        <p>
+          Information, software workflows, automation tools, and creative templates provided by{' '}
+          <strong>KUIRO Technologies Inc.</strong> (&quot;KUIRO&quot;) at{' '}
+          <Link href="https://kuiro.vercel.app" className="text-[#FF7A00] font-medium underline">
+            kuiro.vercel.app
+          </Link>{' '}
+          and within our application dashboard are furnished strictly for business marketing,
+          customer communication, and scheduling support.
+        </p>
+        <p>
+          KUIRO is a software-as-a-service (SaaS) platform and does not render licensed medical,
+          legal, tax, investment, or fiduciary advertising agency services. All final decisions on
+          pricing, commercial claims, offers, and regulatory disclosures remain the customer’s
+          responsibility.
+        </p>
+      </section>
 
-      {/* Main Navbar */}
-      <Navbar activeRoute="none" badgeText="Legal & Trust" />
-
-      {/* Hero Header */}
-      <header className="relative pt-16 pb-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-[#FF7A00]/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 space-y-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-950/70 border border-amber-700/50 text-amber-300 text-xs font-mono">
-            <AlertTriangle size={14} className="text-amber-400" />
-            <span>Product & Regulatory Disclosures</span>
-          </div>
-
-          <h1 className="text-4xl sm:text-5xl font-sora font-bold text-white tracking-tight">
-            Legal Disclaimer
-          </h1>
-
-          <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto font-inter">
-            Important information regarding AI-generated marketing content, industry regulatory compliance, and performance attribution.
+      {/* 02 */}
+      <section id="ai-discretion" className="space-y-3 scroll-mt-28">
+        <h2 className="text-xl font-sora font-bold text-[#0B0F14] flex items-center gap-2.5">
+          <span className="text-[#FF7A00] font-mono text-base">02.</span>
+          <span>AI-Generated Marketing Content &amp; Editorial Discretion</span>
+        </h2>
+        <div className="p-5 rounded-2xl bg-[#FFF8F1] border border-[#F0DFCF] space-y-2.5 text-xs sm:text-sm">
+          <p className="text-[#0B0F14] leading-relaxed">
+            <strong>Algorithmic Synthesis:</strong> KUIRO combines generative models, Brand Brain
+            memory, and programmatic layout engines to prepare captions, graphics, showroom slides,
+            and emails.
           </p>
-
-          <div className="flex items-center justify-center gap-4 text-xs font-mono text-slate-500 pt-2">
-            <span>Effective Date: November 14, 2026</span>
-            <span>•</span>
-            <span>Last Updated: {lastUpdated}</span>
-          </div>
+          <p className="text-[#374151] leading-relaxed">
+            While your workspace Brand Brain anchors generated output to your verified materials,
+            automated models can still misread context or introduce wording inaccuracies.
+          </p>
+          <p className="text-[#0B0F14] font-semibold leading-relaxed">
+            To preserve full brand oversight, KUIRO sends every draft to your WhatsApp 48 hours early
+            for approval. You are responsible for verifying prices, offers, promo codes, contact
+            details, and mandatory disclosures before publishing.
+          </p>
         </div>
-      </header>
+      </section>
 
-      {/* Quick Summary Strip */}
-      <section className="px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto w-full mb-10">
-        <div className="p-4 sm:p-5 rounded-[14px] bg-[#0B0F14] border border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-inter">
-          <div className="flex items-start gap-2.5">
-            <Info size={16} className="text-[#FF7A00] shrink-0 mt-0.5" />
-            <div>
-              <strong className="text-white block font-sora">AI Editorial Responsibility</strong>
-              <span className="text-slate-400">Review all generated campaign copy and prices within the 48h review window.</span>
-            </div>
+      {/* 03 */}
+      <section id="regulated" className="space-y-3 scroll-mt-28">
+        <h2 className="text-xl font-sora font-bold text-[#0B0F14] flex items-center gap-2.5">
+          <span className="text-[#FF7A00] font-mono text-base">03.</span>
+          <span>Industry-Specific Regulatory Disclaimers</span>
+        </h2>
+        <p>
+          Businesses operating in regulated Indian sectors must verify outgoing material meets
+          applicable professional rules:
+        </p>
+        <div className="space-y-3">
+          <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-[#EFE7DE] space-y-1.5 text-xs sm:text-sm">
+            <strong className="font-sora text-[#0B0F14] flex items-center gap-2">
+              <Stethoscope size={15} className="text-emerald-600" />
+              <span>Healthcare &amp; Clinical Practices</span>
+            </strong>
+            <p className="text-[#4B5563] leading-relaxed">
+              Posts drafted for clinics, dentists, dermatologists, and wellness centers are for
+              general patient education only and never constitute medical diagnosis or treatment.
+              Campaigns must adhere to National Medical Commission (NMC) Professional Conduct rules
+              and Consumer Protection guidelines.
+            </p>
           </div>
-          <div className="flex items-start gap-2.5">
-            <TrendingUp size={16} className="text-emerald-400 shrink-0 mt-0.5" />
-            <div>
-              <strong className="text-white block font-sora">ROI & Performance</strong>
-              <span className="text-slate-400">Case metrics reflect benchmark cohorts; individual sales results vary by execution.</span>
-            </div>
+
+          <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-[#EFE7DE] space-y-1.5 text-xs sm:text-sm">
+            <strong className="font-sora text-[#0B0F14] flex items-center gap-2">
+              <TrendingUp size={15} className="text-blue-600" />
+              <span>Financial &amp; Investment Services</span>
+            </strong>
+            <p className="text-[#4B5563] leading-relaxed">
+              Educational or promotional posts for advisors and fintech brands do not constitute
+              SEBI-registered investment counsel or stock recommendations. Include statutory risk
+              disclosures wherever required.
+            </p>
           </div>
-          <div className="flex items-start gap-2.5">
-            <Scale size={16} className="text-blue-400 shrink-0 mt-0.5" />
-            <div>
-              <strong className="text-white block font-sora">Not Professional Advice</strong>
-              <span className="text-slate-400">Software does not substitute for medical, legal, or licensed financial counsel.</span>
-            </div>
+
+          <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-[#EFE7DE] space-y-1.5 text-xs sm:text-sm">
+            <strong className="font-sora text-[#0B0F14] flex items-center gap-2">
+              <Scale size={15} className="text-[#FF7A00]" />
+              <span>Legal Services &amp; Consultancies</span>
+            </strong>
+            <p className="text-[#4B5563] leading-relaxed">
+              Updates shared by advocates or legal firms are purely informational, create no
+              attorney-client relationship, and must follow Bar Council of India guidelines.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* Main Disclaimer Body */}
-      <main className="flex-1 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto w-full pb-20">
-        <div className="p-6 sm:p-10 rounded-[18px] bg-[#0B0F14] border border-white/15 space-y-10 text-slate-300 font-inter text-sm leading-relaxed shadow-xl">
-          
-          {/* Section 1 */}
-          <section className="space-y-3">
-            <h2 className="text-xl font-sora font-bold text-white flex items-center gap-2">
-              <span className="text-[#FF7A00] font-mono text-base">01.</span>
-              <span>General Information Disclaimer</span>
-            </h2>
-            <p>
-              The information, software tools, marketing automation features, and creative materials provided by <strong>KUIRO Technologies Inc.</strong> (&quot;KUIRO&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) on <Link href="https://kuiro.vercel.app" className="text-[#FF7A00] underline">kuiro.vercel.app</Link> and associated dashboards are provided for business marketing, communication, and promotional automation purposes only.
-            </p>
-            <p>
-              KUIRO is an autonomous software-as-a-service (SaaS) platform. We do not provide licensed legal, medical, accounting, financial, or formal advertising agency fiduciary services. All decisions regarding business promotion, product pricing, customer terms, and public disclosures remain solely the customer&apos;s responsibility.
-            </p>
-          </section>
+      {/* 04 */}
+      <section id="roi" className="space-y-3 scroll-mt-28">
+        <h2 className="text-xl font-sora font-bold text-[#0B0F14] flex items-center gap-2.5">
+          <span className="text-[#FF7A00] font-mono text-base">04.</span>
+          <span>Marketing Performance &amp; ROI Disclaimers</span>
+        </h2>
+        <p>
+          Case examples and ROI calculator estimates (such as time saved, cost-per-lead ranges, and
+          attributed revenue projections) represent illustrative benchmarks under normal conditions.
+        </p>
+        <p>
+          These examples <strong>do not guarantee specific revenue, walk-in traffic, or close rates</strong>{' '}
+          for your business, as conversion outcomes depend on product demand, local pricing, ad
+          budgets, seasonality, and front-desk sales execution.
+        </p>
+      </section>
 
-          {/* Section 2 */}
-          <section className="space-y-3">
-            <h2 className="text-xl font-sora font-bold text-white flex items-center gap-2">
-              <span className="text-[#FF7A00] font-mono text-base">02.</span>
-              <span>AI-Generated Marketing Content & Editorial Discretion</span>
-            </h2>
-            <div className="p-4 rounded-[12px] bg-gradient-to-r from-orange-950/30 to-[#0B0F14] border border-[#FF7A00]/30 space-y-2 text-xs">
-              <p className="text-slate-200">
-                <strong>Algorithmic Content Generation:</strong> KUIRO utilizes generative artificial intelligence, neural embeddings (pgvector), and programmatic layout compositing to synthesize marketing copy, social media graphics, 1080p TV slides, and email newsletters.
-              </p>
-              <p className="text-slate-300">
-                While KUIRO&apos;s Persistent Brand Brain strictly references your ingested business materials, AI models may occasionally produce inaccuracies, misinterpret colloquial nuances, or hallucinate details.
-              </p>
-              <p className="text-slate-200 font-semibold">
-                To guarantee complete brand control, KUIRO delivers all campaigns 48 hours in advance via WhatsApp. You are responsible for reviewing and verifying all factual claims, pricing offers, discount codes, contact phone numbers, and legal disclosures before allowing publication.
-              </p>
-            </div>
-          </section>
+      {/* 05 */}
+      <section id="algorithms" className="space-y-3 scroll-mt-28">
+        <h2 className="text-xl font-sora font-bold text-[#0B0F14] flex items-center gap-2.5">
+          <span className="text-[#FF7A00] font-mono text-base">05.</span>
+          <span>Third-Party Social Media Platforms &amp; Algorithm Changes</span>
+        </h2>
+        <p>
+          KUIRO connects to Instagram, Facebook, YouTube, LinkedIn, and X via official platform
+          APIs. Networks regularly evolve ranking algorithms, reach distribution, and API pricing.
+        </p>
+        <p>
+          Features like first-reply link routing on X follow best practices to protect organic
+          visibility, though KUIRO cannot guarantee uninterrupted algorithmic reach across third-party
+          networks.
+        </p>
+      </section>
 
-          {/* Section 3 */}
-          <section className="space-y-3">
-            <h2 className="text-xl font-sora font-bold text-white flex items-center gap-2">
-              <span className="text-[#FF7A00] font-mono text-base">03.</span>
-              <span>Industry-Specific Regulatory Disclaimers</span>
-            </h2>
-            <p className="text-xs text-slate-300">
-              Users operating in regulated Indian industries must comply with respective regulatory guidelines when using KUIRO:
-            </p>
-
-            <div className="space-y-3 pt-1">
-              <div className="p-3.5 rounded-[12px] bg-[#11141A] border border-white/5 space-y-1 text-xs">
-                <strong className="text-white font-sora flex items-center gap-2">
-                  <Stethoscope size={14} className="text-emerald-400" />
-                  <span>Healthcare & Clinical Practices</span>
-                </strong>
-                <p className="text-slate-400 leading-relaxed">
-                  Content generated for clinics, dentists, dermatologists, and healthcare professionals is intended for general patient education and awareness only. It does not constitute medical advice, diagnosis, or treatment. All health-related campaigns must comply with the National Medical Commission (NMC) Professional Conduct Regulations and Consumer Protection Act guidelines in India.
-                </p>
-              </div>
-
-              <div className="p-3.5 rounded-[12px] bg-[#11141A] border border-white/5 space-y-1 text-xs">
-                <strong className="text-white font-sora flex items-center gap-2">
-                  <TrendingUp size={14} className="text-blue-400" />
-                  <span>Financial & Investment Services</span>
-                </strong>
-                <p className="text-slate-400 leading-relaxed">
-                  Content generated for wealth managers, fintechs, or advisors does not constitute SEBI-registered investment advice, stock recommendations, or financial solicitations. Users must ensure mandatory risk disclosures are included where required by law.
-                </p>
-              </div>
-
-              <div className="p-3.5 rounded-[12px] bg-[#11141A] border border-white/5 space-y-1 text-xs">
-                <strong className="text-white font-sora flex items-center gap-2">
-                  <Scale size={14} className="text-purple-400" />
-                  <span>Legal Services & Consultancies</span>
-                </strong>
-                <p className="text-slate-400 leading-relaxed">
-                  Information generated for legal consultancies or advocates is for informational purposes only and does not establish an attorney-client relationship. Content must adhere to Bar Council of India advertising guidelines.
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* Section 4 */}
-          <section className="space-y-3">
-            <h2 className="text-xl font-sora font-bold text-white flex items-center gap-2">
-              <span className="text-[#FF7A00] font-mono text-base">04.</span>
-              <span>Marketing Performance & ROI Disclaimers</span>
-            </h2>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Case studies, performance benchmarks, and return-on-investment metrics displayed on our website (such as &quot;5.2x Average ROI&quot;, &quot;+44% Inquiries&quot;, &quot;94% Retainer Savings&quot;, or cost-per-lead estimates) represent real or simulated results achieved by specific benchmark cohorts under controlled parameters.
-            </p>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              These figures are illustrative and <strong>do not constitute a guarantee of specific revenue, footfall, sales volume, or conversion rates</strong> for your business. Marketing success is influenced by factors outside KUIRO&apos;s control, including product demand, seasonal market shifts, local competition, advertising expenditure, and front-desk sales follow-up.
-            </p>
-          </section>
-
-          {/* Section 5 */}
-          <section className="space-y-3">
-            <h2 className="text-xl font-sora font-bold text-white flex items-center gap-2">
-              <span className="text-[#FF7A00] font-mono text-base">05.</span>
-              <span>Third-Party Social Media Platforms & Algorithm Changes</span>
-            </h2>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              KUIRO publishes content across third-party social media networks (Instagram, Facebook, LinkedIn, X / Twitter) using their official public APIs. Social networks frequently update their ranking algorithms, distribution models, content policies, and API pricing (such as link surcharges on X).
-            </p>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              While KUIRO&apos;s &quot;Zero-Link Surcharge Guard&quot; and formatting algorithms are continuously engineered to comply with platform best practices, we cannot guarantee constant algorithmic reach or prevent changes enacted unilaterally by third-party social media networks.
-            </p>
-          </section>
-
-          {/* Section 6 */}
-          <section className="space-y-3">
-            <h2 className="text-xl font-sora font-bold text-white flex items-center gap-2">
-              <span className="text-[#FF7A00] font-mono text-base">06.</span>
-              <span>Questions & Legal Inquiries</span>
-            </h2>
-            <p className="text-xs text-slate-300">
-              For questions regarding this Disclaimer or our regulatory compliance safeguards, please contact our legal and compliance desk at:
-            </p>
-            <div className="p-4 rounded-[12px] bg-[#11141A] border border-white/5 text-xs space-y-1 font-mono text-slate-300">
-              <div className="font-bold text-white font-sora text-sm">KUIRO Technologies Inc. • Compliance & Legal Desk</div>
-              <div>Email: <a href="mailto:legal@kuiro.in" className="text-[#FF7A00] underline">legal@kuiro.in</a> / <a href="mailto:support@kuiro.in" className="text-[#FF7A00] underline">support@kuiro.in</a></div>
-              <div>Operating Address: Kolkata, West Bengal, India</div>
-            </div>
-          </section>
-
-          {/* Navigation Links */}
-          <div className="pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4 text-xs font-mono">
-            <Link href="/privacy" className="text-[#FF7A00] hover:underline flex items-center gap-1.5">
-              <span>Read Privacy Policy</span>
-              <ArrowRight size={13} />
-            </Link>
-            <Link href="/terms" className="text-slate-400 hover:text-white transition">
-              Read Terms & Conditions →
-            </Link>
+      {/* 06 */}
+      <section id="legal-desk" className="space-y-3 scroll-mt-28">
+        <h2 className="text-xl font-sora font-bold text-[#0B0F14] flex items-center gap-2.5">
+          <span className="text-[#FF7A00] font-mono text-base">06.</span>
+          <span>Questions &amp; Legal Inquiries</span>
+        </h2>
+        <p>For questions about these disclosures or regulatory safeguards, contact our legal desk:</p>
+        <div className="p-5 rounded-2xl bg-[#FAF8F5] border border-[#EFE7DE] text-xs space-y-1.5 font-mono text-[#374151]">
+          <div className="font-bold text-[#0B0F14] font-sora text-sm">
+            KUIRO Technologies Inc. • Compliance &amp; Legal Desk
           </div>
+          <div>
+            Email:{' '}
+            <a href="mailto:legal@kuiro.in" className="text-[#FF7A00] font-semibold underline">
+              legal@kuiro.in
+            </a>{' '}
+            /{' '}
+            <a href="mailto:support@kuiro.in" className="text-[#FF7A00] font-semibold underline">
+              support@kuiro.in
+            </a>
+          </div>
+          <div>Operating Address: Kolkata, West Bengal, India</div>
         </div>
-      </main>
-
-      {/* Global Footer */}
-      <Footer />
-    </div>
+      </section>
+    </LegalPageShell>
   );
 }
-

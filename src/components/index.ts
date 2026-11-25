@@ -7,6 +7,7 @@ export * from './dashboard';
 export * from './home';
 export * from './inbox';
 export * from './layout';
+export * from './legal';
 export * from './marketing';
 export * from './pricing';
 export * from './services';
