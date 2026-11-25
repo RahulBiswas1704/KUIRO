@@ -6,19 +6,19 @@ import KuiroLoader from './KuiroLoader';
 
 /**
  * Provides:
- * 1. A smooth, personalized KUIRO geometric entrance curtain on initial website load
- *    that adapts automatically to light public pages and dark dashboard/admin workspaces.
- * 2. A sleek #FF7A00 top progress hairline during client-side Next.js route changes.
+ * 1. A kinetic KUIRO vector-draw entrance reveal on initial load that adapts
+ *    to light editorial pages (#FAF9F6) and dark dashboard/admin workspaces (#0B0F14).
+ * 2. A whisper-thin #FF7A00 top hairline indicator during Next.js route changes.
  */
 export default function RouteLoaderProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || '/';
   const isDarkRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/admin');
 
   const [showSplash, setShowSplash] = useState(true);
-  const [isFading, setIsFading] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
 
-  // Initial page-entry brand choreography
+  // Initial page-entry vector choreography (~950ms hold -> smooth 320ms lift-fade)
   useEffect(() => {
     const prefersReduced =
       typeof window !== 'undefined' &&
@@ -30,12 +30,12 @@ export default function RouteLoaderProvider({ children }: { children: React.Reac
     }
 
     const fadeTimer = window.setTimeout(() => {
-      setIsFading(true);
-    }, 680);
+      setIsExiting(true);
+    }, 980);
 
     const unmountTimer = window.setTimeout(() => {
       setShowSplash(false);
-    }, 1020);
+    }, 1320);
 
     return () => {
       window.clearTimeout(fadeTimer);
@@ -43,12 +43,10 @@ export default function RouteLoaderProvider({ children }: { children: React.Reac
     };
   }, []);
 
-  // Clear route navigation progress whenever pathname settles
   useEffect(() => {
     setIsNavigating(false);
   }, [pathname]);
 
-  // Listen for internal Next.js Link clicks to show the top progress indicator immediately
   useEffect(() => {
     const handleAnchorClick = (e: MouseEvent) => {
       if (e.defaultPrevented || e.button !== 0) return;
@@ -75,7 +73,7 @@ export default function RouteLoaderProvider({ children }: { children: React.Reac
 
         setIsNavigating(true);
       } catch {
-        // Ignore malformed links safely
+        // Ignore malformed links
       }
     };
 
@@ -83,7 +81,6 @@ export default function RouteLoaderProvider({ children }: { children: React.Reac
     return () => document.removeEventListener('click', handleAnchorClick);
   }, []);
 
-  // Safety timeout if a route transition aborts or resolves to the same path
   useEffect(() => {
     if (!isNavigating) return;
     const safety = window.setTimeout(() => setIsNavigating(false), 4000);
@@ -92,28 +89,28 @@ export default function RouteLoaderProvider({ children }: { children: React.Reac
 
   return (
     <>
-      {/* Sleek Top Route Transition Shimmer Bar */}
       {isNavigating && (
         <div
           aria-hidden="true"
-          className="fixed top-0 left-0 right-0 h-[3px] z-[120] overflow-hidden bg-transparent pointer-events-none"
+          className="fixed top-0 left-0 right-0 h-[2.5px] z-[120] overflow-hidden bg-transparent pointer-events-none"
         >
-          <div className="kuiro-loader-bar w-2/5 h-full bg-gradient-to-r from-[#FF7A00] via-[#FFB36B] to-[#FF7A00] shadow-[0_0_12px_rgba(255,122,0,0.65)]" />
+          <div className="kuiro-loader-bar w-2/5 h-full bg-gradient-to-r from-[#FF7A00] via-[#FFB36B] to-[#FF7A00]" />
         </div>
       )}
 
-      {/* Personalized Geometric Logo Intro Curtain */}
       {showSplash && (
         <div
-          aria-hidden={isFading}
-          className={`fixed inset-0 z-[110] transition-opacity duration-300 ease-out ${
-            isFading ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          aria-hidden={isExiting}
+          className={`fixed inset-0 z-[110] transition-all duration-300 ease-out ${
+            isExiting
+              ? 'opacity-0 -translate-y-2 pointer-events-none'
+              : 'opacity-100 translate-y-0'
           }`}
         >
           <KuiroLoader
             variant="fullscreen"
+            mode="once"
             theme={isDarkRoute ? 'dark' : 'light'}
-            sublabel="Create · Approve · Grow"
           />
         </div>
       )}

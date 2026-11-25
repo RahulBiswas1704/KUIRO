@@ -168,67 +168,86 @@ button, .kuiro-btn {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee,
-  .kuiro-loader-ring,
-  .kuiro-loader-spine,
-  .kuiro-loader-upper,
-  .kuiro-loader-lower,
-  .kuiro-loader-halo,
+  .kuiro-stroke-once,
+  .kuiro-stroke-loop,
+  .kuiro-wordmark-wipe,
+  .kuiro-beat-word,
   .kuiro-loader-bar {
     animation: none !important;
+    clip-path: none !important;
+    fill-opacity: 1 !important;
+    stroke-dashoffset: 0 !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
 /* ==========================================================================
-   Personalized KUIRO Brand Logo Loader Keyframes
+   Personalized KUIRO Kinetic Logo Loader (Blueprint Trace -> Ink Bloom)
    ========================================================================== */
-@keyframes kuiroOrbitSpin {
+@keyframes kuiroStrokeOnce {
   0% {
-    transform: rotate(0deg);
+    stroke-dashoffset: 100;
+    fill-opacity: 0;
+    stroke-opacity: 0.95;
+  }
+  58% {
+    stroke-dashoffset: 0;
+    fill-opacity: 0.12;
+    stroke-opacity: 1;
   }
   100% {
-    transform: rotate(360deg);
+    stroke-dashoffset: 0;
+    fill-opacity: 1;
+    stroke-opacity: 0;
   }
 }
 
-@keyframes kuiroArcPulse {
+@keyframes kuiroStrokeLoop {
   0% {
-    stroke-dashoffset: 185;
+    stroke-dashoffset: 100;
+    fill-opacity: 0;
+    stroke-opacity: 0.9;
   }
-  50% {
-    stroke-dashoffset: 52;
+  38% {
+    stroke-dashoffset: 0;
+    fill-opacity: 0.15;
+    stroke-opacity: 1;
+  }
+  58%,
+  78% {
+    stroke-dashoffset: 0;
+    fill-opacity: 1;
+    stroke-opacity: 0;
   }
   100% {
-    stroke-dashoffset: 185;
+    stroke-dashoffset: -100;
+    fill-opacity: 0;
+    stroke-opacity: 0.45;
   }
 }
 
-@keyframes kuiroPartAssemble {
-  0%,
-  12% {
-    opacity: 0.25;
-    transform: translate(var(--kuiro-dx, 0px), var(--kuiro-dy, 0px)) scale(0.94);
+@keyframes kuiroWordmarkWipe {
+  0% {
+    clip-path: inset(0 100% 0 0);
+    opacity: 0.2;
+    transform: translateX(-8px);
   }
-  38%,
-  72% {
+  100% {
+    clip-path: inset(0 0% 0 0);
     opacity: 1;
-    transform: translate(0px, 0px) scale(1);
-  }
-  92%,
-  100% {
-    opacity: 0.25;
-    transform: translate(var(--kuiro-dx, 0px), var(--kuiro-dy, 0px)) scale(0.94);
+    transform: translateX(0);
   }
 }
 
-@keyframes kuiroHaloBreathe {
-  0%,
-  100% {
-    opacity: 0.45;
-    transform: scale(0.96);
+@keyframes kuiroBeatWord {
+  0% {
+    opacity: 0.25;
+    transform: translateY(4px);
   }
-  50% {
-    opacity: 0.85;
-    transform: scale(1.06);
+  100% {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -241,37 +260,30 @@ button, .kuiro-btn {
   }
 }
 
-.kuiro-loader-ring {
-  transform-origin: center;
-  animation: kuiroOrbitSpin 1.75s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite,
-    kuiroArcPulse 1.75s ease-in-out infinite;
+.kuiro-stroke-once {
+  stroke-dasharray: 100 100;
+  stroke-dashoffset: 100;
+  fill-opacity: 0;
+  animation: kuiroStrokeOnce 0.72s cubic-bezier(0.22, 1, 0.36, 1) var(--kuiro-delay, 0ms) forwards;
 }
 
-.kuiro-loader-spine {
-  --kuiro-dx: 0px;
-  --kuiro-dy: -28px;
-  transform-origin: center;
-  animation: kuiroPartAssemble 1.85s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+.kuiro-stroke-loop {
+  stroke-dasharray: 100 100;
+  stroke-dashoffset: 100;
+  fill-opacity: 0;
+  animation: kuiroStrokeLoop 2.2s cubic-bezier(0.35, 0.08, 0.25, 1) var(--kuiro-delay, 0ms) infinite;
 }
 
-.kuiro-loader-upper {
-  --kuiro-dx: 28px;
-  --kuiro-dy: -20px;
-  transform-origin: center;
-  animation: kuiroPartAssemble 1.85s cubic-bezier(0.22, 1, 0.36, 1) 0.14s infinite;
+.kuiro-wordmark-wipe {
+  clip-path: inset(0 100% 0 0);
+  animation: kuiroWordmarkWipe 0.62s cubic-bezier(0.22, 1, 0.36, 1) 0.24s forwards;
 }
 
-.kuiro-loader-lower {
-  --kuiro-dx: 28px;
-  --kuiro-dy: 20px;
-  transform-origin: center;
-  animation: kuiroPartAssemble 1.85s cubic-bezier(0.22, 1, 0.36, 1) 0.28s infinite;
-}
-
-.kuiro-loader-halo {
-  animation: kuiroHaloBreathe 2.2s ease-in-out infinite;
+.kuiro-beat-word {
+  opacity: 0.25;
+  animation: kuiroBeatWord 0.45s cubic-bezier(0.22, 1, 0.36, 1) var(--beat-delay, 0.2s) forwards;
 }
 
 .kuiro-loader-bar {
-  animation: kuiroBarGlide 1.35s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation: kuiroBarGlide 1.25s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }

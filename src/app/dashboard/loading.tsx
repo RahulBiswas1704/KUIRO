@@ -5,8 +5,9 @@ export default function DashboardLoading() {
   return (
     <KuiroLoader
       variant="inline"
+      mode="loop"
       theme="dark"
-      label="Syncing your autopilot workspace..."
+      label="Syncing autopilot workspace..."
       className="min-h-[65vh]"
     />
   );
