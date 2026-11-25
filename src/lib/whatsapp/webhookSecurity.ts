@@ -1,4 +1,7 @@
 import crypto from 'crypto';
+import { timingSafeCompare } from '@/lib/security/timing';
+
+export { timingSafeCompare };
 
 /**
  * Dedicated Meta WhatsApp Cloud API Webhook Security & Verification Service
@@ -16,18 +19,6 @@ import crypto from 'crypto';
 const PROCESSED_EVENT_CACHE = new Map<string, number>();
 const MAX_CACHE_ENTRIES = 10000;
 const EVENT_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-
-/**
- * Constant-time string equality check to prevent timing analysis attacks.
- */
-export function timingSafeCompare(a: string, b: string): boolean {
-  const bufA = Buffer.from(a, 'utf8');
-  const bufB = Buffer.from(b, 'utf8');
-  if (bufA.length !== bufB.length) {
-    return false;
-  }
-  return crypto.timingSafeEqual(bufA, bufB);
-}
 
 /**
  * Validates Meta's initial GET verification challenge.

@@ -1,6 +1,9 @@
 import { NextRequest } from 'next/server';
 import crypto from 'crypto';
 import { db, adminAuditLogs } from '@/db';
+import { timingSafeCompare, getClientIp } from '@/lib/security/timing';
+
+export { timingSafeCompare };
 
 /**
  * ============================================================================
@@ -43,18 +46,6 @@ export function resetCronRateLimits(): void {
   cronRateLimitStore.clear();
 }
 
-/**
- * Constant-time string equality check to prevent timing analysis attacks.
- */
-export function timingSafeCompare(a: string, b: string): boolean {
-  const bufA = Buffer.from(a, 'utf8');
-  const bufB = Buffer.from(b, 'utf8');
-  if (bufA.length !== bufB.length) {
-    return false;
-  }
-  return crypto.timingSafeEqual(bufA, bufB);
-}
-
 export interface CronAuthResult {
   authorized: boolean;
   status: number; // 200, 401, 403, 429, 500
@@ -77,10 +68,7 @@ export async function verifyCronAuthorization(
 ): Promise<CronAuthResult> {
   const isProduction = process.env.NODE_ENV === 'production';
   const cronSecret = process.env.CRON_SECRET?.trim();
-  const clientIp =
-    req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-    req.headers.get('x-real-ip') ||
-    '127.0.0.1';
+  const clientIp = getClientIp(req);
   const userAgent = req.headers.get('user-agent') || 'Unknown';
   const now = Date.now();
 

@@ -1,6 +1,9 @@
 import { NextRequest } from 'next/server';
 import crypto from 'crypto';
 import { db, adminAuditLogs } from '@/db';
+import { timingSafeCompare, getClientIp } from '@/lib/security/timing';
+
+export { timingSafeCompare };
 
 /**
  * ============================================================================
@@ -80,21 +83,6 @@ export const RATE_LIMIT_LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes lockout
  */
 export function generateHighEntropySecret(bytes: number = 32): string {
   return crypto.randomBytes(bytes).toString('hex'); // 64 hex characters (256-bit entropy)
-}
-
-/**
- * Constant-time comparison mitigating side-channel timing analysis attacks.
- */
-export function timingSafeCompare(a: string, b: string): boolean {
-  if (typeof a !== 'string' || typeof b !== 'string') return false;
-  const bufA = Buffer.from(a, 'utf8');
-  const bufB = Buffer.from(b, 'utf8');
-  if (bufA.length !== bufB.length) {
-    // Perform dummy constant-time comparison against itself to equalize timing
-    crypto.timingSafeEqual(bufA, bufA);
-    return false;
-  }
-  return crypto.timingSafeEqual(bufA, bufB);
 }
 
 /**
@@ -323,9 +311,7 @@ export async function recordAdminAuditLog(params: AdminAuditLogParams): Promise<
     let userAgent = params.userAgent;
 
     if (params.req) {
-      const forwarded = params.req.headers.get('x-forwarded-for');
-      const realIp = params.req.headers.get('x-real-ip');
-      clientIp = clientIp || (forwarded ? forwarded.split(',')[0].trim() : realIp || '127.0.0.1');
+      clientIp = clientIp || getClientIp(params.req);
       userAgent = userAgent || params.req.headers.get('user-agent') || 'Unknown Agent';
     }
 

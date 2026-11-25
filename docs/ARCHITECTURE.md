@@ -92,9 +92,9 @@ src/
 │   ├── brand/                  # KuiroLogo SVG, KuiroLoader & RouteLoaderProvider
 │   ├── calendar/               # CustomMilestoneModal
 │   ├── contact/                # ContactHeroSection, ContactHubAndFormSection, ContactFaqAndCta
-│   ├── dashboard/              # BrandStudioCanvas, CampaignRoiDashboard, Exporter
+│   ├── dashboard/              # BrandStudioCanvas, ROI Dashboard, Preview, Composer, Exporter
 │   ├── home/                   # HeroSection, GainsBentoSection, ProcessSteps, SocialProof, Faq
-│   ├── inbox/                  # DynamicSnippetManagerModal, InChatPaymentModal
+│   ├── inbox/                  # InboxLiveTab, Automations/CRM/Analytics tabs & Modals
 │   ├── layout/                 # Navbar, Footer, AnnouncementBar
 │   ├── legal/                  # Shared LegalPageShell for Privacy, Terms & Disclaimer
 │   ├── marketing/              # CampaignRoiCalculator
@@ -111,7 +111,7 @@ src/
 ├── lib/                        # Core Domain Subsystems
 │   ├── ai/                     # Gemini Flash Lite, 6D AI Critic, Voice Processing
 │   ├── brand-brain/            # URL Scraper, Knowledge Schemas, Logo Analysis
-│   ├── campaigns/              # 48-Hour FSM, Multi-Channel Generator, Surgical Reviser
+│   ├── campaigns/              # 48-Hour FSM, Copy/Post Generator Pipeline, Surgical Reviser
 │   ├── cron/                   # Vercel Cron Authentication & Schedule Gate
 │   ├── crypto/                 # AES-256-GCM Authenticated Token Vault
 │   ├── email/                  # Transactional Email, Invitations & Autonomous Newsletter Publisher
@@ -123,7 +123,7 @@ src/
 │   ├── publishers/             # Social Publishing Dispatchers
 │   ├── realtime/               # Distributed Shared Pub/Sub Engine
 │   ├── scheduler/              # Scheduler Inventory, Execution Engine & Telemetry
-│   ├── security/               # SSRF Protection & safeFetch IP Filter
+│   ├── security/               # SSRF Protection, safeFetch, timingSafeCompare & IP Helper
 │   ├── social/                 # Meta OAuth, Token Auto-Refresh, Social Publishers (incl. YouTube)
 │   ├── storage/                # Cloudflare R2 / Neon Object Storage Client
 │   ├── whatsapp/               # WhatsApp Cloud API, Webhook Security, Voice Transcriber

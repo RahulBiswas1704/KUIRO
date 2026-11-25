@@ -65,9 +65,9 @@ KUIRO/
 │   │   ├── brand/              # Dynamic SVG KuiroLogo, KuiroLoader & RouteLoaderProvider
 │   │   ├── calendar/           # CustomMilestoneModal (flash sales & anniversaries)
 │   │   ├── contact/            # ContactHeroSection, ContactHubAndFormSection & ContactFaqAndCta
-│   │   ├── dashboard/          # BrandStudioCanvas, ROI Dashboard, Channels Modal, Exporter
+│   │   ├── dashboard/          # BrandStudioCanvas, ROI Dashboard, Channels, Preview & Composer
 │   │   ├── home/               # Redesigned editorial landing page sections
-│   │   ├── inbox/              # DynamicSnippetManagerModal & InChatPaymentModal
+│   │   ├── inbox/              # InboxLiveTab, Automations/CRM/Analytics tabs & Modals
 │   │   ├── layout/             # AnnouncementBar, Navbar, Footer
 │   │   ├── legal/              # Shared LegalPageShell for Privacy, Terms & Disclaimer
 │   │   ├── marketing/          # CampaignRoiCalculator
@@ -83,7 +83,7 @@ KUIRO/
 │   ├── lib/                    # Domain Subsystems (with index.ts barrel hub)
 │   │   ├── ai/                 # Gemini Flash Lite, 6D AI Critic, image analysis & voice transcription
 │   │   ├── brand-brain/        # URL knowledge extraction, schema validation, logo analysis
-│   │   ├── campaigns/          # 48-hour state machine, multi-channel generator, surgical reviser
+│   │   ├── campaigns/          # 48-hour FSM, copy & post generator pipeline, surgical reviser
 │   │   ├── cron/               # Vercel Cron authentication & timing validation
 │   │   ├── crypto/             # AES-256-GCM token vault with multi-version key rotation
 │   │   ├── email/              # Transactional email, invitations & autonomous newsletter publisher
@@ -95,7 +95,7 @@ KUIRO/
 │   │   ├── publishers/         # Multi-platform post dispatchers
 │   │   ├── realtime/           # Distributed shared pub/sub manager & subscription authorization
 │   │   ├── scheduler/          # Scheduler inventory, execution engine & telemetry
-│   │   ├── security/           # SSRF protection, private IP filtering, safeFetch
+│   │   ├── security/           # SSRF protection (safeFetch), timingSafeCompare & IP extraction
 │   │   ├── social/             # Meta OAuth, token auto-refresh, multi-channel publishers
 │   │   ├── storage/            # Cloudflare R2 / Neon Object Storage S3 client
 │   │   └── whatsapp/           # Meta WhatsApp Cloud API client, webhook security & voice processor
